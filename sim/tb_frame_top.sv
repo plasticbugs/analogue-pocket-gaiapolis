@@ -1,0 +1,174 @@
+// Full video pipeline bench: tilemaps + ROZ + sprites + mixer, every memory
+// loadable from the C++ driver, one line rendered at a time and scanned out
+// through the mixer to RGB.
+`default_nettype none
+
+module tb_frame_top (
+    input  logic        clk,
+    input  logic        reset,
+
+    // ---- loads ----
+    input  logic        k56_we,  input logic [4:0] k56_addr,  input logic [15:0] k56_data,
+    input  logic        k55_we,  input logic [5:0] k55_addr,  input logic  [7:0] k55_data,
+    input  logic        k38_we,  input logic [3:0] k38_addr,  input logic [15:0] k38_data,
+    input  logic        rozc_we, input logic [2:0] rozc_addr, input logic [15:0] rozc_data,
+    input  logic        clip_we, input logic       clip_addr, input logic [15:0] clip_data,
+    input  logic        cfg_we,
+    input  logic        roz_enable_i,
+    input  logic [15:0] opset_i,
+    input  logic  [7:0] k46r5_i,
+    input  logic [15:0] k46offx_i, k46offy_i,
+    input  logic        vram_we, input logic [15:0] vram_waddr, input logic [15:0] vram_wdata,
+    input  logic        pal_we,  input logic [10:0] pal_waddr, input logic [23:0] pal_wdata,
+    input  logic        sram_we, input logic [10:0] sram_waddr, input logic [15:0] sram_wdata,
+    input  logic        trom_we, input logic [18:0] trom_waddr, input logic [31:0] trom_wdata,
+    input  logic        mrom_we, input logic [18:0] mrom_waddr, input logic [15:0] mrom_wdata,
+    input  logic        crom_we, input logic [19:0] crom_waddr, input logic [15:0] crom_wdata,
+    input  logic        srom_we, input logic [19:0] srom_waddr, input logic [63:0] srom_wdata,
+    input  logic        tab_we,  input logic tab_sel, input logic [10:0] tab_waddr, input logic [23:0] tab_wdata,
+
+    // ---- control ----
+    input  logic        build,
+    output logic        build_done,
+    input  logic        line_start,
+    input  logic  [8:0] line,
+    output logic        busy,
+    input  logic  [8:0] px,
+    output logic [23:0] rgb,
+    output logic        unsupported,
+    output logic        shadow_overlap
+);
+    // ------------------------------------------------------------ registers
+    logic [15:0] k56regs [32];
+    logic  [7:0] k55regs [48];
+    logic [15:0] k38regs [16];
+    logic [15:0] rozctrl [8];
+    logic [15:0] rozclip [2];
+    logic        roz_enable;
+    logic [15:0] opset, k46offx, k46offy;
+    logic  [7:0] k46r5;
+    always_ff @(posedge clk) begin
+        if (k56_we)  k56regs[k56_addr]  <= k56_data;
+        if (k55_we)  k55regs[k55_addr]  <= k55_data;
+        if (k38_we)  k38regs[k38_addr]  <= k38_data;
+        if (rozc_we) rozctrl[rozc_addr] <= rozc_data;
+        if (clip_we) rozclip[clip_addr] <= clip_data;
+        if (cfg_we) begin
+            roz_enable <= roz_enable_i; opset <= opset_i; k46r5 <= k46r5_i;
+            k46offx <= k46offx_i; k46offy <= k46offy_i;
+        end
+    end
+
+    // derived configuration, as tools/render_model.py derives it
+    logic [7:0] tm_colorbase [4];
+    always_comb for (int l = 0; l < 4; l++) tm_colorbase[l] = {k55regs[23 + l][3:0], 4'd0};
+    wire [7:0] roz_palbase = k55regs[28];
+    wire [7:0] spr_colorbase = {1'b0, k55regs[27][2:0], 4'd0};   // (reg << 4) & 0x7f
+    wire [7:0] objset1 = k46r5;
+    logic [2:0] shadowon;
+    logic [7:0] shdpri [3];
+    always_comb begin
+        for (int t = 0; t < 3; t++) begin
+            shadowon[t] = 1'b0;
+            for (int c = 0; c < 3; c++) begin
+                logic [8:0] d; d = k38regs[2 + t*3 + c][8:0];
+                // |delta| > 7, delta being 9-bit two's complement
+                if (d[8] ? (d < 9'h1f9) : (d > 9'd7)) shadowon[t] = 1'b1;
+            end
+            shdpri[t] = k55regs[37 + t];
+        end
+    end
+
+    // ------------------------------------------------------------ memories
+    logic [15:0] vram [65536];
+    logic [15:0] vram_addr, vram_q;
+    logic [31:0] trom [524288];
+    logic        trom_req, trom_ack; logic [18:0] trom_addr; logic [31:0] trom_q;
+    logic [15:0] mrom [327680];
+    logic        mrom_req, mrom_ack; logic [19:0] mrom_addr; logic [15:0] mrom_q;
+    logic [15:0] crom [786432];
+    logic        crom_req, crom_ack; logic [20:0] crom_addr; logic [15:0] crom_q;
+    logic [15:0] sram [2048];
+    logic [10:0] ol_sram_addr, dr_sram_addr, sram_addr; logic [15:0] sram_q;
+    logic [63:0] srom [1048576];
+    logic        srom_req, srom_ack; logic [19:0] srom_addr; logic [63:0] srom_q;
+    logic [23:0] zoomtab [1024], reciptab [2048];
+    logic  [9:0] zoom_addr; logic [10:0] recip_addr; logic [23:0] zoom_q, recip_q;
+    logic [23:0] pal [2048];
+    logic [10:0] pal_addr; logic [23:0] pal_q;
+    logic        ol_busy;
+    assign sram_addr = ol_busy ? ol_sram_addr : dr_sram_addr;
+
+    always_ff @(posedge clk) begin
+        if (vram_we) vram[vram_waddr] <= vram_wdata;
+        if (trom_we) trom[trom_waddr] <= trom_wdata;
+        if (mrom_we) mrom[mrom_waddr] <= mrom_wdata;
+        if (crom_we) crom[crom_waddr] <= crom_wdata;
+        if (sram_we) sram[sram_waddr] <= sram_wdata;
+        if (srom_we) srom[srom_waddr] <= srom_wdata;
+        if (pal_we)  pal[pal_waddr]   <= pal_wdata;
+        if (tab_we && !tab_sel) zoomtab[tab_waddr[9:0]] <= tab_wdata;
+        if (tab_we &&  tab_sel) reciptab[tab_waddr]     <= tab_wdata;
+        vram_q  <= vram[vram_addr];
+        trom_q  <= trom[trom_addr];      trom_ack <= trom_req & ~trom_ack;
+        mrom_q  <= mrom[mrom_addr[19:1]]; mrom_ack <= mrom_req & ~mrom_ack;
+        crom_q  <= crom[crom_addr[20:1]]; crom_ack <= crom_req & ~crom_ack;
+        sram_q  <= sram[sram_addr];
+        srom_q  <= srom[srom_addr];      srom_ack <= srom_req & ~srom_ack;
+        zoom_q  <= zoomtab[zoom_addr];
+        recip_q <= reciptab[recip_addr];
+        pal_q   <= pal[pal_addr];
+    end
+
+    // ------------------------------------------------------------ renderers
+    logic tm_busy, roz_busy, dr_busy, tm_unsup, roz_unsup;
+    logic [11:0] tm_pen [4]; logic [3:0] tm_opq;
+    logic [11:0] roz_pen;    logic roz_opq;
+    logic spr_opq, spr_shadow; logic [11:0] spr_pen; logic [7:0] spr_pri, spr_shpri; logic [1:0] spr_shtab;
+    logic  [9:0] list_idx, list_count; logic [31:0] list_q; logic overflow;
+    logic [31:0] dbg0, dbg1, dbg2, dbg3;
+
+    assign busy = tm_busy | roz_busy | dr_busy;
+    assign unsupported = tm_unsup | roz_unsup | overflow;
+
+    k056832_tilemap u_tm (
+        .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(tm_busy),
+        .regs(k56regs), .colorbase(tm_colorbase),
+        .vram_addr(vram_addr), .vram_q(vram_q),
+        .rom_req(trom_req), .rom_addr(trom_addr), .rom_ack(trom_ack), .rom_q(trom_q),
+        .px(px), .pix(tm_pen), .opaque(tm_opq), .unsupported(tm_unsup)
+    );
+    k053936_roz u_roz (
+        .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(roz_busy),
+        .ctrl(rozctrl), .clip(rozclip), .roz_enable(roz_enable), .palbase(roz_palbase),
+        .map_req(mrom_req), .map_addr(mrom_addr), .map_ack(mrom_ack), .map_q(mrom_q),
+        .chr_req(crom_req), .chr_addr(crom_addr), .chr_ack(crom_ack), .chr_q(crom_q),
+        .px(px), .pix(roz_pen), .opaque(roz_opq), .unsupported(roz_unsup)
+    );
+    k053247_objlist u_ol (
+        .clk(clk), .reset(reset), .start(build), .done(build_done), .busy(ol_busy),
+        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri),
+        .ram_addr(ol_sram_addr), .ram_q(sram_q),
+        .list_idx(list_idx), .list_q(list_q), .count(list_count), .overflow(overflow)
+    );
+    k053247_draw u_dr (
+        .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(dr_busy),
+        .k46r5(k46r5), .k46_offx(k46offx), .k46_offy(k46offy), .opset(opset), .colorbase(spr_colorbase),
+        .list_idx(list_idx), .list_q(list_q), .list_count(list_count),
+        .ram_addr(dr_sram_addr), .ram_q(sram_q),
+        .rom_req(srom_req), .rom_addr(srom_addr), .rom_ack(srom_ack), .rom_q(srom_q),
+        .zoom_addr(zoom_addr), .zoom_q(zoom_q), .recip_addr(recip_addr), .recip_q(recip_q),
+        .px(px), .out_opaque(spr_opq), .out_pen(spr_pen), .out_pri(spr_pri),
+        .out_shadow(spr_shadow), .out_shtab(spr_shtab), .out_shpri(spr_shpri),
+        .shadow_overlap(shadow_overlap),
+        .dbg_objs(dbg0), .dbg_rows(dbg1), .dbg_cols(dbg2), .dbg_pxw(dbg3)
+    );
+    k055555_mixer u_mx (
+        .clk(clk), .reset(reset),
+        .tm_pen(tm_pen), .tm_opq(tm_opq), .roz_pen(roz_pen), .roz_opq(roz_opq),
+        .spr_opq(spr_opq), .spr_pen(spr_pen), .spr_pri(spr_pri),
+        .spr_shadow(spr_shadow), .spr_shtab(spr_shtab), .spr_shpri(spr_shpri),
+        .k55regs(k55regs), .k38regs(k38regs), .roz_enable(roz_enable),
+        .pal_addr(pal_addr), .pal_q(pal_q), .rgb(rgb)
+    );
+endmodule

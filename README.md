@@ -21,9 +21,18 @@ pixels (`sim/run_tilemap.sh`, `sim/run_roz.sh`):
 | `rtl/k053936_roz.sv` -- rotate/zoom plane | `sim/run_roz.sh` | 2,777 clocks | 6,144 |
 | `rtl/k053247_objlist.sv` -- sprite draw list | `sim/run_objlist.sh` | 4,175 per frame | ~245,000 vblank |
 | `rtl/k053247_draw.sv` -- sprite rasterizer | `sim/run_sprite.sh` | 4,324 clocks | 6,144 |
+| `rtl/k055555_mixer.sv` -- priority encoder + colour stage | `sim/run_frame.sh` | -- | -- |
 
-**Every video chip now has working RTL.** Next: the mixer, then CPUs and
-platform integration.
+**The complete video pipeline is done.** `sim/run_frame.sh` runs every block
+together and reproduces the reference renderer's full frame exactly on all six
+states; the RTL output is in `artifacts/rtl_frames/`.
+
+The mixer is built the way the silicon works -- every input compared per
+pixel -- rather than as MAME's sort-and-paint. `tools/mixer_experiment.py`
+showed the two agree on every captured frame, shadows included, before that
+structure was chosen.
+
+Next: CPUs (68000 + Z80), sound (2 x K054539), then platform integration.
 
 ## What is here
 
@@ -40,7 +49,9 @@ platform integration.
 | `tools/render_model.py` | Reference renderer -- the executable spec the RTL is written against |
 | `tools/pngio.py` | Dependency-free PNG read/write |
 | `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
-| `sim/run_tilemap.sh`, `sim/run_roz.sh` | Frozen-state gates for the RTL, diffed against the model |
+| `sim/run_*.sh` | Frozen-state gates for each RTL block, and `run_frame.sh` for the whole pipeline, diffed against the model |
+| `tools/mixer_experiment.py` | Shows a per-pixel priority encoder reproduces MAME's ordered composite on this game |
+| `artifacts/rtl_frames/` | Full frames rendered by the RTL |
 | `rtl/` | Core RTL |
 | `artifacts/states/` | The frozen-state corpus and its matching MAME snapshots |
 | `artifacts/` | Snapshots, measurements, and other generated output |

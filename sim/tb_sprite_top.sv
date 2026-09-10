@@ -40,6 +40,7 @@ module tb_sprite_top (
     output logic  [7:0] out_pri,
     output logic        out_shadow,
     output logic  [1:0] out_shtab,
+    output logic  [7:0] out_shpri,
     output logic        shadow_overlap,
     output logic [31:0] dbg_objs, dbg_rows, dbg_cols, dbg_pxw
 );
@@ -109,7 +110,7 @@ module tb_sprite_top (
         .zoom_addr(zoom_addr), .zoom_q(zoom_q),
         .recip_addr(recip_addr), .recip_q(recip_q),
         .px(px), .out_opaque(out_opaque), .out_pen(out_pen), .out_pri(out_pri),
-        .out_shadow(out_shadow), .out_shtab(out_shtab),
+        .out_shadow(out_shadow), .out_shtab(out_shtab), .out_shpri(out_shpri),
         .shadow_overlap(shadow_overlap),
         .dbg_objs(dbg_objs), .dbg_rows(dbg_rows), .dbg_cols(dbg_cols), .dbg_pxw(dbg_pxw)
     );

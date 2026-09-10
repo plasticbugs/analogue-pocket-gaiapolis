@@ -39,6 +39,12 @@ SPR_DX, SPR_DY = -61, -22        # k055673 set_config(K055673_LAYOUT_RNG, -61, -
 ROZ_OFFS     = (-10, 0)          # K053936GP_set_offset(0, -10, 0)
 LSRAM_PAGE   = [(i, i << 11) for i in range(8)]   # k056832 defaults
 
+# MAME paints ROZ raster row N with the transform for row N-1 and never writes
+# the first visible row (docs/hardware.md section 10). The model reproduces
+# that by default so it can be gated against MAME; the RTL does not, so its
+# full-frame gate renders with this off (--roz-exact).
+ROZ_MAME_SHIFT = True
+
 K056832_PAGE_W, K056832_PAGE_H = 64, 32          # tiles
 SHIFTMASKS = [(6, 0x3f, 0, 0x00), (4, 0x0f, 2, 0x30),
               (2, 0x03, 2, 0x3c), (0, 0x00, 2, 0x3f)]
@@ -321,7 +327,7 @@ def render_roz(st, roms, pix, fb, pri, layer_pri):
     # than hardware behaviour (docs/hardware.md section 10) and the RTL should
     # probably not copy it.
     for ti in range(VIS_H):
-        y = ti + 1
+        y = ti + 1 if ROZ_MAME_SHIFT else ti
         cx, cy = startx, starty
         startx = (startx + incyx) & 0xffffffff
         starty = (starty + incyy) & 0xffffffff
@@ -792,7 +798,19 @@ def main():
         sys.exit(__doc__)
     st = State(args[0])
     roms = Roms(args[1])
+    if 'roz-exact' in [a[2:] for a in sys.argv[1:] if a.startswith('--')]:
+        global ROZ_MAME_SHIFT
+        ROZ_MAME_SHIFT = False
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
+
+    dumprgb = opts.get('dump-rgb')
+    if dumprgb:
+        import struct
+        _, fb = render(st, roms, layers)
+        with open(dumprgb, 'wb') as f:
+            f.write(struct.pack('<%dI' % len(fb), *fb))
+        print(f'wrote {dumprgb} ({VIS_H} x {VIS_W} uint32 RGB, layers {",".join(sorted(layers))})')
+        return
 
     dumpobjrgb = opts.get('dump-obj-rgb')
     if dumpobjrgb:

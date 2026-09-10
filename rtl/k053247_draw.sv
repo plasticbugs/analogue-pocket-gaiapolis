@@ -67,6 +67,7 @@ module k053247_draw #(
     output logic  [7:0] out_pri,
     output logic        out_shadow,
     output logic  [1:0] out_shtab,
+    output logic  [7:0] out_shpri,      // the shadow object's priority, for the mixer
 
     output logic        shadow_overlap,
 
@@ -89,12 +90,12 @@ module k053247_draw #(
     // ------------------------------------------------------------ buffers
     logic        bank;
     logic [20:0] solid [2][VIS_W];      // {opaque, pen[11:0], pri[7:0]}
-    logic  [2:0] shade [2][VIS_W];      // {flag, table[1:0]}
+    logic [10:0] shade [2][VIS_W];      // {flag, table[1:0], priority[7:0]}
     logic  [7:0] zbuf  [VIS_W];
     logic [15:0] szbuf [VIS_W];         // {z, priority}
 
     logic [20:0] rd_solid;
-    logic  [2:0] rd_shade;
+    logic [10:0] rd_shade;
     always_ff @(posedge clk) begin
         rd_solid <= solid[~bank][px];
         rd_shade <= shade[~bank][px];
@@ -102,8 +103,9 @@ module k053247_draw #(
     assign out_opaque = rd_solid[20];
     assign out_pen    = rd_solid[19:8];
     assign out_pri    = rd_solid[7:0];
-    assign out_shadow = rd_shade[2];
-    assign out_shtab  = rd_shade[1:0];
+    assign out_shadow = rd_shade[10];
+    assign out_shtab  = rd_shade[9:8];
+    assign out_shpri  = rd_shade[7:0];
 
     function automatic logic [5:0] xoffset(input logic [2:0] i);
         case (i)
@@ -383,13 +385,13 @@ module k053247_draw #(
                             dbg_pxw <= dbg_pxw + 1'd1;
                             zbuf[lbi]         <= zcode;
                             solid[bank][lbi]  <= {1'b1, color, pen, opri};
-                            shade[bank][lbi]  <= 3'd0;   // a later solid clears the shadow
+                            shade[bank][lbi]  <= 11'd0;  // a later solid clears the shadow
                         end
                     end else begin
                         if (pen >= shdpen && szb_z >= zcode && szb_p > opri) begin
                             szbuf[lbi]       <= {zcode, opri};
-                            shade[bank][lbi] <= {1'b1, shtab};
-                            if (shade[bank][lbi][2]) shadow_overlap <= 1'b1;
+                            shade[bank][lbi] <= {1'b1, shtab, opri};
+                            if (shade[bank][lbi][10]) shadow_overlap <= 1'b1;
                         end
                     end
                     ddax <= ddax + {8'd0, stride_x};
