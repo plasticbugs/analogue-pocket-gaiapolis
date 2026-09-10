@@ -46,6 +46,7 @@ SHIFTMASKS = [(6, 0x3f, 0, 0x00), (4, 0x0f, 2, 0x30),
 # K055555 register indices (k055555.h)
 K55_PALBASE_A, K55_PALBASE_OBJ, K55_PALBASE_SUB1 = 23, 27, 28
 K55_PRIINP = {'A': 7, 'B': 10, 'C': 13, 'D': 14, 'OBJ': 15, 'SUB1': 16}
+K55_SHAD1_PRI, K55_SHAD2_PRI, K55_SHAD3_PRI = 37, 38, 39
 K55_INPUT_ENABLES = 45
 K55_INP_BIT = {'A': 0x01, 'B': 0x02, 'C': 0x04, 'D': 0x08, 'OBJ': 0x10, 'SUB1': 0x20}
 
@@ -93,12 +94,44 @@ class State:
     def colorbase(self, layer):
         return self.k55regs[K55_PALBASE_A + layer] << 4
 
+    # --- K054338 ------------------------------------------------------
+    def bgcolor(self):
+        """fill_solid_bg: (BGC_R & 0xff) << 16 | BGC_GB"""
+        return ((self.k38regs[0] & 0xff) << 16) | self.k38regs[1]
+
+    def shd_rgb(self):
+        """9 signed deltas, three per shadow table (update_all_shadows)."""
+        out = []
+        for i in range(9):
+            d = self.k38regs[2 + i] & 0x1ff
+            out.append(d - 0x200 if d >= 0x100 else d)
+        return out
+
+    def shadowon(self):
+        """A shadow table is live only if some delta exceeds +/-7."""
+        v = self.shd_rgb()
+        return [1 if any(k < -7 or k > 7 for k in v[i * 3:i * 3 + 3]) else 0
+                for i in range(3)]
+
+    def shadow_deltas(self, mode):
+        if mode == 3:
+            return (-80, -80, -80)          # konamigx_mixer_init preset
+        v = self.shd_rgb()
+        return tuple(v[mode * 3:mode * 3 + 3])
+
+    def noclip(self):
+        return bool(self.k38regs[15] & 0x20)   # K338_CTL_CLIPSL
+
     # --- palette ------------------------------------------------------
     def color(self, idx):
         """xRGB_888: word 2i = 0x00RR, word 2i+1 = 0xGGBB (big-endian 68k)."""
         w0 = self.palette[idx * 2]
         w1 = self.palette[idx * 2 + 1]
         return (w0 & 0xff, (w1 >> 8) & 0xff, w1 & 0xff)
+
+    def rgb(self, idx):
+        """Same entry packed as 0xRRGGBB."""
+        return ((self.palette[idx * 2] & 0xff) << 16) | self.palette[idx * 2 + 1]
 
 
 class Roms:
@@ -129,13 +162,37 @@ class Roms:
         return self.d[o:o + 8]
 
 
+def pal5bit(v):
+    v &= 0x1f
+    return (v << 3) | (v >> 2)
+
+
+def apply_shadow(rgb, deltas, noclip):
+    """MAME's 15-bit shadow lookup: quantise to RGB15, add the deltas, clamp.
+
+    Lossy by construction -- even zero deltas darken slightly, which is why
+    MAME's own comment calls it "lossy, nasty, yuck!".
+    """
+    r5, g5, b5 = (rgb >> 19) & 0x1f, (rgb >> 11) & 0x1f, (rgb >> 3) & 0x1f
+    r = pal5bit(r5) + deltas[0]
+    g = pal5bit(g5) + deltas[1]
+    b = pal5bit(b5) + deltas[2]
+    if not noclip:
+        r = 0 if r < 0 else (255 if r > 255 else r)
+        g = 0 if g < 0 else (255 if g > 255 else g)
+        b = 0 if b < 0 else (255 if b > 255 else b)
+    else:
+        r &= 0xff; g &= 0xff; b &= 0xff
+    return (r << 16) | (g << 8) | b
+
+
 def nib(b, i):
     """pixel i of a packed-MSB 4bpp byte run"""
     return (b[i >> 1] >> 4) if not (i & 1) else (b[i >> 1] & 0x0f)
 
 
 # ------------------------------------------------------------ tile layers
-def render_tilemap(st, roms, layer, pix, pri, layer_pri):
+def render_tilemap(st, roms, layer, pix, fb, pri, layer_pri):
     """Paint one K056832 layer into pix[] (palette index, -1 = transparent)."""
     r0, rowspan, c0, colspan = st.layer_pages(layer)
     dx, dy = st.layer_scroll(layer)
@@ -190,7 +247,9 @@ def render_tilemap(st, roms, layer, pix, pri, layer_pri):
             pv = nib(roms.tile_row(code, rr), cc)
             if pv:
                 o = y * VIS_W + x
-                pix[o] = (color << 4) | pv
+                pen = (color << 4) | pv
+                pix[o] = pen
+                fb[o] = st.rgb(pen)
                 pri[o] = layer_pri
 
 
@@ -208,7 +267,7 @@ def roz_tile(st, roms, ti):
     return tileno, colour
 
 
-def render_roz(st, roms, pix, pri, layer_pri):
+def render_roz(st, roms, pix, fb, pri, layer_pri):
     if not (st.rozctrl[0] & 0x0100):        # ddd_053936_enable_w bit 8
         return
     c = st.rozct16
@@ -285,8 +344,305 @@ def render_roz(st, roms, pix, pri, layer_pri):
             if not pv:                       # cmask 0xf for 4bpp: pen 0 is clear
                 continue
             o = y * VIS_W + x
-            pix[o] = (colour << 4) | pv
+            pen = (colour << 4) | pv
+            pix[o] = pen
+            fb[o] = st.rgb(pen)
             pri[o] = layer_pri
+
+
+# -------------------------------------------------------------- sprites
+# K055673 (K053246/K053247 family) in K055673_LAYOUT_RNG: 16x16 4bpp tiles,
+# planes at bit offsets {24,16,8,0}, x offsets 0..7 then 32..39, row stride
+# 64 bits. One 64-bit word is one complete 16-pixel row, 128 bytes per tile.
+SPR_XOFFSET = (0, 1, 4, 5, 16, 17, 20, 21)
+SPR_YOFFSET = (0, 2, 8, 10, 32, 34, 40, 42)
+SPR_PLANEOFS = (24, 16, 8, 0)          # planeoffset[0] is the MSB
+FP = 19                                 # 13.19 fixed point in zdrawgfxzoom32GP
+GRANULARITY = 16                        # 4bpp
+SHDPEN = GRANULARITY - 1
+
+
+def decode_sprite_tile(roms, code):
+    """-> bytes(256), one pixel value per byte, row-major."""
+    base = ROM_SPRITES + ((code & 0xffff) * 128)
+    d = roms.d
+    out = bytearray(256)
+    for r in range(16):
+        rb = base + r * 8
+        for c in range(16):
+            xo = c if c < 8 else 32 + (c - 8)
+            v = 0
+            for pi, po in enumerate(SPR_PLANEOFS):
+                bit = po + xo
+                byte = d[rb + (bit >> 3)]
+                v |= ((byte >> (7 - (bit & 7))) & 1) << (3 - pi)
+            out[r * 16 + c] = v
+    return out
+
+
+def sprite_colorbase(st):
+    # screen_update_dadandrn, m_gametype == 0
+    return (st.k55regs[K55_PALBASE_OBJ] << 4) & 0x7f
+
+
+def sprite_objects(st):
+    """The K053247 object list, ordered exactly as konamigx_mixer sorts it.
+
+    order = pri<<24 | zcode<<16 | offs<<5 | drawmode<<4 | shadow, sorted
+    descending with ties keeping reverse insertion order, so the list is
+    back-to-front.
+    """
+    opset = st.k47regs[6]                       # k053247_read_register(0xc/2)
+    objset1 = st.k46regs[5]                     # k053246_read_register(5)
+    shadowon = st.shadowon()
+    shdpri = [st.k55regs[K55_SHAD1_PRI], st.k55regs[K55_SHAD2_PRI],
+              st.k55regs[K55_SHAD3_PRI]]
+    cb = sprite_colorbase(st)
+    objs = []
+    for n in range(256):
+        offs = n * 8
+        w0 = st.spriteram[offs]
+        if not (w0 & 0x8000):
+            continue
+        zcode = w0 & 0xff
+        if opset & 0x10:                        # OPSET PRI inverts z order
+            zcode = 0xff - zcode
+        code = st.spriteram[offs + 1]
+        raw = st.spriteram[offs + 6]
+        # gaiapols_sprite_callback
+        pri = raw & 0xe0
+        color = cb | ((raw >> 4) & 0x20) | (raw & 0x1f)
+
+        # konamigx_mixer: a sprite can contribute a solid object, a shadow
+        # object, or both.
+        shadow = (raw >> 10) & 3
+        add_solid = add_shadow = False
+        solid_mode = shadow_mode = 0
+        if shadow:
+            if shadow != 1 or (objset1 & 0x20):
+                shadow -= 1
+                add_solid, solid_mode = True, 1     # partial solid
+                if shadowon[shadow]:
+                    add_shadow, shadow_mode = True, 4   # partial shadow
+            else:
+                # shadow code 1 with SD0EN off drops the whole sprite to shadow
+                shadow = 0
+                if not shadowon[0]:
+                    continue
+                add_shadow, shadow_mode = True, 5       # full shadow
+        else:
+            add_solid, solid_mode = True, 0             # full solid
+
+        if add_solid:
+            order = (pri << 24) | (zcode << 16) | (offs << 5) | (solid_mode << 4)
+            objs.append((order, offs, code, color, solid_mode, pri))
+        if add_shadow:
+            spri = pri if (opset & 0x20) else shdpri[shadow]
+            order = ((spri << 24) | (zcode << 16) | (offs << 5)
+                     | (shadow_mode << 4) | shadow)
+            objs.append((order, offs, code, color, shadow_mode, spri))
+
+    objs.reverse()
+    objs.sort(key=lambda o: -o[0])               # stable: ties keep order
+    return objs
+
+
+def draw_sprite_tile(st, roms, pix, fb, zbuf, szbuf, tile, color, flipx, flipy,
+                     sx, sy, zw, zh, zcode, drawmode, pri, shd, cache):
+    """zdrawgfxzoom32GP: drawmode 0-3 solid/alpha, 4-5 shadow. Alpha is not
+    reached by gaiapolis (its sprite callback sets no mix bits)."""
+    scalex, scaley = zw << 12, zh << 12
+    if not scalex or not scaley:
+        return
+    dw = ((scalex << 4) + 0x8000) >> 16
+    dh = ((scaley << 4) + 0x8000) >> 16
+    if dw <= 0 or dh <= 0:
+        return
+    left, top = sx, sy
+    right, bottom = sx + dw - 1, sy + dh - 1
+    # cliprect is the visible area in raster coordinates
+    cl, cr, ct, cb_ = VIS_X0, VIS_X0 + VIS_W - 1, VIS_Y0, VIS_Y0 + VIS_H - 1
+    if left > cr or right < cl or top > cb_ or bottom < ct:
+        return
+
+    src_stride_x = (16 << FP) // dw
+    src_stride_y = (16 << FP) // dh
+    src_base_x = max(cl - left, 0) * src_stride_x
+    src_base_y = max(ct - top, 0) * src_stride_y
+
+    left, right = max(left, cl), min(right, cr)
+    top, bottom = max(top, ct), min(bottom, cb_)
+
+    flip_mask = (15 if flipx else 0) | ((15 << 4) if flipy else 0)
+
+    src = cache.get(tile)
+    if src is None:
+        src = decode_sprite_tile(roms, tile)
+        cache[tile] = src
+
+    pal_base = (color % 128) * GRANULARITY
+    z8 = zcode & 0xff
+    shdpen = SHDPEN
+    if drawmode == 5:
+        drawmode, shdpen = 4, 1
+
+    if drawmode < 4:
+        test_shd = bool(drawmode & 3)
+        for y in range(bottom - top + 1):
+            y_off = (src_base_y + y * src_stride_y) >> FP
+            row = y_off * 16
+            base = (top - VIS_Y0 + y) * VIS_W + (left - VIS_X0)
+            for x in range(right - left + 1):
+                x_off = (src_base_x + x * src_stride_x) >> FP
+                pal_idx = src[(x_off + row) ^ flip_mask]
+                if not pal_idx:
+                    continue
+                if test_shd and pal_idx >= shdpen:
+                    continue
+                o = base + x
+                if zbuf[o] < z8:
+                    continue
+                zbuf[o] = z8
+                pen = pal_base + pal_idx
+                pix[o] = pen
+                fb[o] = st.rgb(pen)
+    else:
+        deltas, noclip = shd
+        for y in range(bottom - top + 1):
+            y_off = (src_base_y + y * src_stride_y) >> FP
+            row = y_off * 16
+            base = (top - VIS_Y0 + y) * VIS_W + (left - VIS_X0)
+            for x in range(right - left + 1):
+                x_off = (src_base_x + x * src_stride_x) >> FP
+                pal_idx = src[(x_off + row) ^ flip_mask]
+                if pal_idx < shdpen:
+                    continue
+                o = base + x
+                if szbuf[o * 2] < z8 or szbuf[o * 2 + 1] <= pri:
+                    continue
+                szbuf[o * 2] = z8
+                szbuf[o * 2 + 1] = pri
+                fb[o] = apply_shadow(fb[o], deltas, noclip)
+
+
+def render_sprites(st, roms, pix, fb):
+    """K053247 objects: solid pens with a per-pixel Z buffer, plus shadow
+    objects with their own Z/priority buffer."""
+    ram = st.spriteram
+    k46 = st.k46regs
+    opset = st.k47regs[6]
+    flipscreenx = k46[5] & 1
+    flipscreeny = (k46[5] >> 1) & 1
+    offx = s16((k46[0] << 8) | k46[1])
+    offy = s16((k46[2] << 8) | k46[3])
+    if opset & 0x40:
+        wrapsize, xwraplim, ywraplim = 512, 512 - 64, 512 - 128
+    else:
+        wrapsize, xwraplim, ywraplim = 1024, 1024 - 384, 1024 - 512
+
+    zbuf = bytearray(b'\xff' * (VIS_W * VIS_H))          # wipezbuf: memset -1
+    szbuf = bytearray(b'\xff' * (VIS_W * VIS_H * 2))     # shadow z + priority
+    cache = {}
+    noclip = st.noclip()
+
+    for order, offs, code, color, drawmode, pri in sprite_objects(st):
+        zcode = (order >> 16) & 0xff
+        shd = (st.shadow_deltas(order & 3), noclip) if drawmode >= 4 else None
+        temp4 = ram[offs]
+
+        xa = ya = 0
+        if code & 0x01: xa += 1
+        if code & 0x02: ya += 1
+        if code & 0x04: xa += 2
+        if code & 0x08: ya += 2
+        if code & 0x10: xa += 4
+        if code & 0x20: ya += 4
+        code &= ~0x3f
+
+        oy = ram[offs + 2] & 0x3ff
+        ox = ram[offs + 3] & 0x3ff
+
+        scaley = ram[offs + 4] & 0x3ff
+        zoomy = ((0x400000 + (scaley >> 1)) // scaley) if scaley else 0x800000
+        if temp4 & 0x4000:
+            zoomx, scalex = zoomy, scaley
+        else:
+            scalex = ram[offs + 5] & 0x3ff
+            zoomx = ((0x400000 + (scalex >> 1)) // scalex) if scalex else 0x800000
+        nozoom = (scalex == 0x40 and scaley == 0x40)
+
+        flipx = temp4 & 0x1000
+        flipy = temp4 & 0x2000
+        attr = ram[offs + 6]
+        mirrorx = attr & 0x4000
+        if mirrorx:
+            flipx = 0
+        mirrory = attr & 0x8000
+
+        if flipscreenx:
+            ox = -ox
+            if not mirrorx:
+                flipx = not flipx
+        if flipscreeny:
+            oy = -oy
+            if not mirrory:
+                flipy = not flipy
+
+        # GX path applies the global offsets before wrapping
+        ox += SPR_DX
+        oy -= SPR_DY
+        ox = (ox - offx) & (wrapsize - 1)
+        oy = ((-oy) - offy) & (wrapsize - 1)
+        if ox >= xwraplim: ox -= wrapsize
+        if oy >= ywraplim: oy -= wrapsize
+
+        sz = (temp4 >> 8) & 0x0f
+        width = 1 << (sz & 3)
+        height = 1 << ((sz >> 2) & 3)
+
+        ox -= (zoomx * width) >> 13
+        oy -= (zoomy * height) >> 13
+
+        for y in range(height):
+            sy = oy + ((zoomy * y + (1 << 11)) >> 12)
+            zh = (oy + ((zoomy * (y + 1) + (1 << 11)) >> 12)) - sy
+            for x in range(width):
+                sx = ox + ((zoomx * x + (1 << 11)) >> 12)
+                zw = (ox + ((zoomx * (x + 1) + (1 << 11)) >> 12)) - sx
+                tempcode = code
+
+                if mirrorx:
+                    if (not flipx) ^ ((x << 1) < width):
+                        tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
+                        fx = 1
+                    else:
+                        tempcode += SPR_XOFFSET[(x + xa) & 7]
+                        fx = 0
+                else:
+                    if flipx:
+                        tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
+                    else:
+                        tempcode += SPR_XOFFSET[(x + xa) & 7]
+                    fx = bool(flipx)
+
+                if mirrory:
+                    if (not flipy) ^ ((y << 1) >= height):
+                        tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
+                        fy = 1
+                    else:
+                        tempcode += SPR_YOFFSET[(y + ya) & 7]
+                        fy = 0
+                else:
+                    if flipy:
+                        tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
+                    else:
+                        tempcode += SPR_YOFFSET[(y + ya) & 7]
+                    fy = bool(flipy)
+
+                w, h = (0x10, 0x10) if nozoom else (zw, zh)
+                draw_sprite_tile(st, roms, pix, fb, zbuf, szbuf, tempcode, color,
+                                 fx, fy, sx, sy, w, h, zcode, drawmode, pri,
+                                 shd, cache)
 
 
 # ------------------------------------------------------------------ main
@@ -294,26 +650,31 @@ def render(st, roms, layers):
     n = VIS_W * VIS_H
     pix = [-1] * n
     pri = [0] * n
+    fb = [st.bgcolor()] * n
+    if 'OBJ' in layers:
+        render_sprites(st, roms, pix, fb)
     if 'SUB1' in layers:
-        render_roz(st, roms, pix, pri, st.k55regs[K55_PRIINP['SUB1']])
+        render_roz(st, roms, pix, fb, pri, st.k55regs[K55_PRIINP['SUB1']])
     for name in ('D', 'C', 'B', 'A'):        # back to front for now
         if name not in layers:
             continue
         li = 'ABCD'.index(name)
-        render_tilemap(st, roms, li, pix, pri, st.k55regs[K55_PRIINP[name]])
-    return pix
+        render_tilemap(st, roms, li, pix, fb, pri, st.k55regs[K55_PRIINP[name]])
+    return pix, fb
 
 
-def to_rgb_rot90(st, pix):
+def to_rgb_rot90(fb):
     """raster (x,y) -> ROT90 snapshot (223-y, x); returns (w,h,rgb)."""
     w, h = VIS_H, VIS_W
     out = bytearray(w * h * 3)
     for y in range(VIS_H):
+        row = y * VIS_W
         for x in range(VIS_W):
-            v = pix[y * VIS_W + x]
-            r, g, b = st.color(v & 0x7ff) if v >= 0 else (0, 0, 0)
+            v = fb[row + x]
             o = (x * w + (VIS_H - 1 - y)) * 3
-            out[o], out[o + 1], out[o + 2] = r, g, b
+            out[o] = (v >> 16) & 0xff
+            out[o + 1] = (v >> 8) & 0xff
+            out[o + 2] = v & 0xff
     return w, h, out
 
 
@@ -326,8 +687,8 @@ def main():
     roms = Roms(args[1])
     layers = set((opts.get('layers') or 'A,B,C,D').split(','))
 
-    pix = render(st, roms, layers)
-    w, h, rgb = to_rgb_rot90(st, pix)
+    pix, fb = render(st, roms, layers)
+    w, h, rgb = to_rgb_rot90(fb)
 
     out = opts.get('out')
     if out:

@@ -21,6 +21,7 @@ for st in artifacts/states/*.txt; do
         *_A) layers=A ;; *_B) layers=B ;; *_C) layers=C ;; *_D) layers=D ;;
         *_tm) layers=A,B,C,D ;;
         *_roz) layers=SUB1 ;;
+        *_obj) layers=OBJ ;;
         *) continue ;;          # full-frame states need sprites + ROZ; not yet
     esac
     out=$(python3 tools/render_model.py "$st" "$ROM" --layers="$layers" \
