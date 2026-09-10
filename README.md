@@ -4,10 +4,13 @@ Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
 **Status: the whole machine boots through its self-test with every item OK
-and into the game in simulation; the Pocket build fits the FPGA (53% logic,
-66% block RAM) and is being timed and brought up on hardware.**
+and into the attract mode with music in simulation; the Pocket build fits
+the FPGA (52% logic, 66% block RAM) and is being timed and brought up on
+hardware.**
 
-![self-test, every item OK](artifacts/system/selftest_all_ok.png)
+| RTL, frame 1400 | MAME, frame 1400 | self-test |
+|---|---|---|
+| ![RTL attract](artifacts/system/attract_f1400.png) | ![MAME attract](artifacts/system/attract_mame_f1400.png) | ![self-test, every item OK](artifacts/system/selftest_all_ok.png) |
 
 **The reference renderer is complete and reproduces MAME's output exactly** --
 full frames, not just individual layers. `tools/regress_render.sh`: 28 gates,

@@ -147,7 +147,8 @@ module gaia_sound #(
     logic [21:0] p1_addr, p2_addr;
     logic [15:0] l1, r1, l2, r2;
 
-    // MACHINE_RESET gaiapols: chip 1 channels 5-7 ("voice") x2.0
+    // MACHINE_RESET gaiapols: chip 1 channels 5-7 ("voice") x2.0. The packed
+    // literal lists index 7 first, so the three 0x8000 entries are channels 7..5.
     k054539 #(.HEXDIR(HEXDIR), .GAIN_Q14({16'h8000, 16'h8000, 16'h8000, 16'h4000, 16'h4000, 16'h4000, 16'h4000, 16'h4000})) u_k1 (
         .clk(clk), .reset(reset), .cen_48k(cen_48k),
         .cs(sel_k1), .wr(mem_wr), .rd(mem_rd), .addr(A[9:0]), .wdata(cpu_do), .rdata(k1_q), .rd_stall(k1_stall),

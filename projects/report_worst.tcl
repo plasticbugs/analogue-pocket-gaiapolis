@@ -11,6 +11,11 @@ read_sdc
 update_timing_netlist
 set n [report_timing -setup -npaths 40 -detail full_path \
         -file output_files/worst_paths.txt]
+# the SDRAM interface on its own: its paths never make the top 40 but the
+# summary's dram_clk corner can still be negative
+set nd [report_timing -setup -npaths 10 -detail full_path -to_clock dram_clk \
+        -file output_files/worst_dram.txt]
+puts "dram_clk paths returned: $nd"
 puts "report_timing returned: $n"
 report_clocks -file output_files/clocks.txt
 report_sdc    -file output_files/sdc_applied.txt
