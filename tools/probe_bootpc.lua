@@ -3,8 +3,8 @@
 local mach = manager.machine
 local cpu  = mach.devices[":maincpu"]
 local f = 0
-local out = io.open("artifacts/system/mame_boot_pc.txt", "w")
-local snaps = { [60]=true, [120]=true, [180]=true }
+local out = io.open("artifacts/system/mame_boot_pc600.txt", "w")
+local snaps = { [60]=true, [120]=true, [180]=true, [300]=true, [420]=true, [540]=true }
 _G.KEEP = {}
 _G.KEEP.n = emu.add_machine_frame_notifier(function()
   f = f + 1

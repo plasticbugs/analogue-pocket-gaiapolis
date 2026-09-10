@@ -26,3 +26,6 @@ artifacts/mame_regions.txt
 artifacts/rtl/
 sim/obj_*/
 sim/*.log
+artifacts/system/*_reads.txt
+artifacts/system/*.rgb
+artifacts/system/*.rgb.f*

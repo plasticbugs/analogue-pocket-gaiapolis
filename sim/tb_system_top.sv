@@ -22,6 +22,7 @@ module tb_system_top (
     output logic [23:0] rgb,
     output logic        hsync, vsync, de, vblank,
     output logic [23:0] dbg_addr,
+    output logic [15:0] dbg_data,
     output logic  [1:0] dbg_busstate,
     output logic        dbg_step, dbg_irq5, dbg_overrun, dbg_unsupported, dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
@@ -63,7 +64,7 @@ module tb_system_top (
         .in0_p1(in0_p1), .in1(in1), .p2(p2),
         .cen_pix(cen_pix), .rgb(rgb), .hsync(hsync), .vsync(vsync), .de(de), .vblank(vblank),
         .snd_l(snd_l), .snd_r(snd_r),
-        .dbg_addr(dbg_addr), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
+        .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
         .dbg_overrun(dbg_overrun), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
         .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount)
     );

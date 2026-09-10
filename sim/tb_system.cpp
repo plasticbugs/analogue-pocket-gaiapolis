@@ -94,6 +94,13 @@ int main(int argc, char **argv) {
     unsigned long long frame_steps = 0;
     unsigned de_pixels = 0;
     unsigned last_fetch = 0;
+    unsigned logwin_lo = 0, logwin_hi = 0; unsigned logged = 0;
+    // LOGRD=lo,hi[,lo2,hi2] (hex): log every data read inside these address
+    // ranges as "frame addr data", the format tools/probe_reads.lua uses
+    unsigned rd_lo[2] = {0, 0}, rd_hi[2] = {0, 0}; int nrd = 0;
+    FILE *rdlog = nullptr;
+    if (getenv("LOGRD")) { nrd = sscanf(getenv("LOGRD"), "%x,%x,%x,%x", &rd_lo[0], &rd_hi[0], &rd_lo[1], &rd_hi[1]) / 2; rdlog = fopen(getenv("RDLOG") ? getenv("RDLOG") : "rtl_reads.txt", "w"); }
+    if (getenv("LOGWIN")) sscanf(getenv("LOGWIN"), "%x,%x", &logwin_lo, &logwin_hi);
     // WATCH=addr[,addr...] (hex): count opcode fetches of these per frame
     std::vector<unsigned> watch; std::vector<unsigned> watch_n;
     if (getenv("WATCH")) { char *w = strdup(getenv("WATCH")); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) { watch.push_back(strtoul(t, nullptr, 16)); watch_n.push_back(0); } }
@@ -103,6 +110,16 @@ int main(int argc, char **argv) {
         tick();
         if (dut->dbg_step) {
             steps_total++; frame_steps++;
+            if (rdlog && dut->dbg_busstate == 2) {
+                unsigned a = dut->dbg_addr;
+                for (int i = 0; i < nrd; i++) if (a >= rd_lo[i] && a <= rd_hi[i]) { fprintf(rdlog, "%d %06x %04x\n", frame, a, (unsigned)dut->dbg_data); break; }
+            }
+            if (tr && logwin_hi && last_fetch >= logwin_lo && last_fetch <= logwin_hi && logged < 400) {
+                fprintf(tr, "  bus f%d %s %06x = %04x\n", frame,
+                        dut->dbg_busstate == 0 ? "fetch" : dut->dbg_busstate == 3 ? "write" : "read ",
+                        (unsigned)dut->dbg_addr, (unsigned)dut->dbg_data);
+                logged++;
+            }
             if (dut->dbg_busstate == 0) {
                 last_fetch = dut->dbg_addr;
                 fr_hist[last_fetch]++;
@@ -158,6 +175,7 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < top.size() && i < 6; i++) printf(" %06x(%u)", top[i].first, top[i].second);
     printf("\n");
     if (tr) fclose(tr);
+    if (rdlog) fclose(rdlog);
     delete dut;
     return 0;
 }

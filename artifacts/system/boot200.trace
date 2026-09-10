@@ -1,0 +1,750 @@
+frame 0: steps=1 irq5=1 objs=0 overrun=0 unsup=0 de_px=0 pc=000000 hot=000000(0)
+   watch 202064: 0
+frame 1: steps=65536 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=200012 hot=20000c(16373)
+   watch 202064: 0
+frame 2: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=200012 hot=20000c(18011)
+   watch 202064: 0
+frame 3: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=20000e hot=20000c(18014)
+   watch 202064: 0
+frame 4: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=200010(17252)
+   watch 202064: 0
+frame 5: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=201f92(2403)
+   watch 202064: 0
+frame 6: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=201f94(2403)
+   watch 202064: 0
+frame 7: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=201f80(2402)
+   watch 202064: 0
+frame 8: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202044 hot=201fec(2048)
+   watch 202064: 0
+  bus f9 read  201bfa = 4ed6
+  bus f9 fetch 201bfa = 45f9
+frame 9: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f80(1690)
+   watch 202064: 0
+frame 10: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f90(2403)
+   watch 202064: 0
+frame 11: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa0 hot=201f92(2402)
+   watch 202064: 0
+frame 12: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fee hot=201fa2(1700)
+   watch 202064: 0
+  bus f13 read  201c1c = 4ed6
+  bus f13 fetch 201c1c = 13fc
+frame 13: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=20201e(2048)
+   watch 202064: 0
+frame 14: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2402)
+   watch 202064: 0
+frame 15: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f82 hot=201f82(2403)
+   watch 202064: 0
+frame 16: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f84 hot=201f84(2403)
+   watch 202064: 0
+  bus f17 read  201c2e = 4ed6
+  bus f17 fetch 201c2e = 13fc
+frame 17: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201fec(2048)
+   watch 202064: 0
+frame 18: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa6 hot=201fa4(2403)
+   watch 202064: 0
+frame 19: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbc hot=201fba(2403)
+   watch 202064: 0
+frame 20: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f80(2402)
+   watch 202064: 0
+frame 21: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=20204c hot=201fec(2048)
+   watch 202064: 0
+  bus f22 read  201c40 = 4ed6
+  bus f22 fetch 201c40 = 13fc
+frame 22: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=201f80(1770)
+   watch 202064: 0
+frame 23: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f88(2402)
+   watch 202064: 0
+frame 24: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9a hot=201f9a(2403)
+   watch 202064: 0
+frame 25: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffc hot=201fec(1673)
+   watch 202064: 0
+  bus f26 read  201c52 = 4ed6
+  bus f26 fetch 201c52 = 13fc
+frame 26: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f82 hot=20201e(2048)
+   watch 202064: 0
+frame 27: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f84(2402)
+   watch 202064: 0
+frame 28: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa6 hot=201fa4(2403)
+   watch 202064: 0
+frame 29: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffa hot=201fba(2394)
+   watch 202064: 0
+  bus f30 read  201c64 = 4ed6
+  bus f30 fetch 201c64 = 13fc
+frame 30: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=20201e(2048)
+   watch 202064: 0
+frame 31: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f9e(2403)
+   watch 202064: 0
+frame 32: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa0 hot=201fa0(2403)
+   watch 202064: 0
+frame 33: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f80(2402)
+   watch 202064: 0
+frame 34: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202020 hot=201fec(2048)
+   watch 202064: 0
+  bus f35 read  201c76 = 4ed6
+  bus f35 fetch 201c76 = 13fc
+frame 35: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbe hot=201f80(1849)
+   watch 202064: 0
+frame 36: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f80(2402)
+   watch 202064: 0
+frame 37: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=201f92(2403)
+   watch 202064: 0
+frame 38: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ff2 hot=201fec(1844)
+   watch 202064: 0
+  bus f39 read  201c88 = 4ed6
+  bus f39 fetch 201c88 = 13fc
+frame 39: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9a hot=20201e(2048)
+   watch 202064: 0
+frame 40: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=201f9c(2403)
+   watch 202064: 0
+frame 41: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f9e(2403)
+   watch 202064: 0
+frame 42: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ff2 hot=201fa0(2314)
+   watch 202064: 0
+  bus f43 read  201c9a = 4ed6
+  bus f43 fetch 201c9a = 13fc
+frame 43: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=20201e(2048)
+   watch 202064: 0
+frame 44: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f96(2403)
+   watch 202064: 0
+frame 45: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f80(2402)
+   watch 202064: 0
+frame 46: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f80(2402)
+   watch 202064: 0
+frame 47: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202052 hot=201fec(2048)
+   watch 202064: 0
+  bus f48 read  201cac = 4ed6
+  bus f48 fetch 201cac = 13fc
+frame 48: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f80(1929)
+   watch 202064: 0
+frame 49: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f80(2402)
+   watch 202064: 0
+frame 50: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=201f8a(2403)
+   watch 202064: 0
+frame 51: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fee hot=201fec(2015)
+   watch 202064: 0
+  bus f52 read  201cbe = 4ed6
+  bus f52 fetch 201cbe = 13fc
+frame 52: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=20201e(2048)
+   watch 202064: 0
+frame 53: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=201f94(2403)
+   watch 202064: 0
+frame 54: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f96(2403)
+   watch 202064: 0
+frame 55: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fec hot=201f9a(2234)
+   watch 202064: 0
+  bus f56 read  201cd0 = 4ed6
+  bus f56 fetch 201cd0 = 13fc
+frame 56: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8c hot=20201e(2048)
+   watch 202064: 0
+frame 57: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f8e(2403)
+   watch 202064: 0
+frame 58: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=201f80(2402)
+   watch 202064: 0
+frame 59: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f88(2403)
+   watch 202064: 0
+frame 60: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202048 hot=201fec(2048)
+   watch 202064: 0
+  bus f61 read  201ce2 = 4ed6
+  bus f61 fetch 201ce2 = 13fc
+frame 61: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=201f80(2009)
+   watch 202064: 0
+frame 62: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2402)
+   watch 202064: 0
+frame 63: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f84 hot=201f82(2403)
+   watch 202064: 0
+frame 64: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202052 hot=201fec(2048)
+   watch 202064: 0
+  bus f65 read  201cf4 = 4ed6
+  bus f65 fetch 201cf4 = 13fc
+frame 65: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=202054(1943)
+   watch 202064: 0
+frame 66: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8c hot=201f8c(2403)
+   watch 202064: 0
+frame 67: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f8e(2403)
+   watch 202064: 0
+frame 68: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffa hot=201f90(2154)
+   watch 202064: 0
+  bus f69 read  201d06 = 4ed6
+  bus f69 fetch 201d06 = 13fc
+frame 69: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=20201e(2048)
+   watch 202064: 0
+frame 70: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f88(2403)
+   watch 202064: 0
+frame 71: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbe hot=201f8a(2402)
+   watch 202064: 0
+frame 72: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2403)
+   watch 202064: 0
+frame 73: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202042 hot=201fec(2048)
+   watch 202064: 0
+  bus f74 read  201d18 = 4ed6
+  bus f74 fetch 201d18 = 13fc
+frame 74: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f80(2088)
+   watch 202064: 0
+frame 75: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa4 hot=201fa4(2403)
+   watch 202064: 0
+frame 76: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fba hot=201fa6(2403)
+   watch 202064: 0
+frame 77: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202046 hot=201fec(2048)
+   watch 202064: 0
+  bus f78 read  201d2a = 4ed6
+  bus f78 fetch 201d2a = 13fc
+frame 78: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c4 hot=2020e6(2048)
+   watch 202064: 0
+frame 79: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c4 hot=2020be(11984)
+   watch 202064: 0
+frame 80: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c2 hot=2020be(11984)
+   watch 202064: 0
+frame 81: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=2020c4(7313)
+   watch 202064: 0
+frame 82: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eba(5543)
+   watch 202064: 0
+frame 83: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5543)
+   watch 202064: 0
+frame 84: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ebc hot=201eb4(5541)
+   watch 202064: 0
+frame 85: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebe(5543)
+   watch 202064: 0
+frame 86: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eb4(5542)
+   watch 202064: 0
+frame 87: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5542)
+   watch 202064: 0
+frame 88: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eb4(5542)
+   watch 202064: 0
+frame 89: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5543)
+   watch 202064: 0
+frame 90: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5542)
+   watch 202064: 0
+frame 91: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201eb8(5542)
+   watch 202064: 0
+frame 92: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5543)
+   watch 202064: 0
+frame 93: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f10 hot=201eb8(3421)
+   watch 202064: 0
+frame 94: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f0c hot=201f00(5135)
+   watch 202064: 0
+frame 95: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f02 hot=201f00(5135)
+   watch 202064: 0
+frame 96: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f38 hot=201f04(4150)
+   watch 202064: 0
+frame 97: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f52 hot=201f3a(3997)
+   watch 202064: 0
+frame 98: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f56 hot=201f54(3997)
+   watch 202064: 0
+frame 99: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f5e hot=201f58(3997)
+   watch 202064: 0
+frame 100: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201f64(3630)
+   watch 202064: 0
+frame 101: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb8(5543)
+   watch 202064: 0
+frame 102: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb4 hot=201eb4(5542)
+   watch 202064: 0
+frame 103: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb6(5542)
+   watch 202064: 0
+frame 104: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5542)
+   watch 202064: 0
+frame 105: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb8(5543)
+   watch 202064: 0
+frame 106: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ebe hot=201eba(5542)
+   watch 202064: 0
+frame 107: steps=72089 irq5=0 objs=28 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5542)
+   watch 202064: 0
+frame 108: steps=72090 irq5=0 objs=114 overrun=0 unsup=0 de_px=84224 pc=201ebc hot=201eba(5543)
+   watch 202064: 0
+frame 109: steps=72090 irq5=0 objs=201 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5541)
+   watch 202064: 0
+frame 110: steps=72089 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201ebc hot=201eba(5543)
+   watch 202064: 0
+frame 111: steps=72090 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5542)
+   watch 202064: 0
+frame 112: steps=72089 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201f0e hot=201eba(4070)
+   watch 202064: 0
+frame 113: steps=72090 irq5=0 objs=255 overrun=1 unsup=0 de_px=84224 pc=201f06 hot=201f00(5135)
+   watch 202064: 0
+frame 114: steps=72090 irq5=0 objs=205 overrun=1 unsup=0 de_px=84224 pc=201f02 hot=201f00(5135)
+   watch 202064: 0
+frame 115: steps=72089 irq5=0 objs=160 overrun=1 unsup=0 de_px=84224 pc=201f66 hot=201f04(4751)
+   watch 202064: 0
+frame 116: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f56 hot=201f50(4070)
+   watch 202064: 0
+frame 117: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f48 hot=201f50(4068)
+   watch 202064: 0
+frame 118: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f68 hot=201f50(4069)
+   watch 202064: 0
+frame 119: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f38 hot=201f50(4069)
+   watch 202064: 0
+frame 120: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201eb6 hot=201f50(2876)
+   watch 202064: 0
+frame 121: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201daa hot=201eb8(2475)
+   watch 202064: 0
+  bus f122 fetch 202064 = 2c18
+  bus f122 fetch 202066 = 2246
+  bus f122 read  25c7c0 = 0000
+  bus f122 read  25c7c2 = 0000
+  bus f122 fetch 202068 = 3018
+  bus f122 fetch 20206a = 5340
+  bus f122 read  25c7c4 = 0100
+  bus f122 fetch 20206c = 7c00
+  bus f122 fetch 20206e = 7a00
+  bus f122 fetch 202070 = 343c
+  bus f122 fetch 202072 = 0fff
+  bus f122 fetch 202074 = 1a11
+  bus f122 fetch 202072 = 0fff
+  bus f122 fetch 202074 = 1a11
+frame 122: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202074(6874)
+   watch 202064: 1
+  bus f123 fetch 202072 = 0fff
+  bus f123 fetch 202074 = 1a11
+  bus f123 fetch 202072 = 0fff
+  bus f123 fetch 202074 = 1a11
+frame 123: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+  bus f124 fetch 202072 = 0fff
+  bus f124 fetch 202074 = 1a11
+  bus f124 fetch 202072 = 0fff
+  bus f124 fetch 202074 = 1a11
+frame 124: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f125 fetch 202072 = 0fff
+  bus f125 fetch 202074 = 1a11
+  bus f125 fetch 202072 = 0fff
+  bus f125 fetch 202074 = 1a11
+frame 125: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+  bus f126 fetch 202072 = 0fff
+  bus f126 fetch 202074 = 1a11
+  bus f126 fetch 202072 = 0fff
+  bus f126 fetch 202074 = 1a11
+frame 126: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+  bus f127 fetch 202072 = 0fff
+  bus f127 fetch 202074 = 1a11
+  bus f127 fetch 202072 = 0fff
+  bus f127 fetch 202074 = 1a11
+frame 127: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+  bus f128 fetch 202072 = 0fff
+  bus f128 fetch 202074 = 1a11
+  bus f128 fetch 202072 = 0fff
+  bus f128 fetch 202074 = 1a11
+frame 128: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+  bus f129 fetch 202072 = 0fff
+  bus f129 fetch 202074 = 1a11
+  bus f129 fetch 202072 = 0fff
+  bus f129 fetch 202074 = 1a11
+frame 129: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f130 fetch 202072 = 0fff
+  bus f130 fetch 202074 = 1a11
+  bus f130 fetch 202072 = 0fff
+  bus f130 fetch 202074 = 1a11
+frame 130: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f131 fetch 202072 = 0fff
+  bus f131 fetch 202074 = 1a11
+  bus f131 fetch 202072 = 0fff
+  bus f131 fetch 202074 = 1a11
+frame 131: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f132 fetch 202072 = 0fff
+  bus f132 fetch 202074 = 1a11
+  bus f132 fetch 202072 = 0fff
+  bus f132 fetch 202074 = 1a11
+frame 132: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f133 fetch 202072 = 0fff
+  bus f133 fetch 202074 = 1a11
+  bus f133 fetch 202072 = 0fff
+  bus f133 fetch 202074 = 1a11
+frame 133: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f134 fetch 202072 = 0fff
+  bus f134 fetch 202074 = 1a11
+  bus f134 fetch 202072 = 0fff
+  bus f134 fetch 202074 = 1a11
+frame 134: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+  bus f135 fetch 202072 = 0fff
+  bus f135 fetch 202074 = 1a11
+  bus f135 fetch 202072 = 0fff
+  bus f135 fetch 202074 = 1a11
+frame 135: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+  bus f136 fetch 202072 = 0fff
+  bus f136 fetch 202074 = 1a11
+  bus f136 fetch 202072 = 0fff
+  bus f136 fetch 202074 = 1a11
+frame 136: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f137 fetch 202072 = 0fff
+  bus f137 fetch 202074 = 1a11
+  bus f137 fetch 202072 = 0fff
+  bus f137 fetch 202074 = 1a11
+frame 137: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f138 fetch 202072 = 0fff
+  bus f138 fetch 202074 = 1a11
+frame 138: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8010)
+   watch 202064: 0
+  bus f139 fetch 202072 = 0fff
+  bus f139 fetch 202074 = 1a11
+  bus f139 fetch 202072 = 0fff
+  bus f139 fetch 202074 = 1a11
+frame 139: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f140 fetch 202072 = 0fff
+  bus f140 fetch 202074 = 1a11
+  bus f140 fetch 202072 = 0fff
+  bus f140 fetch 202074 = 1a11
+frame 140: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+  bus f141 fetch 202072 = 0fff
+  bus f141 fetch 202074 = 1a11
+  bus f141 fetch 202072 = 0fff
+  bus f141 fetch 202074 = 1a11
+frame 141: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f142 fetch 202072 = 0fff
+  bus f142 fetch 202074 = 1a11
+  bus f142 fetch 202072 = 0fff
+  bus f142 fetch 202074 = 1a11
+frame 142: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f143 fetch 202072 = 0fff
+  bus f143 fetch 202074 = 1a11
+  bus f143 fetch 202072 = 0fff
+  bus f143 fetch 202074 = 1a11
+frame 143: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f144 fetch 202072 = 0fff
+  bus f144 fetch 202074 = 1a11
+  bus f144 fetch 202072 = 0fff
+  bus f144 fetch 202074 = 1a11
+frame 144: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f145 fetch 202072 = 0fff
+  bus f145 fetch 202074 = 1a11
+  bus f145 fetch 202072 = 0fff
+  bus f145 fetch 202074 = 1a11
+frame 145: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f146 fetch 202072 = 0fff
+  bus f146 fetch 202074 = 1a11
+  bus f146 fetch 202072 = 0fff
+  bus f146 fetch 202074 = 1a11
+frame 146: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+  bus f147 fetch 202072 = 0fff
+  bus f147 fetch 202074 = 1a11
+  bus f147 fetch 202072 = 0fff
+  bus f147 fetch 202074 = 1a11
+frame 147: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+  bus f148 fetch 202072 = 0fff
+  bus f148 fetch 202074 = 1a11
+  bus f148 fetch 202072 = 0fff
+  bus f148 fetch 202074 = 1a11
+frame 148: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f149 fetch 202072 = 0fff
+  bus f149 fetch 202074 = 1a11
+  bus f149 fetch 202072 = 0fff
+  bus f149 fetch 202074 = 1a11
+frame 149: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+  bus f150 fetch 202072 = 0fff
+  bus f150 fetch 202074 = 1a11
+  bus f150 fetch 202072 = 0fff
+  bus f150 fetch 202074 = 1a11
+frame 150: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+  bus f151 fetch 202072 = 0fff
+  bus f151 fetch 202074 = 1a11
+  bus f151 fetch 202072 = 0fff
+  bus f151 fetch 202074 = 1a11
+frame 151: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+  bus f152 fetch 202072 = 0fff
+  bus f152 fetch 202074 = 1a11
+  bus f152 fetch 202072 = 0fff
+  bus f152 fetch 202074 = 1a11
+frame 152: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f153 fetch 202072 = 0fff
+  bus f153 fetch 202074 = 1a11
+  bus f153 fetch 202072 = 0fff
+  bus f153 fetch 202074 = 1a11
+frame 153: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f154 fetch 202072 = 0fff
+  bus f154 fetch 202074 = 1a11
+  bus f154 fetch 202072 = 0fff
+  bus f154 fetch 202074 = 1a11
+frame 154: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f155 fetch 202072 = 0fff
+  bus f155 fetch 202074 = 1a11
+  bus f155 fetch 202072 = 0fff
+  bus f155 fetch 202074 = 1a11
+frame 155: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f156 fetch 202072 = 0fff
+  bus f156 fetch 202074 = 1a11
+  bus f156 fetch 202072 = 0fff
+  bus f156 fetch 202074 = 1a11
+frame 156: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f157 fetch 202072 = 0fff
+  bus f157 fetch 202074 = 1a11
+  bus f157 fetch 202072 = 0fff
+  bus f157 fetch 202074 = 1a11
+frame 157: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+  bus f158 fetch 202072 = 0fff
+  bus f158 fetch 202074 = 1a11
+  bus f158 fetch 202072 = 0fff
+  bus f158 fetch 202074 = 1a11
+frame 158: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f159 fetch 202072 = 0fff
+  bus f159 fetch 202074 = 1a11
+  bus f159 fetch 202072 = 0fff
+  bus f159 fetch 202074 = 1a11
+frame 159: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f160 fetch 202072 = 0fff
+  bus f160 fetch 202074 = 1a11
+frame 160: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202074(8009)
+   watch 202064: 0
+  bus f161 fetch 202072 = 0fff
+  bus f161 fetch 202074 = 1a11
+  bus f161 fetch 202072 = 0fff
+  bus f161 fetch 202074 = 1a11
+frame 161: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+  bus f162 fetch 202072 = 0fff
+  bus f162 fetch 202074 = 1a11
+  bus f162 fetch 202072 = 0fff
+  bus f162 fetch 202074 = 1a11
+frame 162: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+  bus f163 fetch 202072 = 0fff
+  bus f163 fetch 202074 = 1a11
+  bus f163 fetch 202072 = 0fff
+  bus f163 fetch 202074 = 1a11
+frame 163: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+  bus f164 fetch 202072 = 0fff
+  bus f164 fetch 202074 = 1a11
+  bus f164 fetch 202072 = 0fff
+  bus f164 fetch 202074 = 1a11
+frame 164: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f165 fetch 202072 = 0fff
+  bus f165 fetch 202074 = 1a11
+  bus f165 fetch 202072 = 0fff
+  bus f165 fetch 202074 = 1a11
+frame 165: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f166 fetch 202072 = 0fff
+  bus f166 fetch 202074 = 1a11
+  bus f166 fetch 202072 = 0fff
+  bus f166 fetch 202074 = 1a11
+frame 166: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f167 fetch 202072 = 0fff
+  bus f167 fetch 202074 = 1a11
+  bus f167 fetch 202072 = 0fff
+  bus f167 fetch 202074 = 1a11
+frame 167: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f168 fetch 202072 = 0fff
+  bus f168 fetch 202074 = 1a11
+  bus f168 fetch 202072 = 0fff
+  bus f168 fetch 202074 = 1a11
+frame 168: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f169 fetch 202072 = 0fff
+  bus f169 fetch 202074 = 1a11
+  bus f169 fetch 202072 = 0fff
+  bus f169 fetch 202074 = 1a11
+frame 169: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+  bus f170 fetch 202072 = 0fff
+  bus f170 fetch 202074 = 1a11
+  bus f170 fetch 202072 = 0fff
+  bus f170 fetch 202074 = 1a11
+frame 170: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+  bus f171 fetch 202072 = 0fff
+  bus f171 fetch 202074 = 1a11
+  bus f171 fetch 202072 = 0fff
+  bus f171 fetch 202074 = 1a11
+frame 171: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f172 fetch 202072 = 0fff
+  bus f172 fetch 202074 = 1a11
+  bus f172 fetch 202072 = 0fff
+  bus f172 fetch 202074 = 1a11
+frame 172: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f173 fetch 202072 = 0fff
+  bus f173 fetch 202074 = 1a11
+  bus f173 fetch 202072 = 0fff
+  bus f173 fetch 202074 = 1a11
+frame 173: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f174 fetch 202072 = 0fff
+  bus f174 fetch 202074 = 1a11
+  bus f174 fetch 202072 = 0fff
+  bus f174 fetch 202074 = 1a11
+frame 174: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+  bus f175 fetch 202072 = 0fff
+  bus f175 fetch 202074 = 1a11
+  bus f175 fetch 202072 = 0fff
+  bus f175 fetch 202074 = 1a11
+frame 175: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f176 fetch 202072 = 0fff
+  bus f176 fetch 202074 = 1a11
+  bus f176 fetch 202072 = 0fff
+  bus f176 fetch 202074 = 1a11
+frame 176: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f177 fetch 202072 = 0fff
+  bus f177 fetch 202074 = 1a11
+  bus f177 fetch 202072 = 0fff
+  bus f177 fetch 202074 = 1a11
+frame 177: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+  bus f178 fetch 202072 = 0fff
+  bus f178 fetch 202074 = 1a11
+  bus f178 fetch 202072 = 0fff
+  bus f178 fetch 202074 = 1a11
+frame 178: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+  bus f179 fetch 202072 = 0fff
+  bus f179 fetch 202074 = 1a11
+  bus f179 fetch 202072 = 0fff
+  bus f179 fetch 202074 = 1a11
+frame 179: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f180 fetch 202072 = 0fff
+  bus f180 fetch 202074 = 1a11
+  bus f180 fetch 202072 = 0fff
+  bus f180 fetch 202074 = 1a11
+frame 180: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+  bus f181 fetch 202072 = 0fff
+  bus f181 fetch 202074 = 1a11
+  bus f181 fetch 202072 = 0fff
+  bus f181 fetch 202074 = 1a11
+frame 181: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f182 fetch 202072 = 0fff
+  bus f182 fetch 202074 = 1a11
+frame 182: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8009)
+   watch 202064: 0
+  bus f183 fetch 202072 = 0fff
+  bus f183 fetch 202074 = 1a11
+  bus f183 fetch 202072 = 0fff
+  bus f183 fetch 202074 = 1a11
+frame 183: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f184 fetch 202072 = 0fff
+  bus f184 fetch 202074 = 1a11
+  bus f184 fetch 202072 = 0fff
+  bus f184 fetch 202074 = 1a11
+frame 184: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+  bus f185 fetch 202072 = 0fff
+  bus f185 fetch 202074 = 1a11
+  bus f185 fetch 202072 = 0fff
+  bus f185 fetch 202074 = 1a11
+frame 185: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+  bus f186 fetch 202072 = 0fff
+  bus f186 fetch 202074 = 1a11
+  bus f186 fetch 202072 = 0fff
+  bus f186 fetch 202074 = 1a11
+frame 186: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+  bus f187 fetch 202072 = 0fff
+  bus f187 fetch 202074 = 1a11
+  bus f187 fetch 202072 = 0fff
+  bus f187 fetch 202074 = 1a11
+frame 187: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f188 fetch 202072 = 0fff
+  bus f188 fetch 202074 = 1a11
+  bus f188 fetch 202072 = 0fff
+  bus f188 fetch 202074 = 1a11
+frame 188: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+  bus f189 fetch 202072 = 0fff
+  bus f189 fetch 202074 = 1a11
+  bus f189 fetch 202072 = 0fff
+  bus f189 fetch 202074 = 1a11
+frame 189: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f190 fetch 202072 = 0fff
+  bus f190 fetch 202074 = 1a11
+  bus f190 fetch 202072 = 0fff
+  bus f190 fetch 202074 = 1a11
+frame 190: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f191 fetch 202072 = 0fff
+  bus f191 fetch 202074 = 1a11
+  bus f191 fetch 202072 = 0fff
+  bus f191 fetch 202074 = 1a11
+frame 191: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f192 fetch 202072 = 0fff
+  bus f192 fetch 202074 = 1a11
+  bus f192 fetch 202072 = 0fff
+  bus f192 fetch 202074 = 1a11
+frame 192: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+  bus f193 fetch 202072 = 0fff
+  bus f193 fetch 202074 = 1a11
+  bus f193 fetch 202072 = 0fff
+  bus f193 fetch 202074 = 1a11
+frame 193: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+  bus f194 fetch 202072 = 0fff
+  bus f194 fetch 202074 = 1a11
+  bus f194 fetch 202072 = 0fff
+  bus f194 fetch 202074 = 1a11
+frame 194: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+  bus f195 fetch 202072 = 0fff
+  bus f195 fetch 202074 = 1a11
+  bus f195 fetch 202072 = 0fff
+  bus f195 fetch 202074 = 1a11
+frame 195: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+  bus f196 fetch 202072 = 0fff
+  bus f196 fetch 202074 = 1a11
+  bus f196 fetch 202072 = 0fff
+  bus f196 fetch 202074 = 1a11
+frame 196: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+  bus f197 fetch 202072 = 0fff
+  bus f197 fetch 202074 = 1a11
+  bus f197 fetch 202072 = 0fff
+  bus f197 fetch 202074 = 1a11
+frame 197: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+  bus f198 fetch 202072 = 0fff
+  bus f198 fetch 202074 = 1a11
+  bus f198 fetch 202072 = 0fff
+  bus f198 fetch 202074 = 1a11
+frame 198: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+  bus f199 fetch 202072 = 0fff
+  bus f199 fetch 202074 = 1a11
+  bus f199 fetch 202072 = 0fff
+  bus f199 fetch 202074 = 1a11
+frame 199: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0

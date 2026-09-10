@@ -69,6 +69,7 @@ module gaia_core #(
 
     // diagnostics
     output logic [23:0] dbg_addr,
+    output logic [15:0] dbg_data,
     output logic  [1:0] dbg_busstate,
     output logic        dbg_step,
     output logic        dbg_irq5,
@@ -133,7 +134,7 @@ module gaia_core #(
         .vram_raddr(vram_raddr), .vram_q(vram_q),
         .sram_raddr(sram_raddr), .sram_q(sram_q),
         .pal_raddr(pal_raddr), .pal_q(pal_q),
-        .dbg_addr(dbg_addr), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5)
+        .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5)
     );
 
     er5911 u_eep (

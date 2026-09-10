@@ -1,0 +1,2100 @@
+frame 0: steps=1 irq5=1 objs=0 overrun=0 unsup=0 de_px=0 pc=000000 hot=000000(0)
+   watch 202064: 0
+   watch 20208a: 0
+frame 1: steps=65536 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=200012 hot=20000c(16373)
+   watch 202064: 0
+   watch 20208a: 0
+frame 2: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=200012 hot=20000c(18011)
+   watch 202064: 0
+   watch 20208a: 0
+frame 3: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=20000e hot=20000c(18014)
+   watch 202064: 0
+   watch 20208a: 0
+frame 4: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=200010(17252)
+   watch 202064: 0
+   watch 20208a: 0
+frame 5: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=201f92(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 6: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=201f94(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 7: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 8: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202044 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 9: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f80(1690)
+   watch 202064: 0
+   watch 20208a: 0
+frame 10: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f90(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 11: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa0 hot=201f92(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 12: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fee hot=201fa2(1700)
+   watch 202064: 0
+   watch 20208a: 0
+frame 13: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 14: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 15: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f82 hot=201f82(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 16: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f84 hot=201f84(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 17: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 18: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa6 hot=201fa4(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 19: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbc hot=201fba(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 20: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 21: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=20204c hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 22: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=201f80(1770)
+   watch 202064: 0
+   watch 20208a: 0
+frame 23: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f88(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 24: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9a hot=201f9a(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 25: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffc hot=201fec(1673)
+   watch 202064: 0
+   watch 20208a: 0
+frame 26: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f82 hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 27: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f84(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 28: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa6 hot=201fa4(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 29: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffa hot=201fba(2394)
+   watch 202064: 0
+   watch 20208a: 0
+frame 30: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 31: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f9e(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 32: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa0 hot=201fa0(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 33: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 34: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202020 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 35: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbe hot=201f80(1849)
+   watch 202064: 0
+   watch 20208a: 0
+frame 36: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 37: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=201f92(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 38: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ff2 hot=201fec(1844)
+   watch 202064: 0
+   watch 20208a: 0
+frame 39: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9a hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 40: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=201f9c(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 41: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9e hot=201f9e(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 42: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ff2 hot=201fa0(2314)
+   watch 202064: 0
+   watch 20208a: 0
+frame 43: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 44: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f96(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 45: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 46: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f90 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 47: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202052 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 48: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f80(1929)
+   watch 202064: 0
+   watch 20208a: 0
+frame 49: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 50: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=201f8a(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 51: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fee hot=201fec(2015)
+   watch 202064: 0
+   watch 20208a: 0
+frame 52: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f92 hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 53: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f94 hot=201f94(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 54: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f98 hot=201f96(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 55: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fec hot=201f9a(2234)
+   watch 202064: 0
+   watch 20208a: 0
+frame 56: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8c hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 57: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f8e(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 58: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 59: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f88(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 60: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202048 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 61: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f9c hot=201f80(2009)
+   watch 202064: 0
+   watch 20208a: 0
+frame 62: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 63: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f84 hot=201f82(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 64: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202052 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 65: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8a hot=202054(1943)
+   watch 202064: 0
+   watch 20208a: 0
+frame 66: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8c hot=201f8c(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 67: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f8e hot=201f8e(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 68: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ffa hot=201f90(2154)
+   watch 202064: 0
+   watch 20208a: 0
+frame 69: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f86 hot=20201e(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 70: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f88 hot=201f88(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 71: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fbe hot=201f8a(2402)
+   watch 202064: 0
+   watch 20208a: 0
+frame 72: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f80 hot=201f80(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 73: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202042 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 74: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa2 hot=201f80(2088)
+   watch 202064: 0
+   watch 20208a: 0
+frame 75: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fa4 hot=201fa4(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 76: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201fba hot=201fa6(2403)
+   watch 202064: 0
+   watch 20208a: 0
+frame 77: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=202046 hot=201fec(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 78: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c4 hot=2020e6(2048)
+   watch 202064: 0
+   watch 20208a: 0
+frame 79: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c4 hot=2020be(11984)
+   watch 202064: 0
+   watch 20208a: 0
+frame 80: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=2020c2 hot=2020be(11984)
+   watch 202064: 0
+   watch 20208a: 0
+frame 81: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=2020c4(7313)
+   watch 202064: 0
+   watch 20208a: 0
+frame 82: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eba(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 83: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 84: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ebc hot=201eb4(5541)
+   watch 202064: 0
+   watch 20208a: 0
+frame 85: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebe(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 86: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 87: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 88: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eba hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 89: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201ebc(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 90: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 91: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ed4 hot=201eb8(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 92: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 93: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f10 hot=201eb8(3421)
+   watch 202064: 0
+   watch 20208a: 0
+frame 94: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f0c hot=201f00(5135)
+   watch 202064: 0
+   watch 20208a: 0
+frame 95: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f02 hot=201f00(5135)
+   watch 202064: 0
+   watch 20208a: 0
+frame 96: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f38 hot=201f04(4150)
+   watch 202064: 0
+   watch 20208a: 0
+frame 97: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f52 hot=201f3a(3997)
+   watch 202064: 0
+   watch 20208a: 0
+frame 98: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f56 hot=201f54(3997)
+   watch 202064: 0
+   watch 20208a: 0
+frame 99: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201f5e hot=201f58(3997)
+   watch 202064: 0
+   watch 20208a: 0
+frame 100: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201f64(3630)
+   watch 202064: 0
+   watch 20208a: 0
+frame 101: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb8(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 102: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb4 hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 103: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb6(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 104: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb6 hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 105: steps=72089 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb8(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 106: steps=72090 irq5=0 objs=0 overrun=0 unsup=0 de_px=84224 pc=201ebe hot=201eba(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 107: steps=72089 irq5=0 objs=28 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 108: steps=72090 irq5=0 objs=114 overrun=0 unsup=0 de_px=84224 pc=201ebc hot=201eba(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 109: steps=72090 irq5=0 objs=201 overrun=0 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5541)
+   watch 202064: 0
+   watch 20208a: 0
+frame 110: steps=72089 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201ebc hot=201eba(5543)
+   watch 202064: 0
+   watch 20208a: 0
+frame 111: steps=72090 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201eb8 hot=201eb4(5542)
+   watch 202064: 0
+   watch 20208a: 0
+frame 112: steps=72089 irq5=0 objs=256 overrun=1 unsup=0 de_px=84224 pc=201f0e hot=201eba(4070)
+   watch 202064: 0
+   watch 20208a: 0
+frame 113: steps=72090 irq5=0 objs=255 overrun=1 unsup=0 de_px=84224 pc=201f06 hot=201f00(5135)
+   watch 202064: 0
+   watch 20208a: 0
+frame 114: steps=72090 irq5=0 objs=205 overrun=1 unsup=0 de_px=84224 pc=201f02 hot=201f00(5135)
+   watch 202064: 0
+   watch 20208a: 0
+frame 115: steps=72089 irq5=0 objs=160 overrun=1 unsup=0 de_px=84224 pc=201f66 hot=201f04(4751)
+   watch 202064: 0
+   watch 20208a: 0
+frame 116: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f56 hot=201f50(4070)
+   watch 202064: 0
+   watch 20208a: 0
+frame 117: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f48 hot=201f50(4068)
+   watch 202064: 0
+   watch 20208a: 0
+frame 118: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f68 hot=201f50(4069)
+   watch 202064: 0
+   watch 20208a: 0
+frame 119: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201f38 hot=201f50(4069)
+   watch 202064: 0
+   watch 20208a: 0
+frame 120: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201eb6 hot=201f50(2876)
+   watch 202064: 0
+   watch 20208a: 0
+frame 121: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201daa hot=201eb8(2475)
+   watch 202064: 0
+   watch 20208a: 0
+frame 122: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202074(6874)
+   watch 202064: 1
+   watch 20208a: 1
+frame 123: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 124: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 125: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 126: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 127: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 128: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 129: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 130: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 131: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 132: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 133: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 134: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 135: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 136: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 137: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 138: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 139: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 140: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 141: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 142: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 143: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 144: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 145: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 146: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 147: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 148: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 149: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 150: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 151: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 152: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 153: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 154: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 155: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 156: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 157: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 158: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 159: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 160: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 161: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 162: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 163: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 164: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 165: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 166: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 167: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 168: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 169: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 170: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 171: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 172: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 173: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 174: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 175: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 176: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 177: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 178: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 179: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 180: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 181: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 182: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 183: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 184: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 185: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 186: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 187: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 188: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 189: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 190: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 191: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 192: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 193: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 194: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 195: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 196: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 197: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 198: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 199: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 200: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 201: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 202: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 203: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 204: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 205: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 206: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 207: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 208: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 209: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 210: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 211: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 212: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 213: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 214: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 215: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 216: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 217: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 218: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 219: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 220: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 221: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 222: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 223: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 224: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 225: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 226: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 227: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 228: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 229: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 230: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 231: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 232: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 233: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 234: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 235: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 236: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 237: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 238: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 239: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 240: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 241: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 242: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 243: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 244: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 245: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 246: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 247: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 248: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 249: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 250: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 251: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 252: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 253: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202074(8005)
+   watch 202064: 1
+   watch 20208a: 2
+frame 254: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 255: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 256: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 257: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 258: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 259: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 260: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 261: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 262: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 263: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 264: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 265: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 266: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 267: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 268: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 269: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 270: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 271: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 272: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 273: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 274: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 275: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 276: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 277: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 278: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 279: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 280: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 281: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 282: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 283: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 284: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 285: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 286: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 287: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 288: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 289: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 290: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 291: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 292: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 293: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 294: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 295: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 296: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 297: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 298: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 299: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 300: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 301: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 302: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 303: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 304: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 305: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 306: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 307: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 308: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 309: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 310: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 311: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 312: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 313: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 314: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 315: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 316: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 317: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 318: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 319: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 320: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 321: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 322: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 323: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 324: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 325: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 326: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 327: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 328: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 329: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 330: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 331: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 332: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 333: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 334: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 335: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 336: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 337: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 338: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 339: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 340: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 341: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 342: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 343: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 344: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 345: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 346: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 347: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 348: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 349: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 350: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 351: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 352: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 353: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 354: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 355: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 356: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 357: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 358: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 359: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 360: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 361: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 362: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 363: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 364: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 365: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 366: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 367: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 368: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 369: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 370: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 371: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 372: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 373: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 374: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 375: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 376: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 377: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 378: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 379: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 380: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 381: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 382: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 383: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8010)
+   watch 202064: 0
+   watch 20208a: 1
+frame 384: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8005)
+   watch 202064: 1
+   watch 20208a: 2
+frame 385: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 386: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 387: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 388: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 389: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 390: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 391: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 392: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 393: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 394: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 395: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 396: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 397: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 398: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 399: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 400: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 401: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 402: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 403: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 404: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 405: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 406: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 407: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 408: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 409: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 410: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 411: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 412: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 413: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 414: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 415: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 416: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8005)
+   watch 202064: 1
+   watch 20208a: 2
+frame 417: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 418: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 419: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 420: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 421: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 422: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 423: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 424: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 425: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 426: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 427: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 1
+frame 428: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 429: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 430: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 431: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 432: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 433: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 434: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 435: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 436: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 437: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 438: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202078 hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 439: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207a(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 440: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=202074(8008)
+   watch 202064: 0
+   watch 20208a: 2
+frame 441: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 442: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202074 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 443: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202076(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 444: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207a hot=202078(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 445: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207c hot=20207c(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 446: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=20207e hot=20207e(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 447: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202080 hot=202080(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 448: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202076 hot=202074(8009)
+   watch 202064: 0
+   watch 20208a: 2
+frame 449: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=202278 hot=202078(3899)
+   watch 202064: 0
+   watch 20208a: 1
+frame 450: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e8a(17779)
+   watch 202064: 0
+   watch 20208a: 0
+frame 451: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 452: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 453: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 454: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 455: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 456: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 457: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 458: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 459: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 460: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 461: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 462: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 463: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 464: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 465: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 466: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 467: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 468: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 469: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 470: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 471: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 472: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 473: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 474: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 475: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 476: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 477: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 478: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 479: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 480: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 481: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 482: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 483: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 484: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 485: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 486: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 487: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 488: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 489: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 490: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 491: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 492: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 493: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 494: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 495: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 496: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 497: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 498: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 499: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 500: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 501: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 502: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 503: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 504: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 505: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 506: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 507: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 508: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 509: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 510: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 511: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 512: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 513: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 514: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 515: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 516: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 517: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 518: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 519: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 520: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 521: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 522: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 523: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 524: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 525: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 526: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 527: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 528: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 529: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 530: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 531: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 532: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 533: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 534: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 535: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 536: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 537: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 538: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 539: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 540: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 541: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 542: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 543: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 544: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 545: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 546: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 547: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 548: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 549: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 550: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 551: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 552: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 553: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 554: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 555: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 556: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 557: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 558: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 559: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 560: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 561: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 562: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 563: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 564: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 565: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 566: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 567: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 568: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 569: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 570: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 571: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 572: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 573: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 574: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 575: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 576: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 577: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 578: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 579: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 580: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 581: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 582: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 583: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 584: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 585: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 586: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 587: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 588: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 589: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 590: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 591: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 592: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 593: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 594: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 595: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 596: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 597: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 598: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 599: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 600: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 601: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 602: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 603: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 604: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 605: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 606: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 607: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 608: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 609: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 610: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 611: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 612: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 613: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 614: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 615: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 616: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 617: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 618: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 619: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 620: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 621: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 622: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 623: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 624: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 625: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 626: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 627: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 628: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 629: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 630: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 631: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 632: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 633: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 634: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 635: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 636: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 637: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 638: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 639: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 640: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 641: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 642: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 643: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 644: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 645: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 646: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 647: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 648: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 649: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 650: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 651: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 652: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 653: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 654: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 655: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 656: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 657: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 658: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 659: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 660: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 661: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 662: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 663: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 664: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 665: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 666: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 667: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 668: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 669: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 670: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 671: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 672: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 673: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 674: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 675: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 676: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 677: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 678: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 679: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 680: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 681: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 682: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 683: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 684: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 685: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 686: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 687: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 688: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 689: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 690: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 691: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 692: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 693: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 694: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 695: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e90 hot=201e90(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 696: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8c hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 697: steps=72089 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8e(18021)
+   watch 202064: 0
+   watch 20208a: 0
+frame 698: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8a hot=201e8a(18023)
+   watch 202064: 0
+   watch 20208a: 0
+frame 699: steps=72090 irq5=0 objs=128 overrun=1 unsup=0 de_px=84224 pc=201e8e hot=201e8c(18021)
+   watch 202064: 0
+   watch 20208a: 0

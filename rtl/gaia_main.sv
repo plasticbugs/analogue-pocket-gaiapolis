@@ -115,6 +115,7 @@ module gaia_main #(
 
     // diagnostics
     output logic [23:0] dbg_addr,
+    output logic [15:0] dbg_data,       // data_in of the last completed read
     output logic  [1:0] dbg_busstate,
     output logic        dbg_step,
     output logic        dbg_irq5
@@ -166,6 +167,7 @@ module gaia_main #(
     wire        uds   = ~nUDS;             // D15:8
     wire        lds   = ~nLDS;             // D7:0
     assign dbg_addr     = {addr_out[23:1], 1'b0};
+    assign dbg_data     = data_in;
     assign dbg_busstate = busstate;
 
     // --------------------------------------------------------- decode
@@ -210,9 +212,13 @@ module gaia_main #(
     // palette 2048 x {word0, word1}; word0 = 00RR, word1 = GGBB
     logic [1:0][15:0] pal [2048];
     logic [1:0][15:0] pal_cpu_q, pal_rd_q;
-    // sprite RAM 0x800 words behind the scattered window
+    // sprite RAM 0x800 words behind the scattered window, plus the plain
+    // 32K x 16 the rest of the 64 KB window lands in (the board has it, and
+    // the self-test writes and reads all of it)
     logic [15:0] sram [2048];
     logic [15:0] sram_cpu_q;
+    logic [15:0] sshadow [32768];
+    logic [15:0] sshadow_q;
     // ROZ line RAM
     logic [15:0] rozli [2048];
     logic [15:0] rozli_q;
@@ -226,8 +232,11 @@ module gaia_main #(
     wire [15:0] vram_cpu_addr = {vram_page, A[12:1]};
 
     // scattered sprite window: word w of the chip lives at
-    // 400000 + ((w & 0x7f8) << 5) + (w & 7) * 2; the rest is shadow RAM
-    wire        spr_hit  = (A[6:4] == 3'd0);
+    // 400000 + ((w & 0x7f8) << 5) + (w & 7) * 2; the rest is shadow RAM.
+    // MAME's test is (word offset & 0x78) == 0, i.e. A[7:4] all clear --
+    // four bits, not three. With A[7] left out, two CPU addresses aliased
+    // onto one chip word and the self-test marked both sprite-window RAMs bad.
+    wire        spr_hit  = (A[7:4] == 4'd0);
     wire [10:0] spr_word = {A[15:8], A[3:1]};
 
     always_ff @(posedge clk) begin
@@ -237,6 +246,7 @@ module gaia_main #(
         pal_cpu_q   <= pal[A[12:2]];
         pal_rd_q    <= pal[pal_raddr];
         sram_cpu_q  <= sram[spr_word];
+        sshadow_q   <= sshadow[A[15:1]];
         sram_q      <= sram[sram_raddr];
         rozli_q     <= rozli[A[11:1]];
     end
@@ -257,7 +267,10 @@ module gaia_main #(
 
     assign ipl_n    = irq5_pend ? 3'b010 : 3'b111;    // level 5
 
-    // K056832 readback: 32-bit group index = bank * 2048 + (offset >> 1)
+    // K056832 readback: 32-bit group index = bank * 2048 + (offset >> 1).
+    // Only the low byte of the bank and the low 22 bits of the sprite word
+    // index can address the ROMs fitted; the rest of each register is ignored.
+    /* verilator lint_off UNUSEDSIGNAL */
     wire [23:0] tile_bank32 = {k56regs[27][7:0], k56regs[26]};      // regs[0x1b]<<16 | regs[0x1a]
     wire  [7:0] tile_bank   = tile_bank32[7:0];                    // mod 256 banks
     wire [18:0] trom_group  = {tile_bank, A[12:2]};
@@ -266,6 +279,7 @@ module gaia_main #(
     wire [23:0] spr_romofs  = {k46regs[6], k46regs[7], k46regs[4]};
     wire [23:0] spr_widx    = {spr_romofs[23:2], 2'b00} + (A[3] ? 24'd0 : 24'd2) + {22'd0, A[2:1]};
     logic [1:0] srom_sel;
+    /* verilator lint_on UNUSEDSIGNAL */
     assign dbg_irq5 = irq5_pend;
     assign in1_word = {in1[7:2], eep_ready, eep_do, p2};
 
@@ -275,7 +289,7 @@ module gaia_main #(
         if      (sel_wram)   rd_mux = wram_q;
         else if (sel_vram)   rd_mux = vram_ext ? 16'h0000 : vram_cpu_q;
         else if (sel_pal)    rd_mux = A[1] ? pal_cpu_q[1] : pal_cpu_q[0];
-        else if (sel_sprwin) rd_mux = spr_hit ? sram_cpu_q : 16'h0000;
+        else if (sel_sprwin) rd_mux = spr_hit ? sram_cpu_q : sshadow_q;
         else if (sel_rozli)  rd_mux = rozli_q;
         else if (sel_rozct)  rd_mux = rozctrl[A[3:1]];
         else if (sel_k252)   rd_mux = {8'h00, k252[A[4:1]]};
@@ -344,6 +358,9 @@ module gaia_main #(
                                 if (spr_hit)
                                     sram[spr_word] <= {uds ? data_write[15:8] : sram_cpu_q[15:8],
                                                        lds ? data_write[7:0]  : sram_cpu_q[7:0]};
+                                else
+                                    sshadow[A[15:1]] <= {uds ? data_write[15:8] : sshadow_q[15:8],
+                                                         lds ? data_write[7:0]  : sshadow_q[7:0]};
                             end else if (sel_k46) begin
                                 // k053246_w: byte pair per word
                                 if (uds) k46regs[{A[2:1], 1'b0}] <= data_write[15:8];
