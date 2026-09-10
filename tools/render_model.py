@@ -794,6 +794,15 @@ def main():
     roms = Roms(args[1])
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
 
+    dumpobjrgb = opts.get('dump-obj-rgb')
+    if dumpobjrgb:
+        import struct
+        _, fb = render(st, roms, {'OBJ'})
+        with open(dumpobjrgb, 'wb') as f:
+            f.write(struct.pack('<%dI' % len(fb), *fb))
+        print(f'wrote {dumpobjrgb} ({VIS_H} x {VIS_W} uint32 RGB)')
+        return
+
     dumpobj = opts.get('dump-objlist')
     if dumpobj:
         n = dump_objlist(st, dumpobj)

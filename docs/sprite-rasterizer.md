@@ -21,12 +21,16 @@ With `rom_q[63:56]` as the lowest byte, pixel `c` of the row is:
 
 ```
 half = c[3]                                  // 0: bytes 0..3, 1: bytes 4..7
-p0 = half ? rom_q[31:24] : rom_q[39:32]      // MSB plane
-p1 = half ? rom_q[23:16] : rom_q[47:40]
-p2 = half ? rom_q[15: 8] : rom_q[55:48]
-p3 = half ? rom_q[ 7: 0] : rom_q[63:56]      // LSB plane
+p0 = half ? rom_q[ 7: 0] : rom_q[39:32]      // MSB plane
+p1 = half ? rom_q[15: 8] : rom_q[47:40]
+p2 = half ? rom_q[23:16] : rom_q[55:48]
+p3 = half ? rom_q[31:24] : rom_q[63:56]      // LSB plane
 pen = {p0[7-c[2:0]], p1[7-c[2:0]], p2[7-c[2:0]], p3[7-c[2:0]]}
 ```
+
+Note the byte order **reverses** between the halves rather than shifting:
+`xoffset` jumps from 7 to 32 at pixel 8, so the upper half's planes run
+through bytes 7,6,5,4 while the lower half's run through 3,2,1,0.
 
 ## Why the reciprocal ROMs exist
 

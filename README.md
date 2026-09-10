@@ -15,12 +15,15 @@ per-pixel Z buffer and shadows, and the K055555 priority mixer.
 RTL so far, each gated against the reference renderer with zero differing
 pixels (`sim/run_tilemap.sh`, `sim/run_roz.sh`):
 
-| block | worst line | budget |
-|---|---|---|
-| `rtl/k056832_tilemap.sv` -- four tilemap layers | 2,660 clocks | 6,144 |
-| `rtl/k053936_roz.sv` -- rotate/zoom plane | 2,777 clocks | 6,144 |
+| block | gate | worst line | budget |
+|---|---|---|---|
+| `rtl/k056832_tilemap.sv` -- four tilemap layers | `sim/run_tilemap.sh` | 2,660 clocks | 6,144 |
+| `rtl/k053936_roz.sv` -- rotate/zoom plane | `sim/run_roz.sh` | 2,777 clocks | 6,144 |
+| `rtl/k053247_objlist.sv` -- sprite draw list | `sim/run_objlist.sh` | 4,175 per frame | ~245,000 vblank |
+| `rtl/k053247_draw.sv` -- sprite rasterizer | `sim/run_sprite.sh` | 4,324 clocks | 6,144 |
 
-Next: the sprite engine, then the mixer, then CPUs and platform integration.
+**Every video chip now has working RTL.** Next: the mixer, then CPUs and
+platform integration.
 
 ## What is here
 
