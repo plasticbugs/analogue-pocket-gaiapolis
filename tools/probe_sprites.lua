@@ -21,7 +21,9 @@ end)
 local function s16(v) if v >= 0x8000 then return v - 0x10000 end return v end
 
 local f = 0
-local out = io.open("artifacts/sprite_load.csv", "w")
+-- CSVOUT lets this script be reused purely as an input driver (for
+-- snapshot and state captures) without clobbering the measurement.
+local out = io.open(os.getenv("CSVOUT") or "artifacts/sprite_load.csv", "w")
 out:write("frame,active,onscreen,max_dst_px_line,max_src_px_line,sum_dst_px,max_sprites_line\n")
 
 -- running worst-case across the whole session
