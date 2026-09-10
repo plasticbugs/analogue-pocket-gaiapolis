@@ -16,7 +16,7 @@ hardware; it is roughly "Moo Mesa's chipset plus Run and Gun's rotating plane".
 |---|---|---|---|---|
 | MC68000 | main CPU | yes | `fx68k`, or TG68K already vendored in `~/work/stunrunner/modules/cpu-tg68k` | yes |
 | Z80 | sound CPU | yes | T80 | yes |
-| K054539 ×2 | 8-ch PCM/ADPCM | yes | `jotego/jt539` (jtcores submodule) | yes — `jtrungun` |
+| K054539 ×2 | 8-ch PCM/ADPCM | **no longer** | `jotego/jt539` is referenced as a jtcores submodule but the repository returns 404 — it is not public, and forks carry only the pointer. Written here from MAME's `k054539.cpp` instead | (jtrungun ships it, but the source is not obtainable) |
 | K055673 / K053246-7 | sprites, dual-axis zoom, Z buffer | yes | `jtcores/cores/simson/hdl/jt053246.sv`, `_scan.sv`, `_dma.v`, `_mmr.v` | yes — `jtsimson`, `jtxmen`, `jtrungun` |
 | K053936 | PSAC2 rotate/zoom plane | yes | `jtcores/cores/rungun/hdl/jt053936.v` (+ `jtrungun_psac.v`) | yes — `jtrungun` |
 | K053252 | CRTC / timing | yes | `jtcores/cores/rungun/hdl/jtk053252.v` | yes — `jtrungun` |
@@ -27,8 +27,13 @@ hardware; it is roughly "Moo Mesa's chipset plus Run and Gun's rotating plane".
 | K056832 | 4-layer tilemaps | **partial** | `jtcores/modules/jt05415x` — K054156/K054157 reconstructed from Furrtek's silicon RE; K056832 is the superset. README says "is being reconstructed" | **no** |
 | **K055555** | 8-input 5bpp priority encoder | **no** | Moo Mesa and X-Men use the older K053251 (`jtcolmix_053251.v`); `jtmoo_colmix.v` / `jtxmen_colmix.v` are game-specific mixers | **no** |
 
-Two genuine gaps: **K055555**, and finishing **K056832** (the released
-`jtrungun` does not use it — Run and Gun's fixed layer is TTL, not a K056832).
+Three genuine gaps: **K055555**, finishing **K056832** (the released
+`jtrungun` does not use it — Run and Gun's fixed layer is TTL, not a K056832),
+and **K054539**, whose jotego implementation turned out not to be public.
+
+Update: all four video chips and the mixer were in the end written here from
+the reference renderer rather than ported — the model made that the cheaper
+route, and each block is gated to zero differing pixels. See the README.
 
 ## Licensing
 

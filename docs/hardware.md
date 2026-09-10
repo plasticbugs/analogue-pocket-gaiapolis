@@ -313,12 +313,16 @@ verification effort - see `docs/prior-art.md`.
 | Block | Size |
 |---|---|
 | Work RAM | 64 KB |
+| K056832 tile RAM -- 16 pages x 4096 words, the CPU sees one page at a time through the 8 KB window at `410000` | **128 KB** |
 | Palette (2048 x 32-bit) | 8 KB |
-| Tile RAM | 8 KB |
 | Sprite RAM (0x800 words) | 4 KB |
 | ROZ line RAM | 4 KB |
 | Z80 RAM | 8 KB |
-| Line buffers (6 layers + sprite line buffer with Z) | ~7 KB |
-| **Subtotal** | **~103 KB** |
+| Sprite reciprocal ROMs | 9 KB |
+| Line buffers (4 tilemap + ROZ + sprite with Z and shadow) | ~9 KB |
+| **Subtotal** | **~234 KB** |
 
-That leaves roughly 280 KB for tile/sprite/ROZ caches and CPU cores. Comfortable.
+That leaves roughly 150 KB for caches and the CPU cores. Adequate, not lavish:
+the tile RAM is the big item, and an earlier revision of this table wrongly
+counted only the CPU's 8 KB window. The corpus only ever populates pages
+0, 1, 4 and 5, so halving it is a fallback if the fit gets tight.
