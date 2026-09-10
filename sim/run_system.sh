@@ -10,7 +10,7 @@ case "$ROM" in /*) ;; *) ROM="$PWD/$ROM" ;; esac
 
 verilator --cc --exe --build -j 8 -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY \
     +1364-2005ext+v waivers.vlt --top-module tb_system_top -Mdir obj_system \
-    ../rtl/*.sv ../modules/cpu-tg68k/gen/tg68k.v tb_system_top.sv tb_system.cpp \
+    ../rtl/*.sv ../modules/cpu-tg68k/gen/tg68k.v ../modules/cpu-tv80/*.v tb_system_top.sv tb_system.cpp \
     > obj_system.log 2>&1 || { tail -30 obj_system.log; exit 1; }
 
 mkdir -p ../artifacts/system

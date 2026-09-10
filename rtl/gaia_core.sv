@@ -5,9 +5,9 @@
 // same module runs under Verilator with ideal memories and on the Pocket
 // behind the SDRAM/PSRAM controllers. docs/hardware.md is the map.
 //
-// Sound is not fitted yet: the K054321 latch is here so the 68000's traffic
-// to it is real, but nothing answers on the Z80 side and the audio outputs
-// are silent.
+// The sound board is fitted (gaia_sound.sv): the Z80 answers the latch and
+// runs its own self-test through the K054539s' ROM ports. Audio rendering in
+// the K054539 is not written yet, so the outputs are silent.
 //------------------------------------------------------------------------------
 `default_nettype none
 
@@ -42,6 +42,15 @@ module gaia_core #(
     output logic [19:0] spr_addr,
     input  logic        spr_ack,
     input  logic [63:0] spr_q,
+    // sound program ROM, 256 KB, and PCM ROM, 4 MB: byte ports
+    output logic        snd_rom_req,
+    output logic [17:0] snd_rom_addr,
+    input  logic        snd_rom_ack,
+    input  logic  [7:0] snd_rom_q,
+    output logic        pcm_req,
+    output logic [21:0] pcm_addr,
+    input  logic        pcm_ack,
+    input  logic  [7:0] pcm_q,
 
     // EEPROM array: load at start, read back to save
     input  logic        eep_ld_we,
@@ -77,11 +86,12 @@ module gaia_core #(
     output logic        dbg_unsupported,
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
-    output logic  [8:0] dbg_vcount
+    output logic  [8:0] dbg_vcount,
+    output logic [15:0] dbg_zpc
 );
     // ------------------------------------------------------------ clocks
-    logic cen_16m, cen_8m;
-    clk_enables u_cen (.clk(clk), .reset(reset), .cen_16m(cen_16m), .cen_8m(cen_8m));
+    logic cen_16m, cen_8m, cen_48k;
+    clk_enables u_cen (.clk(clk), .reset(reset), .cen_16m(cen_16m), .cen_8m(cen_8m), .cen_48k(cen_48k));
     assign cen_pix = cen_8m;
 
     // ------------------------------------------------------------ timing
@@ -146,11 +156,24 @@ module gaia_core #(
 
     logic [6:0] snd_volume;
     logic [1:0] snd_active;
+    logic       lat_wr;
+    logic [1:0] lat_off;
+    logic [7:0] lat_wdata, lat_rdata;
     k054321 u_latch (
         .clk(clk), .reset(reset),
         .m_wr(snd_wr), .m_rd(snd_rd), .m_off(snd_off), .m_wdata(snd_wdata), .m_rdata(snd_rdata),
-        .s_wr(1'b0), .s_off(2'd0), .s_wdata(8'd0), .s_rdata(),
+        .s_wr(lat_wr), .s_off(lat_off), .s_wdata(lat_wdata), .s_rdata(lat_rdata),
         .volume(snd_volume), .active(snd_active)
+    );
+
+    logic [15:0] mix_l, mix_r;
+    gaia_sound u_snd (
+        .clk(clk), .reset(reset), .cen_8m(cen_8m), .cen_48k(cen_48k),
+        .rom_req(snd_rom_req), .rom_addr(snd_rom_addr), .rom_ack(snd_rom_ack), .rom_q(snd_rom_q),
+        .pcm_req(pcm_req), .pcm_addr(pcm_addr), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
+        .lat_wr(lat_wr), .lat_off(lat_off), .lat_wdata(lat_wdata), .lat_rdata(lat_rdata),
+        .irq_pulse(snd_irq),
+        .snd_l(mix_l), .snd_r(mix_r), .dbg_pc(dbg_zpc)
     );
 
     k054000 u_col (
@@ -281,11 +304,13 @@ module gaia_core #(
         .pal_addr(pal_raddr), .pal_q(pal_q), .rgb(rgb)
     );
 
-    assign snd_l = '0;
-    assign snd_r = '0;
+    // K054321 active bits gate the channels; the volume curve is applied by
+    // the platform's audio stage
+    assign snd_l = snd_active[1] ? mix_l : '0;
+    assign snd_r = snd_active[0] ? mix_r : '0;
 
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused = ^{k56regsb[0], k56regsb[1], k56regsb[2], k56regsb[3], roz_rombank, snd_irq, col_rd,
-                    snd_volume, snd_active, ol_done, dbg0, dbg1, dbg2, dbg3, px_valid};
+    wire unused = ^{k56regsb[0], k56regsb[1], k56regsb[2], k56regsb[3], roz_rombank, col_rd,
+                    snd_volume, ol_done, dbg0, dbg1, dbg2, dbg3, px_valid};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule

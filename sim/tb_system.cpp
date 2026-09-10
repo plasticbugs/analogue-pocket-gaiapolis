@@ -20,6 +20,8 @@ static const long ROM_ROZCHAR = 0x0540000, ROZCHAR_LEN = 0x180000;
 static const long ROM_ROZMAP = 0x06C0000, ROZMAP_LEN = 0x0A0000;
 static const long ROM_SPRITES = 0x0B60000, SPRITES_LEN = 0x800000;
 static const long ROM_EEPROM = 0x1360000, EEPROM_LEN = 0x80;
+static const long ROM_SOUNDCPU = 0x0300000, SOUNDCPU_LEN = 0x40000;
+static const long ROM_PCM = 0x0760000, PCM_LEN = 0x400000;
 
 static Vtb_system_top *dut;
 static unsigned long long cycles = 0;
@@ -46,6 +48,8 @@ int main(int argc, char **argv) {
     auto rmap = region(rf, ROM_ROZMAP, ROZMAP_LEN, "gfx4");
     auto spr = region(rf, ROM_SPRITES, SPRITES_LEN, "sprites");
     auto eep = region(rf, ROM_EEPROM, EEPROM_LEN, "eeprom");
+    auto sndrom = region(rf, ROM_SOUNDCPU, SOUNDCPU_LEN, "sound program");
+    auto pcm = region(rf, ROM_PCM, PCM_LEN, "pcm");
     fclose(rf);
 
     dut = new Vtb_system_top;
@@ -75,6 +79,10 @@ int main(int argc, char **argv) {
     dut->spr_we = 0;
     for (int i = 0; i < EEPROM_LEN; i++) { dut->eep_we = 1; dut->eep_waddr = i; dut->eep_wdata = eep[i]; tick(); }
     dut->eep_we = 0;
+    for (long i = 0; i < SOUNDCPU_LEN; i++) { dut->srom_we = 1; dut->srom_waddr = i; dut->srom_wdata = sndrom[i]; tick(); }
+    dut->srom_we = 0;
+    for (long i = 0; i < PCM_LEN; i++) { dut->pcm_we = 1; dut->pcm_waddr = i; dut->pcm_wdata = pcm[i]; tick(); }
+    dut->pcm_we = 0;
 
     dut->reset = 0;
 
@@ -141,9 +149,10 @@ int main(int argc, char **argv) {
                 if (tr) {
                     unsigned hot = 0, hotn = 0;
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%d unsup=%d de_px=%u pc=%06x hot=%06x(%u)\n",
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%d unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
-                            (int)dut->dbg_overrun, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn);
+                            (int)dut->dbg_overrun, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
+                            (unsigned)dut->dbg_zpc);
                     for (size_t i = 0; i < watch.size(); i++) { fprintf(tr, "   watch %06x: %u\n", watch[i], watch_n[i]); watch_n[i] = 0; }
                     fr_hist.clear();
                 }

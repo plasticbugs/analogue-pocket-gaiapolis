@@ -22,7 +22,7 @@ RTL="$(ls rtl/*.sv 2>/dev/null)"
 VENDOR="modules/cpu-tg68k/gen/tg68k.v $(ls modules/cpu-tv80/*.v)"
 
 # each block on its own, then whatever top levels exist
-for top in k056832_tilemap k053936_roz k053247_objlist k053247_draw k055555_mixer gaia_video gaia_main; do
+for top in k056832_tilemap k053936_roz k053247_objlist k053247_draw k055555_mixer gaia_video gaia_main k054539 gaia_sound; do
     grep -q "^module $top\b" rtl/*.sv 2>/dev/null || continue
     echo "--- $top ---"
     verilator --lint-only $FLAGS --top-module $top $RTL $VENDOR

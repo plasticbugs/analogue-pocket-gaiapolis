@@ -13,6 +13,8 @@ module tb_system_top (
     input  logic        chr_we,  input logic [19:0] chr_waddr,  input logic [15:0] chr_wdata,
     input  logic        spr_we,  input logic [19:0] spr_waddr,  input logic [63:0] spr_wdata,
     input  logic        eep_we,  input logic  [6:0] eep_waddr,  input logic  [7:0] eep_wdata,
+    input  logic        srom_we, input logic [17:0] srom_waddr, input logic  [7:0] srom_wdata,
+    input  logic        pcm_we,  input logic [21:0] pcm_waddr,  input logic  [7:0] pcm_wdata,
 
     input  logic [15:0] in0_p1,
     input  logic  [7:0] in1,
@@ -26,13 +28,19 @@ module tb_system_top (
     output logic  [1:0] dbg_busstate,
     output logic        dbg_step, dbg_irq5, dbg_overrun, dbg_unsupported, dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
-    output logic  [8:0] dbg_vcount
+    output logic  [8:0] dbg_vcount,
+    output logic [15:0] dbg_zpc
 );
     logic [15:0] prog [4194304];      // 22-bit word address; 3 MB used
     logic [31:0] tile [524288];
     logic [15:0] mapr [327680];
     logic [15:0] chr  [786432];
     logic [63:0] spr  [1048576];
+    logic  [7:0] srom [262144];
+    logic  [7:0] pcm  [4194304];
+    logic        srom_req, srom_ack, pcmr_req, pcmr_ack;
+    logic [17:0] srom_addr; logic [21:0] pcmr_addr;
+    logic  [7:0] srom_q, pcmr_q;
 
     logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, chr_req, chr_ack, spr_req, spr_ack;
     logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [20:0] chr_addr; logic [19:0] spr_addr;
@@ -44,6 +52,10 @@ module tb_system_top (
         if (map_we)  mapr[map_waddr]  <= map_wdata;
         if (chr_we)  chr[chr_waddr]   <= chr_wdata;
         if (spr_we)  spr[spr_waddr]   <= spr_wdata;
+        if (srom_we) srom[srom_waddr] <= srom_wdata;
+        if (pcm_we)  pcm[pcm_waddr]   <= pcm_wdata;
+        srom_q <= srom[srom_addr];       srom_ack <= srom_req & ~srom_ack;
+        pcmr_q <= pcm[pcmr_addr];        pcmr_ack <= pcmr_req & ~pcmr_ack;
         prog_q <= prog[prog_addr];       prog_ack <= prog_req & ~prog_ack;
         tile_q <= tile[tile_addr];       tile_ack <= tile_req & ~tile_ack;
         map_q  <= mapr[map_addr[19:1]];  map_ack  <= map_req  & ~map_ack;
@@ -60,13 +72,15 @@ module tb_system_top (
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
         .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
+        .snd_rom_req(srom_req), .snd_rom_addr(srom_addr), .snd_rom_ack(srom_ack), .snd_rom_q(srom_q),
+        .pcm_req(pcmr_req), .pcm_addr(pcmr_addr), .pcm_ack(pcmr_ack), .pcm_q(pcmr_q),
         .eep_ld_we(eep_we), .eep_ld_addr(eep_waddr), .eep_ld_wdata(eep_wdata), .eep_ld_q(eep_q), .eep_dirty(eep_dirty),
         .in0_p1(in0_p1), .in1(in1), .p2(p2),
         .cen_pix(cen_pix), .rgb(rgb), .hsync(hsync), .vsync(vsync), .de(de), .vblank(vblank),
         .snd_l(snd_l), .snd_r(snd_r),
         .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
         .dbg_overrun(dbg_overrun), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
-        .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount)
+        .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount), .dbg_zpc(dbg_zpc)
     );
     /* verilator lint_off UNUSEDSIGNAL */
     wire unused = ^{eep_q, eep_dirty, snd_l, snd_r};
