@@ -2,9 +2,10 @@
 // tv80s with a clock enable.
 //
 // Identical to modules/cpu-tv80/tv80s.v except that `cen` is a port instead of
-// a constant 1, and the bus-strobe register is gated by it. The Time Pilot Z80s
-// run at 3.072 MHz and 1.789772 MHz off a 49.152 MHz system clock, so they need
-// to be stepped rather than free-running.
+// a constant 1, and the bus-strobe register is gated by it. Written for the
+// Time Pilot core, where the Z80s run at 3.072 and 1.789772 MHz off a
+// 49.152 MHz clock; here the Gaiapolis sound Z80 steps at 8 MHz off 96 MHz.
+// Either way it is stepped rather than free-running.
 //
 // The vendored core is left untouched so it stays diffable against upstream.
 //------------------------------------------------------------------------------

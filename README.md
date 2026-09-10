@@ -5,8 +5,8 @@ Pocket via openFPGA/opengateware.
 
 **Status: the whole machine boots through its self-test with every item OK
 and into the attract mode with music in simulation; the Pocket build fits
-the FPGA (52% logic, 66% block RAM) and is being timed and brought up on
-hardware.**
+the FPGA (52% logic, 66% block RAM) with timing closed at 96 MHz, and is
+ready for its first run on hardware.**
 
 | RTL, frame 1400 | MAME, frame 1400 | self-test |
 |---|---|---|
@@ -78,6 +78,22 @@ boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
 | `artifacts/states/` | The frozen-state corpus and its matching MAME snapshots |
 | `artifacts/` | Snapshots, measurements, and other generated output |
 
+## Trying it on the Pocket
+
+Every push to `main` compiles the core (`.github/workflows/compile.yml`) and
+uploads `gaia-pocket` -- the SD-card package -- as a workflow artifact;
+tagged releases publish it as `gaia-pocket-sdcard.zip`. Unzip it onto the
+SD card root, build `gaiapolis.rom` as described below (or in the package's
+`README.txt`) and put it in `Assets/gaia/common/`. `./build-local.sh` does
+the same compile in Docker and leaves the package in `release/pocket/`.
+
+What has not been seen on hardware yet, in the order it will be noticed:
+the SDRAM/PSRAM/SRAM controllers' pin timing (the image load and the first
+picture), the 8 MHz video clock pair and `video.json`'s rotation direction
+(the picture should be upright with the sunset at the top), the audio
+hand-off, the controls' mapping, and the EEPROM save (`gaiapolis.sav`
+should appear after five seconds, and the settings survive a power cycle).
+
 ## Running the frozen-state gate
 
 ```sh
@@ -107,7 +123,70 @@ The image is 20,316,288 bytes, md5 `7ed05d08287ecc2be8592b0ef0158aad`.
 * MAME itself is `MACHINE_IMPERFECT_GRAPHICS` for this driver, so the usual
   "make MAME the oracle" method needs adjusting (`docs/hardware.md` §10).
 
+## Credits
+
+The Gaiapolis-specific RTL, reference renderer and verification harness
+(`rtl/`, `tools/`, `sim/`) are original; the rest of the core is built on
+other people's work.
+
+**Platform & toolchain**
+
+* the **Analogue Pocket** openFPGA framework (APF) itself -- Analogue
+  Enterprises Limited, `platform/pocket/bsp/pocket/apf_top.sv`,
+  `platform/pocket/peripherals/io_pad_controller.sv`, and the Analogue
+  copyright carried in `target/pocket/core_top.sv`
+* **Marcus Andrade** ([@boogermann](https://github.com/boogermann)) /
+  [OpenGateware](https://github.com/opengateware) -- the Pocket integration
+  framework the rest of `platform/pocket/` (pad, audio, save/hiscore, video
+  and memory glue) is built from, and the `raetro/quartus:pocket` Docker
+  image `build-local.sh` and CI compile with; 41 of its 63 files carry his
+  copyright. Also in the platform layer: **Alexey Melnikov (Sorgelig)** --
+  audio filters, DC blocker, scanlines and shadowmask; **Till Harbaum** --
+  the original scanline generator; **Adam Gastineau** -- the data loader
+  and unloader; **Jim Gregory** and **Alan Steremberg** -- MAME
+  hiscore.dat support; **Jacob Boline** -- USB HID keyboard translation.
+* **GHDL** -- converts the vendored TG68K.C VHDL kernel to Verilog
+  (`modules/cpu-tg68k/gen/`) so one source feeds both Quartus and Verilator
+* **Verilator** -- every simulation bench in `sim/`
+
+**Vendored cores** (`modules/`, see `modules/VENDOR.md`)
+
+* **TG68K.C**, the switchable 68000/68010/68020 kernel, by Tobias Gubener
+  -- `modules/cpu-tg68k`, LGPL-3.0
+* **tv80**, the Z80 core, by Guy Hutchison -- `modules/cpu-tv80`, MIT,
+  based on Daniel Wallner's VHDL T80 core, by way of `plasticbugs/punchout`
+* the PSRAM controller, from the openFPGA SNES core, by Adam Gastineau --
+  `target/pocket/psram.sv`, MIT
+* the SDRAM controller's pin-level timing -- CL2, read data captured at
+  READ+4, proven on the Pocket at 96 MHz -- carried over from this
+  author's own S.T.U.N. Runner core, itself derived from the Punch-Out!!
+  core's `sdram16.sv` (`target/pocket/sdram_ctrl.sv`)
+
+**Reference & verification**
+
+* **The MAME team**, the oracle throughout (`docs/hardware.md` section 10,
+  `METHODOLOGY.md`). `ref/mame/mystwarr.cpp` and `mystwarr_v.cpp` (R.
+  Belmont, Phil Stroffolino, Acho A. Tang, Nicola Salmoria) describe the
+  board; `konamigx_v.cpp` (R. Belmont, Acho A. Tang, Phil Stroffolino,
+  Olivier Galibert) is the GX-era video/mixer model this "pre-GX" driver
+  shares. Kept as reference only -- none of it is compiled into the core.
+* The custom-chip device models in `ref/mame/`, same terms: `k054539.cpp`
+  and `k054321.cpp` (Olivier Galibert); `k054156_k054157_k056832.cpp`,
+  `k053246_k053247_k055673.cpp`, `k053936.cpp` and `k055555.cpp` (David
+  Haywood); `k054338.cpp` (David Haywood); `k054000.cpp` (David Haywood,
+  Angelo Salese); `eepromser.cpp` (Aaron Giles).
+* **jotego (Jose Tejada)**'s `jtcores` and **Furrtek**'s silicon reverse
+  engineering of this Konami chip generation, plus jotego's released
+  `jtrungun` (Run and Gun) core against the same chipset -- the prior-art
+  survey this core is scoped against (`docs/prior-art.md`). No code from
+  either is vendored here; the video pipeline ended up written directly
+  from the reference renderer instead of ported (see above).
+
 ## Licence
 
-GPL-3.0. Reuses work from jotego's `jtcores` (GPL-3.0) and silicon reverse
-engineering by Furrtek; see `docs/prior-art.md`.
+GPL-3.0, following the GPL-3.0-or-later files in the OpenGateware platform
+layer (`platform/pocket/`) and the LGPL-3.0 TG68K.C kernel
+(`modules/cpu-tg68k/`). No jtcores RTL is vendored in this repository --
+jotego's `jtcores` and Furrtek's silicon reverse engineering informed the
+prior-art survey and hardware research (`docs/prior-art.md`) but
+contributed no code.
