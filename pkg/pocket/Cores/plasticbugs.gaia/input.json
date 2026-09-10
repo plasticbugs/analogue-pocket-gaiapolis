@@ -7,33 +7,28 @@
                 "mappings": [
                     {
                         "id": 120,
-                        "name": "Boost",
+                        "name": "Button 2",
                         "key": "pad_btn_b"
                     },
                     {
                         "id": 121,
-                        "name": "Fire",
+                        "name": "Button 1",
                         "key": "pad_btn_a"
                     },
                     {
                         "id": 122,
-                        "name": "Fire (alt)",
+                        "name": "Button 2 (alt)",
                         "key": "pad_btn_x"
                     },
                     {
                         "id": 123,
-                        "name": "Boost (alt)",
+                        "name": "Button 1 (alt)",
                         "key": "pad_btn_y"
                     },
                     {
                         "id": 124,
-                        "name": "Fire (alt)",
+                        "name": "Button 3",
                         "key": "pad_trig_r"
-                    },
-                    {
-                        "id": 125,
-                        "name": "Boost (alt)",
-                        "key": "pad_trig_l"
                     },
                     {
                         "id": 126,
@@ -47,22 +42,22 @@
                     },
                     {
                         "id": 128,
-                        "name": "Raise control",
+                        "name": "Up",
                         "key": "pad_dpad_up"
                     },
                     {
                         "id": 129,
-                        "name": "Lower control",
+                        "name": "Down",
                         "key": "pad_dpad_down"
                     },
                     {
                         "id": 130,
-                        "name": "Steer left",
+                        "name": "Left",
                         "key": "pad_dpad_left"
                     },
                     {
                         "id": 131,
-                        "name": "Steer right",
+                        "name": "Right",
                         "key": "pad_dpad_right"
                     }
                 ]

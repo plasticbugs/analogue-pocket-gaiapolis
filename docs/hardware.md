@@ -345,7 +345,7 @@ The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
 | `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB | 14 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), single words (PCM) |
 | `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, ~12 clocks |
 | `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, ~12 clocks |
-| `sram` | 256 KB | spare | -- | -- |
+| `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, ~5 clocks; byte-enabled writes |
 
 Why this way round:
 
@@ -358,6 +358,13 @@ Why this way round:
   PCM ~160 clocks of the 6,144-clock line.
 * The ROZ's map and character reads are single 16-bit words, which is what an
   async PSRAM does natively; ~1,300 clocks per line with the tile cache.
+* The tile RAM (128 KB) is the one *RAM* too big for the FPGA: as block RAM
+  it needed two copies for its two readers, 2 Mbit of the device's 3.15.
+  It lives in the 10 ns SRAM instead, behind one request/ack port shared by
+  the K056832's fetch (priority) and the CPU's window (`rtl/ram_arb2.sv`).
+  The tilemap fetch is a three-stage pipeline (tile RAM, tile ROM, emit) so
+  the ~5-clock SRAM and ~12-clock SDRAM latencies overlap: `sim/run_tilemap.sh`
+  with `LATARGS="+LAT_VRAM=5 +LAT_ROM=12"` measures 3,355 clocks a line.
 
 The bench models these latencies (`sim/run_system.sh` with `LAT=pocket`) so
 the budgets are measured, not assumed. Every memory holds big-endian 16-bit
@@ -369,16 +376,18 @@ in simulation and on the Pocket.
 | Block | Size |
 |---|---|
 | Work RAM | 64 KB |
-| K056832 tile RAM -- 16 pages x 4096 words, the CPU sees one page at a time through the 8 KB window at `410000` | **128 KB** |
-| Palette (2048 x 32-bit) | 8 KB |
-| Sprite RAM (0x800 words) | 4 KB |
+| Sprite window shadow (the 64 KB the CPU sees at `400000`, 4 KB of it the chip's) | 64 KB |
+| K054539 chip RAM, 2 x 32 KB | 64 KB |
+| Palette (2048 x 32-bit), two copies for its two readers | 16 KB |
+| Sprite RAM (0x800 words), two copies | 8 KB |
 | ROZ line RAM | 4 KB |
-| Z80 RAM | 8 KB |
-| Sprite reciprocal ROMs | 9 KB |
-| Line buffers (4 tilemap + ROZ + sprite with Z and shadow) | ~9 KB |
-| **Subtotal** | **~234 KB** |
+| Z80 RAM | 9 KB |
+| Sprite zoom/reciprocal tables | 9 KB |
+| Line buffers (4 tilemap + ROZ + sprite), sprite list | ~14 KB |
+| **Subtotal** | **~252 KB** |
 
-That leaves roughly 150 KB for caches and the CPU cores. Adequate, not lavish:
-the tile RAM is the big item, and an earlier revision of this table wrongly
-counted only the CPU's 8 KB window. The corpus only ever populates pages
-0, 1, 4 and 5, so halving it is a fallback if the fit gets tight.
+The K056832 tile RAM (128 KB) is in the Pocket's SRAM, not here: as block
+RAM Quartus needed two copies of it for its two readers, and the whole design
+then asked for 4.0 Mbit of the device's 3.15. What remains fits with margin
+(Quartus's map summary is the number to watch: `projects/output_files/
+gaia_pocket.map.summary`, "Total block memory bits").

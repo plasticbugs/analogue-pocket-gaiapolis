@@ -6,11 +6,11 @@
         "gaia"
       ],
       "shortname": "gaia",
-      "description": "S.T.U.N. Runner (Atari Games, 1989) arcade core",
+      "description": "Gaiapolis (Konami, 1993) arcade core",
       "author": "plasticbugs",
-      "url": "https://github.com/plasticbugs/analogue-pocket-gaianer",
-      "version": "0.2.1",
-      "date_release": "2026-09-04"
+      "url": "https://github.com/plasticbugs/analogue-pocket-gaiapolis",
+      "version": "0.1.0",
+      "date_release": "2026-09-10"
     },
     "framework": {
       "target_product": "Analogue Pocket",

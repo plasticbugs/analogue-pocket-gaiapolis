@@ -3,9 +3,9 @@
 //
 // Address decode follows docs/hardware.md section 3 (gaiapols_map). The CPU
 // is TG68K.C, paced by a token bucket the way the S.T.U.N. Runner core paces
-// its 68010 -- STEP_COST_BUS/STEP_COST_INT/STEP_GAIN set the step rate, and the values
-// here are a starting point to be calibrated against MAME's frame timing,
-// not a measurement.
+// its 68010 -- STEP_COST_BUS/STEP_COST_INT/STEP_GAIN set the step rate; the
+// values are calibrated against MAME's frame timing (docs/hardware.md
+// section 10, "68000 pacing").
 //
 // What lives here: work RAM, K056832 tile RAM (all 16 pages, one visible
 // through the banked window), palette, sprite RAM through the K053247's
@@ -107,8 +107,15 @@ module gaia_main #(
     output logic [15:0] k47regs  [8],
 
     // memories the renderers read
-    input  logic [15:0] vram_raddr,
-    output logic [15:0] vram_q,
+    // tile RAM lives outside (the Pocket's SRAM); the CPU window's accesses
+    // go out as request/ack, writes byte-enabled, and the kernel waits for them
+    output logic        vc_req,
+    output logic        vc_we,
+    output logic [15:0] vc_addr,
+    output logic  [1:0] vc_be,
+    output logic [15:0] vc_wdata,
+    input  logic        vc_ack,
+    input  logic [15:0] vc_q,
     input  logic [10:0] sram_raddr,
     output logic [15:0] sram_q,
     input  logic [10:0] pal_raddr,
@@ -209,11 +216,34 @@ module gaia_main #(
     logic [1:0][7:0] wram [32768];
     logic [15:0] wram_q;
     // K056832 tile RAM, 16 pages x 4096 words; CPU sees the selected page
-    logic [15:0] vram [65536];
-    logic [15:0] vram_cpu_q;
     // palette 2048 x {word0, word1}; word0 = 00RR, word1 = GGBB
-    logic [1:0][15:0] pal [2048];
+    // palette: two 16-bit words per entry (00RR, GGBB), each a byte-enabled
+    // RAM in Quartus's template form so it infers rather than becoming 64K
+    // registers; the CPU and the mixer each read a copy
+    logic [1:0][7:0] pal0 [2048];
+    logic [1:0][7:0] pal1 [2048];
     logic [1:0][15:0] pal_cpu_q, pal_rd_q;
+    logic        pal_we;
+    logic [10:0] pal_waddr;
+    logic  [1:0] pal_wsel;             // which word, {word1, word0}
+    logic  [1:0] pal_wbe;              // {uds, lds}
+    logic [15:0] pal_wdata;
+    always_ff @(posedge clk) begin
+        if (pal_we && pal_wsel[0]) begin
+            if (pal_wbe[1]) pal0[pal_waddr][1] <= pal_wdata[15:8];
+            if (pal_wbe[0]) pal0[pal_waddr][0] <= pal_wdata[7:0];
+        end
+        pal_cpu_q[0] <= pal0[A[12:2]];
+        pal_rd_q[0]  <= pal0[pal_raddr];
+    end
+    always_ff @(posedge clk) begin
+        if (pal_we && pal_wsel[1]) begin
+            if (pal_wbe[1]) pal1[pal_waddr][1] <= pal_wdata[15:8];
+            if (pal_wbe[0]) pal1[pal_waddr][0] <= pal_wdata[7:0];
+        end
+        pal_cpu_q[1] <= pal1[A[12:2]];
+        pal_rd_q[1]  <= pal1[pal_raddr];
+    end
     // sprite RAM 0x800 words behind the scattered window, plus the plain
     // 32K x 16 the rest of the 64 KB window lands in (the board has it, and
     // the self-test writes and reads all of it)
@@ -243,10 +273,6 @@ module gaia_main #(
 
     always_ff @(posedge clk) begin
         wram_q      <= wram[A[15:1]];
-        vram_cpu_q  <= vram[vram_cpu_addr];
-        vram_q      <= vram[vram_raddr];
-        pal_cpu_q   <= pal[A[12:2]];
-        pal_rd_q    <= pal[pal_raddr];
         sram_cpu_q  <= sram[spr_word];
         sshadow_q   <= sshadow[A[15:1]];
         sram_q      <= sram[sram_raddr];
@@ -258,7 +284,7 @@ module gaia_main #(
     // ------------------------------------------------- bus sequencer
     typedef enum logic [3:0] {
         B_IDLE, B_RAM_RD, B_WAIT_ROM, B_WAIT_MAP0, B_WAIT_MAP0B, B_WAIT_MAP1, B_WAIT_CHR,
-        B_WAIT_TROM, B_WAIT_SROM
+        B_WAIT_TROM, B_WAIT_SROM, B_WAIT_VRAM, B_WAIT_VRAMW
     } bst_t;
     bst_t bst;
     logic [5:0]  tok;
@@ -289,7 +315,7 @@ module gaia_main #(
     always_comb begin
         rd_mux = 16'h0000;
         if      (sel_wram)   rd_mux = wram_q;
-        else if (sel_vram)   rd_mux = vram_ext ? 16'h0000 : vram_cpu_q;
+        else if (sel_vram)   rd_mux = 16'h0000;            // only the external-linescroll mode reads here
         else if (sel_pal)    rd_mux = A[1] ? pal_cpu_q[1] : pal_cpu_q[0];
         else if (sel_sprwin) rd_mux = spr_hit ? sram_cpu_q : sshadow_q;
         else if (sel_rozli)  rd_mux = rozli_q;
@@ -304,12 +330,12 @@ module gaia_main #(
     always_ff @(posedge clk) begin
         clkena   <= 1'b0;
         dbg_step <= 1'b0;
-        snd_wr <= 1'b0; snd_rd <= 1'b0; snd_irq <= 1'b0;
+        snd_wr <= 1'b0; snd_rd <= 1'b0; snd_irq <= 1'b0; pal_we <= 1'b0;
         col_wr <= 1'b0; col_rd <= 1'b0;
         step_gap <= {step_gap[1:0], clkena};
 
         if (reset) begin
-            bst <= B_IDLE; tok <= '0; step_gap <= '0; irq5_pend <= 1'b0;
+            bst <= B_IDLE; tok <= '0; step_gap <= '0; irq5_pend <= 1'b0; vc_req <= 1'b0;
             rom_req <= 1'b0; map_req <= 1'b0; chr_req <= 1'b0; trom_req <= 1'b0; srom_req <= 1'b0;
             roz_enable <= 1'b0; roz_rombank <= 2'd0;
             eep_di <= 1'b0; eep_cs <= 1'b0; eep_clk <= 1'b0;
@@ -344,18 +370,14 @@ module gaia_main #(
                                 if (lds) wram[A[15:1]][0] <= data_write[7:0];
                             end else if (sel_vram) begin
                                 if (!vram_ext) begin
-                                    // COMBINE_DATA: byte lanes into a 16-bit word
-                                    vram[vram_cpu_addr] <= {uds ? data_write[15:8] : vram_cpu_q[15:8],
-                                                            lds ? data_write[7:0]  : vram_cpu_q[7:0]};
+                                    // the external tile RAM: a byte-enabled write the kernel waits for
+                                    vc_req <= 1'b1; vc_we <= 1'b1; vc_addr <= vram_cpu_addr;
+                                    vc_be <= {uds, lds}; vc_wdata <= data_write;
+                                    clkena <= 1'b0; dbg_step <= 1'b0; bst <= B_WAIT_VRAMW;
                                 end
                             end else if (sel_pal) begin
-                                if (A[1]) begin
-                                    if (uds) pal[A[12:2]][1][15:8] <= data_write[15:8];
-                                    if (lds) pal[A[12:2]][1][7:0]  <= data_write[7:0];
-                                end else begin
-                                    if (uds) pal[A[12:2]][0][15:8] <= data_write[15:8];
-                                    if (lds) pal[A[12:2]][0][7:0]  <= data_write[7:0];
-                                end
+                                pal_we <= 1'b1; pal_waddr <= A[12:2]; pal_wsel <= {A[1], ~A[1]};
+                                pal_wbe <= {uds, lds}; pal_wdata <= data_write;
                             end else if (sel_sprwin) begin
                                 if (spr_hit)
                                     sram[spr_word] <= {uds ? data_write[15:8] : sram_cpu_q[15:8],
@@ -412,6 +434,8 @@ module gaia_main #(
                             tok <= tok - 6'(STEP_COST_BUS);
                             if (sel_rom) begin
                                 rom_addr <= A[22:1]; rom_req <= 1'b1; bst <= B_WAIT_ROM;
+                            end else if (sel_vram && !vram_ext) begin
+                                vc_req <= 1'b1; vc_we <= 1'b0; vc_addr <= vram_cpu_addr; bst <= B_WAIT_VRAM;
                             end else if (sel_rb0) begin
                                 // (gfx4[0x20000 + off] << 8) | gfx4[0x60000 + off], off = word offset
                                 map_addr <= 20'h20000 + {2'd0, A[18:1]}; map_req <= 1'b1; bst <= B_WAIT_MAP0;
@@ -446,6 +470,12 @@ module gaia_main #(
                 end
                 B_WAIT_ROM: if (rom_ack) begin
                     rom_req <= 1'b0; data_in <= rom_q; clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
+                end
+                B_WAIT_VRAM: if (vc_ack) begin
+                    vc_req <= 1'b0; data_in <= vc_q; clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
+                end
+                B_WAIT_VRAMW: if (vc_ack) begin
+                    vc_req <= 1'b0; clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
                 end
                 B_WAIT_MAP0: if (map_ack) begin
                     rb_hi <= map_addr[0] ? map_q[7:0] : map_q[15:8];

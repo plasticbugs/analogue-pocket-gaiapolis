@@ -92,6 +92,24 @@ module tb_system_top #(
 
     logic [7:0] eep_q; logic eep_dirty;
 
+    // tile RAM: 64K x 16 behind the request/ack port, byte-enabled writes,
+    // LAT_VRAM clocks to answer (the Pocket's SRAM port: ~5)
+    logic [7:0]  vram_lo [65536];
+    logic [7:0]  vram_hi [65536];
+    logic        vram_req, vram_we, vram_ack;
+    logic [15:0] vram_addr, vram_wdata, vram_q;
+    logic  [1:0] vram_be;
+    int lat_vram, cnt_vram;
+    initial if (!$value$plusargs("LAT_VRAM=%d", lat_vram)) lat_vram = 0;
+    always_ff @(posedge clk) begin
+        if (vram_req && vram_we && !vram_ack && cnt_vram >= lat_vram) begin
+            if (vram_be[0]) vram_lo[vram_addr] <= vram_wdata[7:0];
+            if (vram_be[1]) vram_hi[vram_addr] <= vram_wdata[15:8];
+        end
+        vram_q <= {vram_hi[vram_addr], vram_lo[vram_addr]};
+        `ROM_PORT(vram_req, vram_ack, cnt_vram, lat_vram)
+    end
+
     gaia_core #(.HEXDIR("../rtl/data"), .STEP_COST_BUS(STEP_COST_BUS), .STEP_COST_INT(STEP_COST_INT)) u_core (
         .clk(clk), .reset(reset),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
@@ -99,6 +117,8 @@ module tb_system_top #(
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
         .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
+        .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr), .vram_be(vram_be), .vram_wdata(vram_wdata),
+        .vram_ack(vram_ack), .vram_q(vram_q),
         .snd_rom_req(srom_req), .snd_rom_addr(srom_addr), .snd_rom_ack(srom_ack), .snd_rom_q(srom_q),
         .pcm_req(pcmr_req), .pcm_addr(pcmr_addr), .pcm_ack(pcmr_ack), .pcm_q(pcmr_q),
         .eep_ld_we(eep_we), .eep_ld_addr(eep_waddr), .eep_ld_wdata(eep_wdata), .eep_ld_q(eep_q), .eep_dirty(eep_dirty),

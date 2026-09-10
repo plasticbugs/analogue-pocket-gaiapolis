@@ -82,6 +82,7 @@ module tb_frame_top (
     // ------------------------------------------------------------ memories
     logic [15:0] vram [65536];
     logic [15:0] vram_addr, vram_q;
+    logic        vram_req, vram_ack;
     logic [31:0] trom [524288];
     logic        trom_req, trom_ack; logic [18:0] trom_addr; logic [31:0] trom_q;
     logic [15:0] mrom [327680];
@@ -109,7 +110,7 @@ module tb_frame_top (
         if (pal_we)  pal[pal_waddr]   <= pal_wdata;
         if (tab_we && !tab_sel) zoomtab[tab_waddr[9:0]] <= tab_wdata;
         if (tab_we &&  tab_sel) reciptab[tab_waddr]     <= tab_wdata;
-        vram_q  <= vram[vram_addr];
+        vram_q  <= vram[vram_addr];      vram_ack <= vram_req & ~vram_ack;
         trom_q  <= trom[trom_addr];      trom_ack <= trom_req & ~trom_ack;
         mrom_q  <= mrom[mrom_addr[19:1]]; mrom_ack <= mrom_req & ~mrom_ack;
         crom_q  <= crom[crom_addr[20:1]]; crom_ack <= crom_req & ~crom_ack;
@@ -134,7 +135,7 @@ module tb_frame_top (
     k056832_tilemap u_tm (
         .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(tm_busy),
         .regs(k56regs), .colorbase(tm_colorbase),
-        .vram_addr(vram_addr), .vram_q(vram_q),
+        .vram_req(vram_req), .vram_addr(vram_addr), .vram_ack(vram_ack), .vram_q(vram_q),
         .rom_req(trom_req), .rom_addr(trom_addr), .rom_ack(trom_ack), .rom_q(trom_q),
         .px(px), .pix(tm_pen), .opaque(tm_opq), .unsupported(tm_unsup)
     );

@@ -44,6 +44,15 @@ module gaia_core #(
     output logic [19:0] spr_addr,
     input  logic        spr_ack,
     input  logic [63:0] spr_q,
+    // tile RAM (K056832 VRAM, 64K x 16), outside the core: request/ack,
+    // byte-enabled writes; on the Pocket it is the SRAM
+    output logic        vram_req,
+    output logic        vram_we,
+    output logic [15:0] vram_addr,
+    output logic  [1:0] vram_be,
+    output logic [15:0] vram_wdata,
+    input  logic        vram_ack,
+    input  logic [15:0] vram_q,
     // sound program ROM, 256 KB, and PCM ROM, 4 MB: byte ports
     output logic        snd_rom_req,
     output logic [17:0] snd_rom_addr,
@@ -119,7 +128,10 @@ module gaia_core #(
     logic  [7:0] k55regs [48], k46regs [8];
     logic        roz_enable;
     logic  [1:0] roz_rombank;
-    logic [15:0] vram_raddr, vram_q, sram_q;
+    logic [15:0] vram_raddr, sram_q;
+    logic        tvr_req, tvr_ack, vc_req, vc_we, vc_ack;
+    logic [15:0] vc_addr, vc_wdata;
+    logic  [1:0] vc_be;
     logic [10:0] sram_raddr, pal_raddr;
     logic [23:0] pal_q;
     logic        eep_di, eep_cs, eep_clk, eep_do, eep_ready;
@@ -149,7 +161,7 @@ module gaia_core #(
         .k56regs(k56regs), .k56regsb(k56regsb), .k55regs(k55regs), .k38regs(k38regs),
         .rozctrl(rozctrl), .rozclip(rozclip), .roz_enable(roz_enable), .roz_rombank(roz_rombank),
         .k46regs(k46regs), .k47regs(k47regs),
-        .vram_raddr(vram_raddr), .vram_q(vram_q),
+        .vc_req(vc_req), .vc_we(vc_we), .vc_addr(vc_addr), .vc_be(vc_be), .vc_wdata(vc_wdata), .vc_ack(vc_ack), .vc_q(vram_q),
         .sram_raddr(sram_raddr), .sram_q(sram_q),
         .pal_raddr(pal_raddr), .pal_q(pal_q),
         .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5)
@@ -247,9 +259,15 @@ module gaia_core #(
     k056832_tilemap u_tm (
         .clk(clk), .reset(reset), .line_start(line_start), .line(render_line), .busy(tm_busy),
         .regs(k56regs), .colorbase(tm_colorbase),
-        .vram_addr(vram_raddr), .vram_q(vram_q),
+        .vram_req(tvr_req), .vram_addr(vram_raddr), .vram_ack(tvr_ack), .vram_q(vram_q),
         .rom_req(rtile_req), .rom_addr(rtile_addr), .rom_ack(rtile_ack), .rom_q(tile_q),
         .px(px), .pix(tm_pen), .opaque(tm_opq), .unsupported(tm_unsup)
+    );
+    ram_arb2 #(.AW(16), .DW(16)) u_vram_arb (
+        .clk(clk), .reset(reset),
+        .c0_req(tvr_req), .c0_we(1'b0), .c0_addr(vram_raddr), .c0_be(2'b11), .c0_wdata(16'd0), .c0_ack(tvr_ack),
+        .c1_req(vc_req), .c1_we(vc_we), .c1_addr(vc_addr), .c1_be(vc_be), .c1_wdata(vc_wdata), .c1_ack(vc_ack),
+        .m_req(vram_req), .m_we(vram_we), .m_addr(vram_addr), .m_be(vram_be), .m_wdata(vram_wdata), .m_ack(vram_ack)
     );
     rom_arb2 #(.AW(19), .DW(32)) u_tile_arb (
         .clk(clk), .reset(reset),

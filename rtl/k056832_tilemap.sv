@@ -8,9 +8,13 @@
 //
 // Each display line is rendered into line buffers during the previous line and
 // then scanned out, which decouples fetch scheduling from the pixel clock. One
-// tile-row fetch serves 8 pixels, so a layer costs 376 emit cycles plus ~47
-// fetches; four layers land near 2,500 clocks of the 6,144 a 64 us line gives
-// at 96 MHz (docs/hardware.md section 11).
+// tile-row fetch serves 8 pixels. The fetch is a three-stage pipeline -- tile
+// RAM (attribute and code), tile ROM (the 8-pixel row), emit -- so the two
+// memories' latencies overlap each other and the emit; on the Pocket the tile
+// RAM is the external SRAM and the ROM an SDRAM burst, ~5 and ~12 clocks. A
+// layer then costs about max(RAM, ROM, 8) clocks per group, near 2,500
+// clocks for four layers of the 6,144 a 64 us line gives at 96 MHz
+// (docs/hardware.md section 11).
 //
 // Scroll modes: 3 (xy scroll) is what every captured frame uses and is gated;
 // 0 (line scroll) and 2 (row scroll) read the per-line/per-8-line X scroll
@@ -42,8 +46,11 @@ module k056832_tilemap #(
     input  logic [15:0] regs      [32],
     input  logic [ 7:0] colorbase [4],
 
-    // Tile RAM: 16 pages x 4096 words. Synchronous read, one cycle.
+    // Tile RAM: 16 pages x 4096 words. Request/ack: level request, one-cycle
+    // ack with the word; a request withdrawn at line_start is dropped.
+    output logic        vram_req,
     output logic [15:0] vram_addr,
+    input  logic        vram_ack,
     input  logic [15:0] vram_q,
 
     // Tile ROM: 2 MB seen as 512K x 32. rom_q[31:24] is the lowest byte of the
@@ -104,16 +111,36 @@ module k056832_tilemap #(
     assign opaque = {rd3[12], rd2[12], rd1[12], rd0[12]};
 
     // ------------------------------------------------------------------- FSM
-    typedef enum logic [3:0] {
-        S_IDLE, S_SETUP, S_SCRL, S_SCRLW, S_SCRL2, S_ATTR, S_CODE, S_LATCH, S_ROM, S_EMIT
-    } state_t;
+    // Layer sequencing (st) wraps three stages that run together:
+    //   V  reads the group's attribute and code words from tile RAM,
+    //   R  fetches the tile row from ROM,
+    //   E  writes the group's pixels into the line buffer.
+    // A stage hands its group on when the next one is free, in order, so the
+    // line buffer sees exactly the pixel sequence a serial fetch would write.
+    typedef enum logic [2:0] { S_IDLE, S_SETUP, S_SCRL, S_SCRL2, S_RUN } state_t;
     state_t st;
 
     logic  [1:0] cur_l;
-    logic [LB_AW-1:0] cur_x;
-    logic [11:0] vx;                 // source x within the layer's page span
-    logic [10:0] vy;                 // source y
-    logic [15:0] attr;
+    logic [LB_AW-1:0] cur_x;         // E: next line-buffer x
+    logic [11:0] vx;                 // E: source x of the pixel being emitted
+    logic [10:0] vy;                 // source y, fixed for the line
+    logic [11:0] fvx;                // V: source x of the group being fetched
+    logic [LB_AW:0] fpx;             // V: first output x of that group
+    logic        v_done;             // V: the layer's last group has been fetched
+
+    typedef enum logic [2:0] { V_IDLE, V_ATTR, V_ATTRW, V_CODE, V_CODEW, V_HOLD } vst_t;
+    typedef enum logic [1:0] { R_IDLE, R_REQ, R_WAIT, R_HOLD } rst_t;
+    vst_t vst;
+    rst_t rst;
+    logic [15:0] attr_v, code_v;     // V's result
+    logic  [3:0] npx_v;
+    logic [15:0] attr, code;         // R's copy; attr feeds the decode below
+    logic  [3:0] npx_r;
+    logic [31:0] rowdata_r;
+    logic  [7:0] color_r;
+    logic        flipx_r;
+    logic        e_busy;             // E
+    logic  [3:0] e_cnt;
     logic [31:0] rowdata;
     logic  [7:0] color;
     logic        flipx;   // flipy is applied at fetch time via attr_fy
@@ -127,12 +154,12 @@ module k056832_tilemap #(
 
     // page index inside the 4x4 grid, wrapping on the layer's span
     wire [1:0] page_r = rowstart + vy[10:9] + {1'b0, vy[8]};
-    wire [1:0] page_c = colstart + vx[11:10] + {1'b0, vx[9]};
+    wire [1:0] page_c = colstart + fvx[11:10] + {1'b0, fvx[9]};
     wire [3:0] page   = {page_r, page_c};
     // word address: page * 4096 + (ty*64 + tx) * 2
-    wire [15:0] vram_base = {page, vy[7:3], vx[8:3], 1'b0};
+    wire [15:0] vram_base = {page, vy[7:3], fvx[8:3], 1'b0};
 
-    // decoded from the latched attribute word, used in S_ROM
+    // decoded from the latched attribute word, used by R
     wire [3:0] flips4    = {1'b0, sm_flips};
     wire       attr_flip = attr[flips4];        // x flip; y flip feeds attr_fy
     wire [3:0] fliprsel  = {2'd0, cur_l} << 1;   // regs[1] bit pair for this layer
@@ -177,15 +204,28 @@ module k056832_tilemap #(
     wire [11:0] vx0 = $unsigned(scroll_x[11:0]) + 12'(VIS_X0);
     wire [10:0] vy0 = $unsigned(scroll_y[10:0]) + {2'd0, line};
 
+    // pixels the group at fvx contributes: to the end of its tile, or of the line
+    wire [LB_AW:0] left    = (LB_AW+1)'(VIS_W) - fpx;
+    wire [3:0]     to_tile = 4'd8 - {1'b0, fvx[2:0]};
+    wire [3:0]     npx_now = (left < (LB_AW+1)'(to_tile)) ? left[3:0] : to_tile;
+    wire [LB_AW:0] fpx_next = fpx + (LB_AW+1)'(npx_now);
+
+    // stage handovers
+    wire v_to_r = (vst == V_HOLD) && (rst == R_IDLE);
+    wire r_to_e = (rst == R_HOLD) && !e_busy;
+    wire layer_done = v_done && (vst == V_IDLE) && (rst == R_IDLE) && !e_busy;
+
     always_ff @(posedge clk) begin
         if (reset) begin
             st <= S_IDLE; busy <= 1'b0; bank <= 1'b0;
-            rom_req <= 1'b0; unsupported <= 1'b0; cur_l <= 2'd0;
+            rom_req <= 1'b0; vram_req <= 1'b0; unsupported <= 1'b0; cur_l <= 2'd0;
+            vst <= V_IDLE; rst <= R_IDLE; e_busy <= 1'b0; v_done <= 1'b0;
         end else if (line_start && st != S_IDLE) begin
             // the previous line overran its budget: abandon it and start this
             // one, as the hardware would -- whatever was drawn is what shows
             bank <= ~bank; busy <= 1'b1;
-            rom_req <= 1'b0; cur_l <= 2'd0; st <= S_SETUP;
+            rom_req <= 1'b0; vram_req <= 1'b0; cur_l <= 2'd0; st <= S_SETUP;
+            vst <= V_IDLE; rst <= R_IDLE; e_busy <= 1'b0; v_done <= 1'b0;
         end else begin
             case (st)
                 S_IDLE: begin
@@ -203,54 +243,82 @@ module k056832_tilemap #(
                     cur_x <= '0;
                     if (colspan == 2'd2 || rowspan == 2'd2) unsupported <= 1'b1;
                     if (scrollmode == 2'd3) begin
-                        vx <= vx0 & (wrap_x - 12'd1);
-                        vy <= vy0 & (wrap_y - 11'd1);
-                        st <= S_ATTR;
+                        vx  <= vx0 & (wrap_x - 12'd1);
+                        fvx <= vx0 & (wrap_x - 12'd1);
+                        vy  <= vy0 & (wrap_y - 11'd1);
+                        fpx <= '0; v_done <= 1'b0; vst <= V_ATTR;
+                        st  <= S_RUN;
                     end else begin
                         vram_addr <= scroll_vram_addr;   // line/row scroll word
+                        vram_req  <= 1'b1;
                         st <= S_SCRL;
                     end
                 end
-                S_SCRL:  st <= S_SCRLW;
-                S_SCRLW: begin scroll_word <= vram_q; st <= S_SCRL2; end
+                S_SCRL: if (vram_ack) begin
+                    scroll_word <= vram_q; vram_req <= 1'b0; st <= S_SCRL2;
+                end
                 S_SCRL2: begin
-                    vx <= vx0 & (wrap_x - 12'd1);
-                    vy <= vy0 & (wrap_y - 11'd1);
-                    st <= S_ATTR;
+                    vx  <= vx0 & (wrap_x - 12'd1);
+                    fvx <= vx0 & (wrap_x - 12'd1);
+                    vy  <= vy0 & (wrap_y - 11'd1);
+                    fpx <= '0; v_done <= 1'b0; vst <= V_ATTR;
+                    st  <= S_RUN;
                 end
 
-                // vram_base is combinational on vx/vy: issue attr then code
-                S_ATTR:  begin vram_addr <= vram_base;             st <= S_CODE;  end
-                S_CODE:  begin vram_addr <= vram_base | 16'd1;     st <= S_LATCH; end
-                S_LATCH: begin attr <= vram_q;                     st <= S_ROM;   end
-                S_ROM: begin
-                    // vram_q now holds the tile code
-                    flipx <= regs[1][fliprsel] & attr_flip;
-                    color <= colorbase[cur_l] | {4'd0, attr_color};
-                    rom_addr <= {vram_q, 3'd0} + {16'd0, attr_fy};
-                    rom_req  <= 1'b1;
-                    st <= S_EMIT;
-                end
+                S_RUN: begin
+                    // ---- V: tile RAM, attribute then code
+                    case (vst)
+                        V_ATTR:  begin vram_addr <= vram_base;          vram_req <= 1'b1; vst <= V_ATTRW; end
+                        V_ATTRW: if (vram_ack) begin attr_v <= vram_q;  vram_req <= 1'b0; vst <= V_CODE;  end
+                        V_CODE:  begin vram_addr <= vram_base | 16'd1;  vram_req <= 1'b1; vst <= V_CODEW; end
+                        V_CODEW: if (vram_ack) begin
+                            code_v <= vram_q; vram_req <= 1'b0; npx_v <= npx_now; vst <= V_HOLD;
+                        end
+                        V_HOLD: if (v_to_r) begin
+                            fpx <= fpx_next;
+                            fvx <= ((fvx | 12'd7) + 12'd1) & (wrap_x - 12'd1);
+                            if (fpx_next >= (LB_AW+1)'(VIS_W)) begin v_done <= 1'b1; vst <= V_IDLE; end
+                            else vst <= V_ATTR;
+                        end
+                        default: ;
+                    endcase
 
-                S_EMIT: begin
-                    if (rom_req) begin
-                        if (rom_ack) begin rowdata <= rom_q; rom_req <= 1'b0; end
-                    end else begin
+                    // ---- R: tile ROM row
+                    case (rst)
+                        R_IDLE: if (v_to_r) begin attr <= attr_v; code <= code_v; npx_r <= npx_v; rst <= R_REQ; end
+                        R_REQ: begin
+                            flipx_r  <= regs[1][fliprsel] & attr_flip;
+                            color_r  <= colorbase[cur_l] | {4'd0, attr_color};
+                            rom_addr <= {code, 3'd0} + {16'd0, attr_fy};
+                            rom_req  <= 1'b1;
+                            rst <= R_WAIT;
+                        end
+                        R_WAIT: if (rom_ack) begin rowdata_r <= rom_q; rom_req <= 1'b0; rst <= R_HOLD; end
+                        R_HOLD: if (r_to_e) rst <= R_IDLE;
+                        default: rst <= R_IDLE;
+                    endcase
+
+                    // ---- E: the group's pixels into the line buffer
+                    if (r_to_e) begin
+                        rowdata <= rowdata_r; color <= color_r; flipx <= flipx_r;
+                        e_cnt <= npx_r; e_busy <= (npx_r != 4'd0);
+                    end else if (e_busy) begin
                         case (cur_l)
                             2'd0: lbuf0[bank][cur_x] <= {|pixel, color, pixel};
                             2'd1: lbuf1[bank][cur_x] <= {|pixel, color, pixel};
                             2'd2: lbuf2[bank][cur_x] <= {|pixel, color, pixel};
                             2'd3: lbuf3[bank][cur_x] <= {|pixel, color, pixel};
                         endcase
-                        vx <= (vx + 12'd1) & (wrap_x - 12'd1);
-                        if (cur_x == VIS_W[LB_AW-1:0] - 1) begin
-                            if (cur_l == 2'd3) begin st <= S_IDLE; busy <= 1'b0; end
-                            else begin cur_l <= cur_l + 2'd1; st <= S_SETUP; end
-                        end else begin
-                            cur_x <= cur_x + 1'd1;
-                            // refetch when the next pixel starts a new tile
-                            st <= (vx[2:0] == 3'd7) ? S_ATTR : S_EMIT;
-                        end
+                        vx    <= (vx + 12'd1) & (wrap_x - 12'd1);
+                        cur_x <= cur_x + 1'd1;
+                        e_cnt <= e_cnt - 4'd1;
+                        if (e_cnt == 4'd1) e_busy <= 1'b0;
+                    end
+
+                    // ---- the layer is done when every stage has drained
+                    if (layer_done) begin
+                        if (cur_l == 2'd3) begin st <= S_IDLE; busy <= 1'b0; end
+                        else begin cur_l <= cur_l + 2'd1; st <= S_SETUP; end
                     end
                 end
                 default: st <= S_IDLE;

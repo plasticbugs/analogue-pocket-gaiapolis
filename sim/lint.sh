@@ -31,4 +31,8 @@ if grep -q "^module gaia_core\b" rtl/*.sv 2>/dev/null; then
     echo "--- whole machine ---"
     verilator --lint-only $FLAGS --top-module gaia_core $RTL $VENDOR
 fi
+# the Pocket memory subsystem (its vendored controllers are waived by path)
+echo "--- pocket memories ---"
+verilator --lint-only $FLAGS sim/waivers_platform.vlt --top-module gaia_mem \
+    target/pocket/gaia_mem.sv target/pocket/sdram_ctrl.sv target/pocket/psram.sv
 echo "lint clean"

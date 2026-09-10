@@ -7,7 +7,7 @@
                 "id": 0,
                 "required": true,
                 "parameters": "0x8",
-                "filename": "gaia.rom",
+                "filename": "gaiapolis.rom",
                 "extensions": [
                     "rom"
                 ],
@@ -19,12 +19,12 @@
                 "required": false,
                 "parameters": "0x22",
                 "nonvolatile": true,
-                "filename": "gaia.sav",
+                "filename": "gaiapolis.sav",
                 "extensions": [
                     "sav"
                 ],
                 "address": "0x20000000",
-                "size_maximum": "0x1000"
+                "size_maximum": "0x80"
             }
         ]
     }

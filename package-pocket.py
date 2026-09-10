@@ -34,7 +34,7 @@ with open(os.path.join(core_dir, "bitstream.rbf_r"), "wb") as f:
 
 # Ship the ROM recipe and its builder alongside the core, so a downloaded
 # release contains everything needed to produce gaia.rom.
-for extra in ("gaia.mra", "README.md", os.path.join("tools", "mra_build.py")):
+for extra in ("gaiapolis.mra", "README.md", os.path.join("tools", "mra_build.py")):
     src = os.path.join(ROOT, extra)
     if os.path.exists(src):
         shutil.copy(src, os.path.join(OUT, os.path.basename(extra)))

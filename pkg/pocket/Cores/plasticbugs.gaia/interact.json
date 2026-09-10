@@ -11,14 +11,6 @@
         "value": 1
       },
       {
-        "name": "Reset Settings & Records",
-        "id": 50,
-        "type": "action",
-        "enabled": true,
-        "address": "0xF0000020",
-        "value": 1
-      },
-      {
         "name": "Screen Shape",
         "id": 60,
         "type": "list",
@@ -29,7 +21,7 @@
         "mask": "0xFFFFFFF9",
         "options": [
           {
-            "name": "Arcade 4:3",
+            "name": "Arcade 3:4",
             "value": "0x00000000"
           },
           {
@@ -95,7 +87,7 @@
         ]
       },
       {
-        "name": "Service Mode",
+        "name": "Test Mode Switch",
         "id": 63,
         "type": "check",
         "enabled": true,

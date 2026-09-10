@@ -25,7 +25,7 @@ fi
 fail=0
 for n in $names; do
     printf '%-16s ' "$n"
-    ./obj_tilemap/Vtb_tilemap_top ../artifacts/states/$n.txt "$ROM" ../artifacts/rtl/$n.rtl.layers \
+    ./obj_tilemap/Vtb_tilemap_top ../artifacts/states/$n.txt "$ROM" ../artifacts/rtl/$n.rtl.layers ${LATARGS:-} \
         > ../artifacts/rtl/$n.log 2>&1 || { echo "BENCH FAILED"; cat ../artifacts/rtl/$n.log; fail=1; continue; }
     python3 ../tools/render_model.py ../artifacts/states/$n.txt "$ROM" \
         --dump-layers=../artifacts/rtl/$n.model.layers > /dev/null
