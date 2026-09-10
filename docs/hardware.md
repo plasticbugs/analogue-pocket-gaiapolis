@@ -187,6 +187,10 @@ Z80 @ 8 MHz, banked:
 * `IN0_P1` low byte: bit0 L, bit1 R, bit2 U, bit3 D, bit4 B1, bit5 B2, bit6 B3, bit7 Start1
 * `IN0_P1` high byte: bit8 Coin1, bit9 Coin2, bit11 Service Mode, bit12 Service1, bit13 Service2
 * `P2`/`P3`/`P4`: same low-byte layout for players 2–4
+* `IN1`: bit0 EEPROM DO, bit1 EEPROM READY, bit2 unassigned (reads **0**; the
+  game spins on `btst #2,$48e020` at `201248` until it does, right after the
+  self-test), bit3 test switch (active low), bit4 mono/stereo (0 = stereo),
+  bit5 flip screen (1 = off), bits 6-7 unused (1)
 * `IN1`: bit0 EEPROM DO, bit1 EEPROM ready, bit3 service, bit4 Mono/Stereo, bit5 Flip Screen
 
 ## 9. ROM map
@@ -388,6 +392,20 @@ in simulation and on the Pocket.
 
 The K056832 tile RAM (128 KB) is in the Pocket's SRAM, not here: as block
 RAM Quartus needed two copies of it for its two readers, and the whole design
-then asked for 4.0 Mbit of the device's 3.15. What remains fits with margin
-(Quartus's map summary is the number to watch: `projects/output_files/
-gaia_pocket.map.summary`, "Total block memory bits").
+then asked for 4.0 Mbit of the device's 3.15.
+
+### The fit (Cyclone V 5CEBA4, Quartus 18.1)
+
+| | used | of |
+|---|---|---|
+| Logic (ALMs) | 9,527 | 18,480 (52%) |
+| Registers | ~12,100 | 73,920 |
+| Block memory | 2.09 Mbit | 3.15 Mbit (66%) |
+| DSP blocks | 33 | 66 |
+
+The first fit asked for 174% of the logic: the sprite rasterizer's Z buffers
+and the K054539 register files as registers with per-entry muxes. The rules
+that brought it to 52% are in `docs/rtl-conventions.md` ("What Quartus will
+and will not make a block RAM of"). `projects/output_files/
+gaia_pocket.fit.summary` and `.sta.summary` are the numbers to watch; the CI
+compile fails the build if a corner's slack goes negative.

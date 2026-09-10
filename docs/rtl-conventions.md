@@ -76,3 +76,50 @@ strobe is edge-detected. `gaia_sound.sv` turns WR into a one-clock pulse on
 the first clock of the strobe (the data is valid throughout) and the
 K054539's read pointer advances when the read strobe ends. The symptom was
 the Z80's RAM test through that port failing (items 4L/4G on the self-test).
+
+## What Quartus will and will not make a block RAM of
+
+Verilator does not care how an array is written; Quartus does, and an array
+it cannot infer as RAM becomes registers with a mux per read -- the sprite
+rasterizer's two Z buffers and shadow flags were 16K ALUTs that way, most of
+the device. The rules that held, from the map report's "uninferred RAM"
+lines (`Info (276xxx)` in the log):
+
+* **One process writes an array.** A second `always_ff` writing it is
+  "multiple constant drivers" (the EEPROM array, the K054539 register file).
+  Route the other writer's request through the owning process.
+* **No asynchronous reads.** `if (mem[i] >= x)` in the same cycle the
+  address is formed keeps the whole array in logic. Read a cycle ahead into a
+  register: the sprite draw addresses the next pixel's Z while it writes the
+  current one (`k053247_draw.sv`), the counting sort takes a read state
+  before each read-modify-write (`k053247_objlist.sv`), the K054539 fetches a
+  channel's 15 parameter bytes one a cycle (`k054539.sv`).
+* **True dual port needs the template**: each port reads *or* writes in a
+  cycle (`if (we) begin mem[a] <= d; q <= d; end else q <= mem[a];`), and a
+  byte-enabled port is a separate byte-wide RAM per lane (the K054539's chip
+  RAM is `ram_lo`/`ram_hi`).
+* **Two readers cost two copies.** Fine for a palette, not for 128 KB of tile
+  RAM -- that is why the K056832's VRAM lives in the Pocket's SRAM.
+* Tiny tables (a 16-entry pan table, 128 volume entries) stay logic; that is
+  expected and cheap.
+
+## Timing at 96 MHz: one multiply, or one wide add, per cycle
+
+The design's two worst paths after the fit were both arithmetic written as
+one expression: the K054539's `(a * b >> 14) * g >> 14` volume product
+(-7.6 ns) and the ROZ's control decode feeding `start + inc * line` (-6.6
+ns). Both had thousands of idle cycles to spend, so they became short
+pipelines: a table lookup, a multiply, a multiply, a cap, one state each.
+The frozen-state gates confirm the numbers did not change. A 16x16 multiply
+in a DSP block is about 5 ns; two in series with an adder and a compare is
+not a 10.4 ns cycle.
+
+## Loads arrive during reset
+
+The bench and the Pocket both hold the machine in reset while the ROM image
+and a save file are written into it, so a memory's load port must work with
+`reset` asserted. A `if (reset) ... else if (ld_we)` chain silently drops
+the load: the EEPROM's default image went missing that way and the
+self-test's 28B item went BAD while `sim/run_eeprom.sh` -- which loaded
+after reset -- still passed. The gate now loads during reset as the system
+does; keep it that way for any new loadable memory.

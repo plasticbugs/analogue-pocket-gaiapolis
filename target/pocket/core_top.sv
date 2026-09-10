@@ -922,14 +922,15 @@ module core_top
     //! Controls, active low as the board reads them (docs/hardware.md section 8):
     //! IN0_P1 bit0 L, 1 R, 2 U, 3 D, 4 B1, 5 B2, 6 B3, 7 Start1, 8 Coin1, 9 Coin2,
     //! 11 test switch, 12 Service1, 13 Service2. P2 the same low byte. IN1 bit 3
-    //! test, bit 4 mono (0 = stereo), bit 5 flip off; bits 1:0 are the EEPROM.
+    //! test, bit 4 mono (0 = stereo), bit 5 flip off; bits 1:0 are the EEPROM;
+    //! bit 2 is an unassigned input the game polls for 0 after the self-test.
     //! Pocket buttons: A/Y = button 1, B/X = button 2, R = button 3.
     wire p1_b1 = p1_btn_a | p1_btn_y, p1_b2 = p1_btn_b | p1_btn_x, p1_b3 = p1_btn_r1;
     wire p2_b1 = p2_btn_a | p2_btn_y, p2_b2 = p2_btn_b | p2_btn_x, p2_b3 = p2_btn_r1;
     wire [15:0] in0_p1 = ~{2'b00, 1'b0, 1'b0, svc_sw, 1'b0, p2_select, p1_select,
                            p1_start, p1_b3, p1_b2, p1_b1, p1_down | j1_down, p1_up | j1_up, p1_right | j1_right, p1_left | j1_left};
     wire  [7:0] p2     = ~{p2_start, p2_b3, p2_b2, p2_b1, p2_down | j2_down, p2_up | j2_up, p2_right | j2_right, p2_left | j2_left};
-    wire  [7:0] in1    = {2'b11, 1'b1, 1'b0, ~svc_sw, 1'b1, 2'b11};
+    wire  [7:0] in1    = {2'b11, 1'b1, 1'b0, ~svc_sw, 1'b0, 2'b11};
 
     //! Diagnostics from the modifier word: bit 4 SDRAM read capture alternate,
     //! bit 5 slow bursts (the S.T.U.N. Runner controller's switches).

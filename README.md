@@ -3,8 +3,11 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: the whole machine boots and runs in simulation; the Pocket
-platform port is being brought up.**
+**Status: the whole machine boots through its self-test with every item OK
+and into the game in simulation; the Pocket build fits the FPGA (53% logic,
+66% block RAM) and is being timed and brought up on hardware.**
+
+![self-test, every item OK](artifacts/system/selftest_all_ok.png)
 
 **The reference renderer is complete and reproduces MAME's output exactly** --
 full frames, not just individual layers. `tools/regress_render.sh`: 28 gates,
@@ -36,9 +39,10 @@ structure was chosen.
 **The full machine runs under Verilator** (`sim/run_system.sh`): 68000
 (TG68K), Z80 (tv80) sound board with two K054539s and the K054321 latch,
 ER5911 EEPROM, K054000 collision chip, and the video pipeline above, from
-reset with the real program. The self-test's ROM, RAM, EEPROM and sound
-checks pass; the boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
-`tools/eeprom_replay.py`).
+reset with the real program. The self-test passes every item -- ROMs, RAMs,
+the two K054539s' chip RAM through their streaming ports, EEPROM -- and the
+boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
+`tools/eeprom_replay.py`, `tools/probe_68k.lua`).
 
 **Pocket port** (`target/pocket/`): `core_top.sv` is the APF glue, and
 `gaia_mem.sv` puts the 20 MB image across the SDRAM and both PSRAMs

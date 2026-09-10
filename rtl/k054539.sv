@@ -55,7 +55,30 @@ module k054539 #(
     output logic [15:0] snd_l,
     output logic [15:0] snd_r
 );
-    logic [7:0] regs [560];             // 0x000..0x22f
+    // register file: the channel bytes (0x000-0x1ff) in a block RAM read a
+    // byte a cycle, the globals and mode bytes (0x200-0x22f) as registers.
+    // (As one 560-byte register array it cost ~2K ALUTs a chip.)
+    logic [7:0] chreg [512];
+    logic [7:0] greg  [48];
+    logic [7:0] chreg_cpu_q, chreg_q;   // CPU readback, renderer parameter fetch
+    logic [8:0] chreg_rd;
+    wire        cpu_wr    = cs && wr;
+    wire        cpu_wr_ch = cpu_wr && !addr[9];         // 0x000-0x1ff
+    wire        cpu_wr_g  = cpu_wr &&  addr[9];         // 0x200-0x22f
+    // the renderer's position write-back, three bytes through the one write
+    // port; a CPU write to the same bytes is newer and cancels it
+    logic        wb_run;
+    logic  [1:0] wb_i;
+    logic  [2:0] wb_chl;
+    logic [23:0] wb_posl;
+    wire   [8:0] wb_addr = {1'b0, wb_chl, 5'h0c} + {7'd0, wb_i};
+    wire   [7:0] wb_byte = (wb_i == 2'd0) ? wb_posl[7:0] : (wb_i == 2'd1) ? wb_posl[15:8] : wb_posl[23:16];
+    always_ff @(posedge clk) begin
+        chreg_cpu_q <= chreg[addr[8:0]];
+        chreg_q     <= chreg[chreg_rd];
+        if (cpu_wr_ch)   chreg[addr[8:0]] <= wdata;
+        else if (wb_run) chreg[wb_addr]   <= wb_byte;
+    end
     // 32 KB chip RAM: byte port for the Z80, 16-bit port for the reverb ring
     // 32 KB chip RAM as two byte-wide true dual-port blocks (low and high
     // byte of each 16-bit word): port A is the Z80's byte port (0x22d with
@@ -76,7 +99,7 @@ module k054539 #(
 
     wire [14:0] ram_addr = {cur_ptr[16], cur_ptr[13:0]};   // (ptr & 0x3fff) | (ptr & 0x10000) >> 2
     wire        ram_sel  = (rom_bank == 8'h80);
-    wire        stream_en = regs[10'h22f][4];
+    wire        stream_en = greg[6'h2f][4];
 
     // ---- data port read: ROM reads go through the request/ack port ----
     typedef enum logic [1:0] { P_IDLE, P_ROM, P_DONE } pst_t;
@@ -101,17 +124,22 @@ module k054539 #(
     assign ram_q = ram_lane ? ram_qhi : ram_qlo;
 
     always_comb begin
-        rdata = regs[addr];
+        rdata = addr[9] ? greg[addr[5:0]] : chreg_cpu_q;   // the CPU holds the address a whole bus cycle
         if (addr == 10'h22d) rdata = stream_en ? port_q : 8'h00;
     end
     assign rd_stall = cs && rd && (addr == 10'h22d) && stream_en && !ram_sel && (pst != P_DONE);
 
     // timer: toggle every 7200/(38+period) samples
-    wire [15:0] tperiod = 16'd7200 / (16'd38 + {8'd0, regs[10'h227]});
+    // timer period in samples, 7200 / (38 + regs[0x227]), from a table rather
+    // than a 16-bit divider
+    logic [15:0] timer_tab [256];
+    initial $readmemh({HEXDIR, "/k539_timer.hex"}, timer_tab);
+    wire [15:0] tperiod = timer_tab[greg[6'h27]];
 
     always_ff @(posedge clk) begin
         if (reset) begin
-            for (int i = 0; i < 560; i++) regs[i] <= '0;
+            for (int i = 0; i < 48; i++) greg[i] <= '0;
+            wb_run <= 1'b0; wb_i <= '0;
             cur_ptr <= '0; rom_bank <= '0; pst <= P_IDLE; strm_req <= 1'b0;
             timer_out <= 1'b0; tcount <= '0; rd_d <= 1'b0;
         end else begin
@@ -138,29 +166,31 @@ module k054539 #(
             endcase
 
             // ---- the renderer's key-off and position write-back ----
-            if (ko_we) regs[10'h22c][ko_ch] <= 1'b0;
-            if (wb_we) begin
-                regs[{2'd0, wb_ch, 5'h0c}] <= wb_pos[7:0];
-                regs[{2'd0, wb_ch, 5'h0d}] <= wb_pos[15:8];
-                regs[{2'd0, wb_ch, 5'h0e}] <= wb_pos[23:16];
+            if (ko_we) greg[6'h2c][ko_ch] <= 1'b0;
+            if (wb_we) begin wb_run <= 1'b1; wb_i <= '0; wb_chl <= wb_ch; wb_posl <= wb_pos; end
+            else if (wb_run) begin
+                if (cpu_wr_ch && addr[8:5] == {1'b0, wb_chl} && addr[4:0] >= 5'h0c && addr[4:0] <= 5'h0e) wb_run <= 1'b0;
+                else if (!cpu_wr_ch) begin
+                    if (wb_i == 2'd2) wb_run <= 1'b0; else wb_i <= wb_i + 2'd1;
+                end
             end
 
-            // ---- writes ----
-            if (cs && wr) begin
+            // ---- writes to the globals (channel bytes go to the RAM above) ----
+            if (cpu_wr_g) begin
                 case (addr)
-                    10'h214: regs[10'h22c] <= regs[10'h22c] | wdata;           // key on
-                    10'h215: regs[10'h22c] <= regs[10'h22c] & ~wdata;          // key off
+                    10'h214: greg[6'h2c] <= greg[6'h2c] | wdata;               // key on
+                    10'h215: greg[6'h2c] <= greg[6'h2c] & ~wdata;              // key off
                     10'h22d: cur_ptr <= cur_ptr + 17'd1;      // the RAM write is port A above
                     10'h22e: begin rom_bank <= wdata; cur_ptr <= '0; end
                     10'h227: begin tcount <= '0; timer_out <= 1'b0; end
                     default: ;
                 endcase
-                if (addr != 10'h214 && addr != 10'h215) regs[addr] <= wdata;
+                if (addr != 10'h214 && addr != 10'h215) greg[addr[5:0]] <= wdata;
                 if (addr == 10'h22f && !wdata[5]) timer_out <= 1'b0;   // timer output disabled
             end
 
             // ---- timer ----
-            if (cen_48k && regs[10'h22f][5]) begin
+            if (cen_48k && greg[6'h2f][5]) begin
                 if (tcount + 16'd1 >= tperiod) begin
                     tcount <= '0; timer_out <= ~timer_out;
                 end else tcount <= tcount + 16'd1;
@@ -173,8 +203,8 @@ module k054539 #(
     // eight channels. Every position step fetches a sample, as MAME does, so
     // a pitch above 1.0 costs one ROM read per step; DPCM depends on that.
     // The ROM port is shared with the Z80's streaming reads, which win.
-    typedef enum logic [3:0] {
-        A_IDLE, A_RVB_RD, A_RVB_CLR, A_CH, A_STEP, A_ROM, A_ROMW, A_ROM2, A_DEC,
+    typedef enum logic [4:0] {
+        A_IDLE, A_RVB_RD, A_RVB_CLR, A_CH, A_CHF, A_CHX, A_CHV1, A_CHV2, A_CHV3, A_STEP, A_ROM, A_ROMW, A_ROM2, A_DEC,
         A_RVB_RMW, A_RVB_RD2, A_RVB_WR, A_NEXT, A_OUT
     } ast_t;
     ast_t ast;
@@ -203,31 +233,43 @@ module k054539 #(
     logic [23:0] wb_pos;
     logic [21:0] rrom_addr;
 
-    wire [9:0]  cb    = {2'd0, ch, 5'd0};
-    wire [7:0]  vol   = regs[cb + 10'h03];
-    wire [8:0]  bsum  = {1'b0, vol} + {1'b0, regs[cb + 10'h04]};
+    // the channel's first 15 register bytes, fetched at channel start
+    logic [7:0] p [15];
+    logic [3:0] pi;
+    wire [7:0]  vol   = p[3];
+    wire [8:0]  bsum  = {1'b0, vol} + {1'b0, p[4]};
     wire [7:0]  bval  = bsum[8] ? 8'hff : bsum[7:0];
-    wire [7:0]  panr  = regs[cb + 10'h05];
+    wire [7:0]  panr  = p[5];
     wire [3:0]  pan   = (panr >= 8'h81 && panr <= 8'h8f) ? panr[3:0] - 4'd1
                       : (panr >= 8'h11 && panr <= 8'h1f) ? panr[3:0] - 4'd1 : 4'd7;
     // channel mode bytes at 0x200 + ch*2: [0] bit5 direction, bits 3:2 type;
     // [1] bit0 loop
     /* verilator lint_off UNUSEDSIGNAL */
-    wire [7:0]  mode  = regs[10'h200 + {6'd0, ch, 1'b0}];
-    wire [7:0]  mode1 = regs[10'h201 + {6'd0, ch, 1'b0}];
-    wire [15:0] rdel16 = {regs[cb + 10'h07], regs[cb + 10'h06]};
+    wire [7:0]  mode  = greg[{2'd0, ch, 1'b0}];
+    wire [7:0]  mode1 = greg[{2'd0, ch, 1'b1}];
+    wire [15:0] rdel16 = {p[7], p[6]};
     /* verilator lint_on UNUSEDSIGNAL */
 
-    // (a * b >> 14) * g >> 14, capped at 1.80 (0x7333 in Q2.14)
-    function automatic logic [15:0] q14mul3(input logic [15:0] a, input logic [15:0] b, input logic [15:0] g);
-        // the Q2.14 fraction bits of each product are dropped, as MAME does
+    // (a * b >> 14) * g >> 14, capped at 1.80 (0x7333 in Q2.14), as two
+    // pipeline steps: one 16x16 multiply a cycle (the pair in one cycle was
+    // the design's worst path, -7.6 ns at 96 MHz)
+    function automatic logic [15:0] q14mul(input logic [15:0] a, input logic [15:0] b);
+        // the Q2.14 fraction bits of the product are dropped, as MAME does
         /* verilator lint_off UNUSEDSIGNAL */
-        logic [31:0] t; logic [31:0] u;
+        logic [31:0] t;
         /* verilator lint_on UNUSEDSIGNAL */
         t = a * b;
-        u = t[29:14] * g;
+        return t[29:14];
+    endfunction
+    function automatic logic [15:0] q14cap(input logic [15:0] a, input logic [15:0] g);
+        /* verilator lint_off UNUSEDSIGNAL */
+        logic [31:0] u;
+        /* verilator lint_on UNUSEDSIGNAL */
+        u = a * g;
         return (u[31:14] > 18'h07333) ? 16'h7333 : u[29:14];
     endfunction
+    logic  [3:0] pan_d;
+    logic [15:0] vt, bvt, pl, pr, m_l, m_r, m_b;
 
     function automatic logic signed [16:0] dpcm(input logic [3:0] n);
         case (n)
@@ -267,7 +309,7 @@ module k054539 #(
             rvb_we <= 1'b0; wb_we <= 1'b0; ko_we <= 1'b0;
             case (ast)
                 A_IDLE: if (cen_48k) begin
-                    if (regs[10'h22f][0]) begin rvb_addr <= reverb_pos; ast <= A_RVB_RD; end
+                    if (greg[6'h2f][0]) begin rvb_addr <= reverb_pos; ast <= A_RVB_RD; end
                     else begin snd_l <= '0; snd_r <= '0; end
                 end
                 A_RVB_RD: ast <= A_RVB_CLR;
@@ -279,21 +321,38 @@ module k054539 #(
                 end
 
                 A_CH: begin
-                    if (!regs[10'h22c][ch]) ast <= A_NEXT;
-                    else begin
-                        delta    <= {regs[cb + 10'h02], regs[cb + 10'h01], regs[cb + 10'h00]};
-                        loop_pos <= {regs[cb + 10'h0a], regs[cb + 10'h09], regs[cb + 10'h08]};
-                        cur_pos  <= {regs[cb + 10'h0e], regs[cb + 10'h0d], regs[cb + 10'h0c]};
+                    if (!greg[6'h2c][ch]) ast <= A_NEXT;
+                    else begin chreg_rd <= {1'b0, ch, 5'd0}; pi <= 4'd0; ast <= A_CHF; end
+                end
+                // the 15 parameter bytes, one a cycle: chreg_q holds byte pi-1
+                // while byte pi is being addressed
+                A_CHF: begin
+                    chreg_rd <= chreg_rd + 9'd1;
+                    if (pi != 4'd0) p[pi - 4'd1] <= chreg_q;
+                    if (pi == 4'd15) ast <= A_CHX; else pi <= pi + 4'd1;
+                end
+                A_CHX: begin
+                    begin
+                        delta    <= {p[2], p[1], p[0]};
+                        loop_pos <= {p[10], p[9], p[8]};
+                        cur_pos  <= {p[14], p[13], p[12]};
                         rdelta   <= {1'b0, rdel16[15:3]};
                         neg_dir  <= mode[5];
                         is_16    <= (mode[3:2] == 2'b01);
                         is_dpcm  <= (mode[3:2] == 2'b10);
                         loop_en  <= mode1[0];
-                        lvol  <= q14mul3(vol_tab[vol], pan_tab[pan], GAIN_Q14[ch]);
-                        rvol  <= q14mul3(vol_tab[vol], pan_tab[4'd14 - pan], GAIN_Q14[ch]);
-                        rbvol <= q14mul3(vol_tab[bval], 16'h2000, GAIN_Q14[ch]);   // gain / 2
-                        ast <= A_STEP;
+                        // volume pipeline: tables, pan tables, product, gain and cap
+                        pan_d <= pan; vt <= vol_tab[vol]; bvt <= vol_tab[bval];
+                        ast <= A_CHV1;
                     end
+                end
+                A_CHV1: begin pl <= pan_tab[pan_d]; pr <= pan_tab[4'd14 - pan_d]; ast <= A_CHV2; end
+                A_CHV2: begin m_l <= q14mul(vt, pl); m_r <= q14mul(vt, pr); m_b <= q14mul(bvt, 16'h2000); ast <= A_CHV3; end
+                A_CHV3: begin
+                    lvol  <= q14cap(m_l, GAIN_Q14[ch]);
+                    rvol  <= q14cap(m_r, GAIN_Q14[ch]);
+                    rbvol <= q14cap(m_b, GAIN_Q14[ch]);   // gain / 2
+                    ast <= A_STEP;
                 end
                 // restart detection, DPCM nibble addressing, pfrac += delta
                 A_STEP: begin
@@ -375,7 +434,7 @@ module k054539 #(
                     end
                     ch_val[ch] <= cur_val[15:0]; ch_pval[ch] <= cur_pval[15:0];
                     // position write-back unless 0x22f bit 7 holds the registers
-                    if (!regs[10'h22f][7]) begin
+                    if (!greg[6'h2f][7]) begin
                         wb_we <= 1'b1; wb_ch <= ch; wb_pos <= is_dpcm ? {1'b0, cur_pos[23:1]} : cur_pos;
                     end
                     ast <= A_NEXT;

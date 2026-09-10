@@ -101,7 +101,7 @@ module k053936_roz #(
 
     // ------------------------------------------------------------------ FSM
     typedef enum logic [3:0] {
-        R_IDLE, R_SETUP, R_PIX, R_M1, R_M1W, R_M2, R_M2W, R_M3, R_M3W,
+        R_IDLE, R_SETUP, R_SETUP2, R_PIX, R_M1, R_M1W, R_M2, R_M2W, R_M3, R_M3W,
         R_CHR, R_CHRW, R_EMIT
     } state_t;
     state_t st;
@@ -154,9 +154,15 @@ module k053936_roz #(
                     cur_x <= '0;
                     cache_valid <= 1'b0;
                     // startx/starty already fold in the visible-area origin, so
-                    // the per-line advance counts visible lines, not raster ones
-                    cx <= startx + $unsigned(incyx) * {23'd0, vline};
-                    cy <= starty + $unsigned(incyy) * {23'd0, vline};
+                    // the per-line advance counts visible lines, not raster ones;
+                    // the multiply and the add are two cycles (one path was -6.6 ns)
+                    pyx <= $unsigned(incyx) * {23'd0, vline};
+                    pyy <= $unsigned(incyy) * {23'd0, vline};
+                    st <= R_SETUP2;
+                end
+                R_SETUP2: begin
+                    cx <= startx + pyx;
+                    cy <= starty + pyy;
                     st <= R_PIX;
                 end
 
@@ -247,21 +253,28 @@ module k053936_roz #(
         end
     end
 
-    // control-register decode, combinational so a mid-frame write takes effect
-    // on the next line exactly as it does on the chip
-    always_comb begin
-        logic signed [31:0] ixx, ixy, iyx, iyy, sx, sy;
-        ixx = sx16(ctrl[4]); ixy = sx16(ctrl[5]);
-        iyx = sx16(ctrl[2]); iyy = sx16(ctrl[3]);
-        if (ctrl[6][14]) begin iyx = iyx <<< 8; iyy = iyy <<< 8; end
-        if (ctrl[6][6])  begin ixx = ixx <<< 8; ixy = ixy <<< 8; end
-        sx = sx16(ctrl[0]) <<< 8;
-        sy = sx16(ctrl[1]) <<< 8;
-        sx = sx - OFFS_Y * iyx - OFFS_X * ixx;
-        sy = sy - OFFS_Y * iyy - OFFS_X * ixy;
-        incxx = ixx <<< 5; incxy = ixy <<< 5;
-        incyx = iyx <<< 5; incyy = iyy <<< 5;
-        startx = $unsigned(sx <<< 5) + $unsigned(incxx) * VIS_X0 + $unsigned(incyx) * VIS_Y0;
-        starty = $unsigned(sy <<< 5) + $unsigned(incxy) * VIS_X0 + $unsigned(incyy) * VIS_Y0;
+    // control-register decode, registered in three short stages every cycle
+    // so a mid-frame write still takes effect on the next line as it does on
+    // the chip (a few clocks after the write, well inside a line), without
+    // the shifts, constant multiplies and adds forming one long path
+    logic signed [31:0] ixx, ixy, iyx, iyy, sx0, sy0, sx, sy;
+    logic        [31:0] pxx, pxy, pyx, pyy;
+    always_ff @(posedge clk) begin
+        // stage 1: sign extension and the x256 modes
+        ixx <= ctrl[6][6]  ? (sx16(ctrl[4]) <<< 8) : sx16(ctrl[4]);
+        ixy <= ctrl[6][6]  ? (sx16(ctrl[5]) <<< 8) : sx16(ctrl[5]);
+        iyx <= ctrl[6][14] ? (sx16(ctrl[2]) <<< 8) : sx16(ctrl[2]);
+        iyy <= ctrl[6][14] ? (sx16(ctrl[3]) <<< 8) : sx16(ctrl[3]);
+        sx0 <= sx16(ctrl[0]) <<< 8;
+        sy0 <= sx16(ctrl[1]) <<< 8;
+        // stage 2: the layer offsets and the 16.16 increments
+        sx <= sx0 - OFFS_Y * iyx - OFFS_X * ixx;
+        sy <= sy0 - OFFS_Y * iyy - OFFS_X * ixy;
+        incxx <= ixx <<< 5; incxy <= ixy <<< 5;
+        incyx <= iyx <<< 5; incyy <= iyy <<< 5;
+        pxx <= $unsigned(ixx <<< 5) * VIS_X0; pxy <= $unsigned(ixy <<< 5) * VIS_X0;
+        // stage 3: the visible-area origin folded in
+        startx <= $unsigned(sx <<< 5) + pxx + $unsigned(incyx) * VIS_Y0;
+        starty <= $unsigned(sy <<< 5) + pxy + $unsigned(incyy) * VIS_Y0;
     end
 endmodule

@@ -349,9 +349,9 @@ module gaia_main #(
             if (cen_16m && tok < 6'd48) tok <= tok + 6'(STEP_GAIN);
 
             // IRQ5 is asserted at vblank and held until the kernel's
-            // interrupt-acknowledge cycle (FC = 111), which TG68K performs
-            // even with IPL_autovector. The full-system bench checks it fires
-            // exactly once per frame.
+            // interrupt-acknowledge cycle -- a *read* with FC = 111, which
+            // TG68K performs even with IPL_autovector (MAME's HOLD_LINE).
+            // Nothing on the board answers it; the vector is internal.
             if (vblank_rise) irq5_pend <= 1'b1;
 
             case (bst)
@@ -359,9 +359,12 @@ module gaia_main #(
                     // sample the bus only after the kernel has settled (see the
                     // S.T.U.N. Runner core's note on the four-clock gap)
                     if (tok >= 6'(step_cost) && !clkena && step_gap == 3'd0) begin
-                        if (busstate == 2'b01 || skipFetch) begin
+                        if (fc == 3'b111) begin
+                            // interrupt acknowledge: the IRQ drops, the step completes
+                            clkena <= 1'b1; tok <= tok - 6'(STEP_COST_BUS); dbg_step <= 1'b1;
+                            irq5_pend <= 1'b0;
+                        end else if (busstate == 2'b01 || skipFetch) begin
                             clkena <= 1'b1; tok <= tok - 6'(STEP_COST_INT); dbg_step <= 1'b1;
-                            if (fc == 3'b111) irq5_pend <= 1'b0;
                         end else if (is_wr) begin
                             // writes are posted: complete immediately
                             tok <= tok - 6'(STEP_COST_BUS); clkena <= 1'b1; dbg_step <= 1'b1;

@@ -21,11 +21,13 @@ int main(int argc, char **argv) {
     fclose(rf);
 
     dut = new Ver5911;
+    // the image loads while the part is held in reset, as the system bench
+    // and the Pocket do it
     dut->reset = 1; dut->cs = 0; dut->sclk = 0; dut->di = 0; dut->ld_we = 0;
     tick(4);
-    dut->reset = 0;
     for (int i = 0; i < 128; i++) { dut->ld_we = 1; dut->ld_addr = i; dut->ld_wdata = eep[i]; tick(); }
     dut->ld_we = 0; tick(4);
+    dut->reset = 0; tick(4);
 
     FILE *tf = fopen(argv[2], "r");
     if (!tf) { fprintf(stderr, "cannot open %s\n", argv[2]); return 1; }

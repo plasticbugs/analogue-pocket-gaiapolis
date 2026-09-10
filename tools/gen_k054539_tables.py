@@ -5,6 +5,7 @@ the K054321's master volume curve as Q4.12.
   k539_vol.hex  256 entries  voltab[i] = 10^(-36 * i / 64 / 20) / 4
   k539_pan.hex   15 entries  pantab[i] = sqrt(i / 14)
   k321_vol.hex   65 entries  2^((v - 40) / 10), v = 0..64 (k054321.cpp propagate_volume)
+  k539_timer.hex 256 entries 7200 / (38 + i): the timer period in samples for register 0x227
 
 From k054539.cpp device_start. Q2.14 keeps the 1.80 VOL_CAP representable;
 Q4.12 keeps the K054321's 5.28 maximum.
@@ -24,4 +25,7 @@ with open(os.path.join(out, 'k321_vol.hex'), 'w') as f:
     for v in range(128):
         g = math.pow(2.0, (min(v, 64) - 40) / 10.0)
         f.write('%04x\n' % int(round(g * 4096)))
-print('wrote k539_vol.hex (256), k539_pan.hex (16) and k321_vol.hex (128)')
+with open(os.path.join(out, 'k539_timer.hex'), 'w') as f:
+    for i in range(256):
+        f.write('%04x\n' % (7200 // (38 + i)))
+print('wrote k539_vol.hex (256), k539_pan.hex (16), k321_vol.hex (128) and k539_timer.hex (256)')

@@ -57,7 +57,9 @@ int main(int argc, char **argv) {
 
     dut = new Vtb_system_top;
     dut->reset = 1;
-    dut->in0_p1 = 0xffff; dut->in1 = 0xff & ~0x10; dut->p2 = 0xff;   // nothing pressed; IN1 bit4=0 stereo
+    // nothing pressed; IN1 bit 4 = 0 stereo, bit 2 = 0 (an unassigned custom
+    // input that MAME reads as 0 -- the game waits for it after the self-test)
+    dut->in0_p1 = 0xffff; dut->in1 = 0xff & ~0x10 & ~0x04; dut->p2 = 0xff;
     for (int i = 0; i < 8; i++) tick();
 
     // 68000 program: big-endian words
@@ -116,7 +118,8 @@ int main(int argc, char **argv) {
     std::vector<unsigned> watch; std::vector<unsigned> watch_n;
     if (getenv("WATCH")) { char *w = strdup(getenv("WATCH")); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) { watch.push_back(strtoul(t, nullptr, 16)); watch_n.push_back(0); } }
     std::map<unsigned, unsigned> fr_hist, z_hist;
-    unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0;
+    unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0, overruns = 0, overruns_total = 0;
+    bool ovr_d = false;
     // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
     // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
     // its streaming-port reads counted per frame (zs1/zs2 in the frame line)
@@ -129,6 +132,8 @@ int main(int argc, char **argv) {
         if (want_audio && dut->snd_valid) { audio.push_back((short)dut->snd_l); audio.push_back((short)dut->snd_r); }
         if (dut->dbg_zstep) { z_steps++; z_hist[dut->dbg_zpc]++; }
         if (dut->dbg_zwait) z_wait++;
+        if (dut->dbg_overrun && !ovr_d) overruns++;
+        ovr_d = dut->dbg_overrun;
         if (dut->dbg_zrd && !zrd_d) { unsigned a = dut->dbg_zpc; if (a == 0xe22d) z_s1++; else if (a == 0xe62d) z_s2++; }
         if (dut->dbg_zwr && !zwr_d && zlog) {
             unsigned a = dut->dbg_zpc, lo = a & 0x3ff;
@@ -173,11 +178,12 @@ int main(int argc, char **argv) {
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
                     unsigned zhot = 0, zhotn = 0;
                     for (auto &kv : z_hist) if (kv.second > zhotn) { zhotn = kv.second; zhot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%d unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u\n",
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
-                            (int)dut->dbg_overrun, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
+                            overruns, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
                             (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2);
                     z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
+                    overruns_total += overruns; overruns = 0;
                     for (size_t i = 0; i < watch.size(); i++) { fprintf(tr, "   watch %06x: %u\n", watch[i], watch_n[i]); watch_n[i] = 0; }
                     fr_hist.clear();
                 }
@@ -199,9 +205,9 @@ int main(int argc, char **argv) {
 
     printf("%d frames, %llu clocks, %llu kernel steps (%.1f per frame)\n",
            frames, cycles, steps_total, (double)steps_total / frames);
-    printf("IRQ5 seen in %u of %d frames; objects in list: %u; overrun=%d unsupported=%d shadow_overlap=%d\n",
+    printf("IRQ5 seen in %u of %d frames; objects in list: %u; overrun lines=%u unsupported=%d shadow_overlap=%d\n",
            irq_frames, frames, (unsigned)dut->dbg_objcount,
-           (int)dut->dbg_overrun, (int)dut->dbg_unsupported, (int)dut->dbg_shadow_overlap);
+           overruns_total + overruns, (int)dut->dbg_unsupported, (int)dut->dbg_shadow_overlap);
     // top opcode-fetch addresses in the last frame: where the CPU is spending time
     std::vector<std::pair<unsigned, unsigned>> top(pc_hist.begin(), pc_hist.end());
     std::sort(top.begin(), top.end(), [](auto &a, auto &b){ return a.second > b.second; });

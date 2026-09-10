@@ -234,8 +234,27 @@ module k053247_draw #(
 
     wire signed [17:0] lbis = cur_px - CLS;
     wire [LB_AW-1:0] lbi = lbis[LB_AW-1:0];
-    wire [7:0] szb_z = szbuf[lbi][15:8];
-    wire [7:0] szb_p = szbuf[lbi][7:0];
+
+    // The Z buffers and the shadow flag are block RAM read a pixel ahead: the
+    // word for the pixel being decided was addressed the cycle before -- the
+    // row's first pixel while its ROM row is fetched, then each next pixel as
+    // the previous one is written. Consecutive pixels of a row have distinct
+    // x and rows are several states apart, so a read never meets a write to
+    // the same address. (As registers with per-pixel muxes these three were
+    // 16K ALUTs, most of the device.)
+    wire signed [17:0] lbis_next  = cur_px + 18'sd1 - CLS;
+    wire signed [17:0] lbis_first = pxl - CLS;
+    wire [LB_AW-1:0]   rd_lbi = (st == D_PIX) ? lbis_next[LB_AW-1:0] : lbis_first[LB_AW-1:0];
+    logic  [7:0] zb_q;
+    logic [15:0] szb_q;
+    logic [10:0] sh_q;
+    always_ff @(posedge clk) begin
+        zb_q  <= zbuf[rd_lbi];
+        szb_q <= szbuf[rd_lbi];
+        sh_q  <= shade[bank][rd_lbi];
+    end
+    wire [7:0] szb_z = szb_q[15:8];
+    wire [7:0] szb_p = szb_q[7:0];
 
     /* verilator lint_on UNUSEDSIGNAL */
 
@@ -386,7 +405,7 @@ module k053247_draw #(
                         // drawmode 1 also rejects the shadow pen
                         if (pen != 4'd0
                             && !(drawmode[1:0] != 2'd0 && pen >= shdpen)
-                            && zbuf[lbi] >= zcode) begin
+                            && zb_q >= zcode) begin
                             dbg_pxw <= dbg_pxw + 1'd1;
                             zbuf[lbi]         <= zcode;
                             solid[bank][lbi]  <= {1'b1, color, pen, opri};
@@ -396,7 +415,7 @@ module k053247_draw #(
                         if (pen >= shdpen && szb_z >= zcode && szb_p > opri) begin
                             szbuf[lbi]       <= {zcode, opri};
                             shade[bank][lbi] <= {1'b1, shtab, opri};
-                            if (shade[bank][lbi][10]) shadow_overlap <= 1'b1;
+                            if (sh_q[10]) shadow_overlap <= 1'b1;
                         end
                     end
                     ddax <= ddax + {8'd0, stride_x};

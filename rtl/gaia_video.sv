@@ -9,7 +9,7 @@
 // Each visible line is rendered into the line buffers during the line before
 // it: at the start of raster line r this pulses `line_start` for line r+1,
 // and the renderers have the full 512-pixel line (6,144 clocks) to finish.
-// If any is still busy at the next pulse, `overrun` latches -- that is the
+// If any is still busy at the next pulse, `overrun` pulses for that line -- that is the
 // budget in docs/hardware.md section 11 being exceeded, and it must never be
 // silent.
 //
@@ -82,7 +82,7 @@ module gaia_video #(
                 if (nxt >= 9'(VIS_Y0) && nxt < 9'(VIS_Y0 + VIS_H)) begin
                     line_start  <= 1'b1;
                     render_line <= nxt;
-                    if (renderers_busy) overrun <= 1'b1;
+                    overrun <= renderers_busy;      // one pulse per overrunning line
                 end
             end
 

@@ -68,14 +68,18 @@ module k053247_objlist #(
     end
     assign list_q = which ? lb_q : la_q;
 
-    // counting-sort buckets
+    // counting-sort buckets, a block RAM: every read-modify-write takes the
+    // bucket through cnt_q a cycle after its address (the cnt_rd wire below)
     logic [9:0] cnt [256];
     logic [7:0] cnt_idx;
-    logic [9:0] acc;
+    logic [9:0] acc, cnt_q;
+    logic [7:0] cnt_rd;
+    always_ff @(posedge clk) cnt_q <= cnt[cnt_rd];
+    assign cnt_rd = (st == O_PRE) ? cnt_idx : sort_key;
 
-    typedef enum logic [3:0] {
+    typedef enum logic [4:0] {
         O_IDLE, O_B0, O_B1, O_B2, O_EMIT, O_NEXTENT,
-        O_CLR, O_CNT, O_CNTW, O_CNT2, O_PRE, O_SCAT, O_SCATW, O_SCAT2,
+        O_CLR, O_CNT, O_CNTW, O_CNT2, O_CNT3, O_PRE, O_PRE2, O_SCAT, O_SCATW, O_SCAT2, O_SCAT3,
         O_NEXTPASS, O_DONE
     } state_t;
     state_t st;
@@ -180,26 +184,29 @@ module k053247_objlist #(
                 // src_q only settles two cycles after the address is issued
                 O_CNT: begin list_rd <= scan[AW-1:0]; st <= O_CNTW; end
                 O_CNTW: st <= O_CNT2;
-                O_CNT2: begin
-                    cnt[sort_key] <= cnt[sort_key] + 1'd1;
+                O_CNT2: st <= O_CNT3;                      // cnt_q <= cnt[sort_key]
+                O_CNT3: begin
+                    cnt[sort_key] <= cnt_q + 1'd1;
                     if (scan + 1'd1 == nobj) begin
                         cnt_idx <= 8'd255; acc <= '0; st <= O_PRE;
                     end else begin scan <= scan + 1'd1; st <= O_CNT; end
                 end
                 // descending: the first slot for key k is the total of all
                 // keys above it, so accumulate from 255 down
-                O_PRE: begin
+                O_PRE:  st <= O_PRE2;                      // cnt_q <= cnt[cnt_idx]
+                O_PRE2: begin
                     cnt[cnt_idx] <= acc;
-                    acc <= acc + cnt[cnt_idx];
+                    acc <= acc + cnt_q;
                     if (cnt_idx == 8'd0) begin scan <= '0; st <= O_SCAT; end
-                    else cnt_idx <= cnt_idx - 1'd1;
+                    else begin cnt_idx <= cnt_idx - 1'd1; st <= O_PRE; end
                 end
                 O_SCAT:  begin list_rd <= scan[AW-1:0]; st <= O_SCATW; end
                 O_SCATW: st <= O_SCAT2;
-                O_SCAT2: begin
-                    if (pass) la[cnt[sort_key][AW-1:0]] <= src_q;
-                    else      lb[cnt[sort_key][AW-1:0]] <= src_q;
-                    cnt[sort_key] <= cnt[sort_key] + 1'd1;
+                O_SCAT2: st <= O_SCAT3;                    // cnt_q <= cnt[sort_key]
+                O_SCAT3: begin
+                    if (pass) la[cnt_q[AW-1:0]] <= src_q;
+                    else      lb[cnt_q[AW-1:0]] <= src_q;
+                    cnt[sort_key] <= cnt_q + 1'd1;
                     if (scan + 1'd1 == nobj) st <= O_NEXTPASS;
                     else begin scan <= scan + 1'd1; st <= O_SCAT; end
                 end

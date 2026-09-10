@@ -54,15 +54,27 @@ module er5911 #(
     wire cs_fall  = ~cs & cs_d;
     wire clk_rise = sclk & ~clk_d;
 
-    // the array: the byte port's load, the serial WRITE and ERASEALL, one
-    // process (Quartus refuses an array driven from two)
-    logic       ser_we, ser_erase;
-    logic [6:0] ser_addr;
-    logic [7:0] ser_wdata;
+    // the array is a block RAM: one write port shared by ERASEALL (a sweep
+    // of 128 cycles inside the busy time), the serial WRITE and the byte
+    // port's load; the READ command's byte is fetched on entering S_READ,
+    // long before the first clock asks for its top bit
+    logic       ser_we, ser_erase, erase_run;
+    logic [6:0] ser_addr, erase_i, rd_addr;
+    logic [7:0] ser_wdata, rd_q;
+    logic       rd_first;
+    // the byte port loads during reset too: the bench and the Pocket both
+    // hold the machine in reset while the image (and a save) arrive
     always_ff @(posedge clk) begin
         ld_q <= mem[ld_addr];
-        if (ser_erase)   for (int i = 0; i < 128; i++) mem[i] <= 8'hff;
-        else if (ser_we) mem[ser_addr] <= ser_wdata;
+        rd_q <= mem[rd_addr];
+        if (reset) begin erase_run <= 1'b0; erase_i <= '0; end
+        else if (ser_erase) begin erase_run <= 1'b1; erase_i <= '0; end
+        else if (erase_run) begin
+            erase_i <= erase_i + 7'd1;
+            if (erase_i == 7'd127) erase_run <= 1'b0;
+        end
+        if (!reset && erase_run) mem[erase_i] <= 8'hff;
+        else if (!reset && ser_we) mem[ser_addr] <= ser_wdata;
         else if (ld_we)  mem[ld_addr] <= ld_wdata;
     end
 
@@ -112,7 +124,7 @@ module er5911 #(
                                 st <= S_WAIT;
                             end
                             2'd2: begin                                        // READ
-                                shreg <= mem[c[6:0]]; do_bit <= 1'b0; nbits <= '0;
+                                rd_addr <= c[6:0]; rd_first <= 1'b1; do_bit <= 1'b0; nbits <= '0;
                                 st <= S_READ;
                             end
                             default: begin                                     // WRITE (1 and 3)
@@ -122,10 +134,11 @@ module er5911 #(
                     end
                 end
 
-                // MSB first; the first rising edge presents bit 7
+                // MSB first; the first rising edge presents bit 7 (of the byte
+                // the RAM fetched on entry), then ones after the data
                 S_READ: if (clk_rise) begin
-                    do_bit <= shreg[7];
-                    shreg  <= {shreg[6:0], 1'b1};
+                    if (rd_first) begin do_bit <= rd_q[7]; shreg <= {rd_q[6:0], 1'b1}; rd_first <= 1'b0; end
+                    else begin do_bit <= shreg[7]; shreg <= {shreg[6:0], 1'b1}; end
                 end
 
                 S_WDATA: if (clk_rise) begin
