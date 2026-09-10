@@ -3,7 +3,13 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: investigation and foundations. No RTL yet.**
+**Status: reference renderer in progress. No RTL yet.**
+
+Done: hardware analysis, ROM path (CRC + byte-exact against MAME), frozen-state
+capture harness, and a reference renderer whose **K056832 tilemap layers are
+pixel-exact against MAME** on every captured state (`tools/regress_render.sh`,
+8/8 zero differing pixels). Next: sprites, then the ROZ plane, then the
+K055555/K054338 mixer.
 
 ## What is here
 
@@ -16,7 +22,18 @@ Pocket via openFPGA/opengateware.
 | `tools/verify_rom.py` | Verifies a built image against slices of what MAME actually loads |
 | `tools/dump_regions.lua` | MAME Lua: dumps those region slices |
 | `tools/probe_sprites.lua` | MAME Lua: per-scanline sprite load measurement |
+| `tools/dump_state.lua` | MAME Lua: freezes one frame (VRAM, palette, sprite RAM, ROZ, all chip registers) next to MAME's own snapshot; `FORCE_ENABLE` isolates a single layer |
+| `tools/render_model.py` | Reference renderer -- the executable spec the RTL is written against |
+| `tools/pngio.py` | Dependency-free PNG read/write |
+| `tools/regress_render.sh` | Frozen-state gate: renders every state and requires zero differing pixels |
+| `artifacts/states/` | The frozen-state corpus and its matching MAME snapshots |
 | `artifacts/` | Snapshots, measurements, and other generated output |
+
+## Running the frozen-state gate
+
+```sh
+tools/regress_render.sh gaiapolis.rom
+```
 
 ## Building the ROM
 
