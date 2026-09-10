@@ -120,12 +120,12 @@ module k053247_draw #(
         endcase
     endfunction
 
-    typedef enum logic [4:0] {
+    typedef enum logic [5:0] {
         D_IDLE, D_CLR, D_OBJ, D_OBJW,
         D_R0, D_R1, D_R2, D_R3, D_R4, D_R5, D_R6, D_LAT,
-        D_ZY, D_ZYW, D_ZY2, D_ZXW, D_ZX2, D_GEOM,
+        D_ZY, D_ZYW, D_ZY2, D_ZXW, D_ZX2, D_GEOM, D_GEOM2,
         D_TY, D_TYC, D_SY1, D_SY2, D_SY3,
-        D_TX, D_TXC, D_SX1, D_SX2, D_SX3, D_ROWW, D_PIX,
+        D_TX, D_TXC, D_SX1, D_SX2, D_SX2B, D_SX3, D_ROWW, D_PIX,
         D_NEXTTX, D_NEXTOBJ
     } state_t;
     state_t st;
@@ -173,8 +173,11 @@ module k053247_draw #(
     wire signed [17:0] oy1 = (k46r5[1] ? -oyr : oyr) - DYS;
     wire signed [17:0] ox2 = (ox1 - $signed({2'd0, k46_offx})) & $signed(wrapmsk);
     wire signed [17:0] oy2 = ((-oy1) - $signed({2'd0, k46_offy})) & $signed(wrapmsk);
-    wire signed [17:0] ox3 = (ox2 >= $signed(xwlim)) ? ox2 - $signed(wrapsz) : ox2;
-    wire signed [17:0] oy3 = (oy2 >= $signed(ywlim)) ? oy2 - $signed(wrapsz) : oy2;
+    // registered half-way (D_GEOM), the wrap and the zoom offset follow (D_GEOM2):
+    // the whole chain from the K053246 offset registers was a -1.6 ns path
+    logic signed [17:0] ox2_r, oy2_r;
+    wire signed [17:0] ox3 = (ox2_r >= $signed(xwlim)) ? ox2_r - $signed(wrapsz) : ox2_r;
+    wire signed [17:0] oy3 = (oy2_r >= $signed(ywlim)) ? oy2_r - $signed(wrapsz) : oy2_r;
     wire signed [17:0] gox = ox3 - $signed({4'd0, gwshift[13:0]});
     wire signed [17:0] goy = oy3 - $signed({4'd0, ghshift[13:0]});
 
@@ -211,8 +214,11 @@ module k053247_draw #(
     wire signed [17:0] sxz    = sx + $signed({5'd0, zw}) - 18'sd1;
     wire signed [17:0] pxl_c  = (sx  > CLS) ? sx  : CLS;
     wire signed [17:0] pxr_c  = (sxz < CRS) ? sxz : CRS;
-    wire signed [17:0] pxoff  = pxl_c - sx;
-    wire [33:0] xmul = {24'd0, pxoff[9:0]} * {10'd0, stride_x};
+    // the first drawn pixel's offset into the column, then its source
+    // position: a subtract and a multiply, one state each (together they
+    // were a -2.2 ns path at 96 MHz)
+    logic [9:0] pxoff;
+    wire [33:0] xmul = {24'd0, pxoff} * {10'd0, stride_x};
 
     wire row_covers  = (zh != 13'd0) && (lsy >= 18'sd0) && (lsy < $signed({5'd0, zh}))
                     && (sy <= CBS) && ((sy + $signed({5'd0, zh}) - 18'sd1) >= CTS);
@@ -343,6 +349,11 @@ module k053247_draw #(
                     xa <= {2'd0, w1[0]} + {1'd0, w1[2], 1'b0} + {w1[4], 2'd0};
                     ya <= {2'd0, w1[1]} + {1'd0, w1[3], 1'b0} + {w1[5], 2'd0};
                     codebase <= w1 & ~16'h003f;
+                    ox2_r <= ox2;
+                    oy2_r <= oy2;
+                    st <= D_GEOM2;
+                end
+                D_GEOM2: begin
                     ox <= gox;
                     oy <= goy;
                     ty <= 3'd0; yacc <= '0;
@@ -387,6 +398,10 @@ module k053247_draw #(
                 D_SX2: begin
                     stride_x <= recip_q;
                     pxl <= pxl_c; pxr <= pxr_c;
+                    st <= D_SX2B;
+                end
+                D_SX2B: begin
+                    pxoff <= 10'(pxl - sx);      // at most a tile column's width
                     st <= D_SX3;
                 end
                 D_SX3: begin

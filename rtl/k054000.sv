@@ -20,7 +20,7 @@ module k054000 (
     input  logic       wr,
     input  logic [4:0] off,
     input  logic [7:0] wdata,
-    output logic [7:0] rdata          // combinational on off
+    output logic [7:0] rdata          // combinational on off, the result a cycle behind the registers
 );
     logic [7:0] acx [4], acy [4], bcx [3], bcy [3];
     logic [7:0] aax, aay, bax, bay;
@@ -59,21 +59,27 @@ module k054000 (
 
     // axis_check: the boxes are apart if the centre difference is far, or if
     // its low nine bits exceed the summed extents
-    function automatic logic apart(input logic signed [31:0] ac, input logic signed [31:0] bc,
-                                   input logic [7:0] aa, input logic [7:0] ba);
-        logic signed [31:0] sub;
+    function automatic logic apart(input logic signed [31:0] sub, input logic [8:0] sum9);
         /* verilator lint_off UNUSEDSIGNAL */
         logic signed [31:0] mag;             // only mag[8:0] takes part in the test
         /* verilator lint_on UNUSEDSIGNAL */
-        logic [8:0] sum9;
-        sub  = ac - bc;
-        mag  = sub[31] ? -sub : sub;          // abs(); only its low 9 bits matter
-        sum9 = 9'({1'b0, aa} + {1'b0, ba});
+        mag = sub[31] ? -sub : sub;          // abs(); only its low 9 bits matter
         return (sub > 32'sd511) || (sub <= -32'sd1024) || (mag[8:0] > sum9);
     endfunction
 
-    wire status = apart(with_delta(acx), plain(bcx), aax, bax)
-                | apart(with_delta(acy), plain(bcy), aay, bay);
+    // two registered steps -- the centre differences and summed extents, then
+    // the compares -- since the whole chain was a -3.8 ns path into the CPU's
+    // data register, and a read comes a bus cycle after the coordinate writes
+    logic signed [31:0] sub_x, sub_y;
+    logic         [8:0] sum_x, sum_y;
+    logic status;
+    always_ff @(posedge clk) begin
+        sub_x <= with_delta(acx) - plain(bcx);
+        sub_y <= with_delta(acy) - plain(bcy);
+        sum_x <= 9'({1'b0, aax} + {1'b0, bax});
+        sum_y <= 9'({1'b0, aay} + {1'b0, bay});
+        status <= apart(sub_x, sum_x) | apart(sub_y, sum_y);
+    end
 
     assign rdata = (off == 5'h18) ? {7'd0, status} : 8'h00;
 endmodule

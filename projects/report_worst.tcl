@@ -9,7 +9,7 @@ if {[catch {project_open gaia_pocket -revision gaia_pocket} err]} {
 create_timing_netlist -model slow
 read_sdc
 update_timing_netlist
-set n [report_timing -setup -npaths 40 -detail full_path \
+set n [report_timing -setup -npaths 200 -detail full_path \
         -file output_files/worst_paths.txt]
 # the SDRAM interface on its own: its paths never make the top 40 but the
 # summary's dram_clk corner can still be negative

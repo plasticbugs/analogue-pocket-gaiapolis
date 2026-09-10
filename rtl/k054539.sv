@@ -204,7 +204,7 @@ module k054539 #(
     // a pitch above 1.0 costs one ROM read per step; DPCM depends on that.
     // The ROM port is shared with the Z80's streaming reads, which win.
     typedef enum logic [4:0] {
-        A_IDLE, A_RVB_RD, A_RVB_CLR, A_CH, A_CHF, A_CHX, A_CHV1, A_CHV2, A_CHV3, A_STEP, A_ROM, A_ROMW, A_ROM2, A_DEC,
+        A_IDLE, A_RVB_RD, A_RVB_CLR, A_CH, A_CHF, A_CHX, A_CHV1, A_CHV2, A_CHV3, A_CHV4, A_STEP, A_ROM, A_ROMW, A_ROM2, A_DEC,
         A_RVB_RMW, A_RVB_RD2, A_RVB_WR, A_NEXT, A_OUT
     } ast_t;
     ast_t ast;
@@ -261,15 +261,16 @@ module k054539 #(
         t = a * b;
         return t[29:14];
     endfunction
-    function automatic logic [15:0] q14cap(input logic [15:0] a, input logic [15:0] g);
+    // the gain product and its cap are two more steps (the pair was -2.3 ns)
+    function automatic logic [15:0] q14cap(input logic [31:0] u);
         /* verilator lint_off UNUSEDSIGNAL */
-        logic [31:0] u;
+        logic [31:0] t; t = u;
         /* verilator lint_on UNUSEDSIGNAL */
-        u = a * g;
-        return (u[31:14] > 18'h07333) ? 16'h7333 : u[29:14];
+        return (t[31:14] > 18'h07333) ? 16'h7333 : t[29:14];
     endfunction
     logic  [3:0] pan_d;
     logic [15:0] vt, bvt, pl, pr, m_l, m_r, m_b;
+    logic [31:0] u_l, u_r, u_b;
 
     function automatic logic signed [16:0] dpcm(input logic [3:0] n);
         case (n)
@@ -349,9 +350,11 @@ module k054539 #(
                 A_CHV1: begin pl <= pan_tab[pan_d]; pr <= pan_tab[4'd14 - pan_d]; ast <= A_CHV2; end
                 A_CHV2: begin m_l <= q14mul(vt, pl); m_r <= q14mul(vt, pr); m_b <= q14mul(bvt, 16'h2000); ast <= A_CHV3; end
                 A_CHV3: begin
-                    lvol  <= q14cap(m_l, GAIN_Q14[ch]);
-                    rvol  <= q14cap(m_r, GAIN_Q14[ch]);
-                    rbvol <= q14cap(m_b, GAIN_Q14[ch]);   // gain / 2
+                    u_l <= m_l * GAIN_Q14[ch]; u_r <= m_r * GAIN_Q14[ch]; u_b <= m_b * GAIN_Q14[ch];
+                    ast <= A_CHV4;
+                end
+                A_CHV4: begin
+                    lvol <= q14cap(u_l); rvol <= q14cap(u_r); rbvol <= q14cap(u_b);   // rbvol: gain / 2
                     ast <= A_STEP;
                 end
                 // restart detection, DPCM nibble addressing, pfrac += delta

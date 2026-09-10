@@ -17,7 +17,9 @@ set_clock_groups -asynchronous \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
 # SDRAM: the chip is clocked by the phase-shifted PLL output (the S.T.U.N.
-# Runner core's proven arrangement, same controller)
+# Runner core's proven arrangement, same controller); the shift is 6.77 ns (52 eighths of the 960 MHz VCO period)
+# here, 0.64 ns later than there, for the address pins' setup with this
+# design's placement (the data inputs had more than 2 ns to give)
 create_generated_clock -name dram_clk -source \
     [get_pins {ic|core_pll|core_pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk}] \
     [get_ports {dram_clk}]
@@ -56,3 +58,21 @@ set_multicycle_path -hold  3 -to $MIX
 set PAL [get_registers {*|gaia_main:*|pal_rd_q*}]
 set_multicycle_path -setup 4 -to $PAL
 set_multicycle_path -hold  3 -to $PAL
+
+# TG68K to the board: the kernel's address, data and bus-state outputs settle
+# after a clkena step and are sampled only after gaia_main's three-clock gap
+# (step_gap), so the decode and the block-RAM write ports have three cycles
+# (keepers, not registers: the kernel's register file and the board's RAMs
+# are M10K cells, which get_registers does not match)
+set_multicycle_path -setup 3 -from [get_keepers {*|TG68KdotC_Kernel:*|*}] -to [get_keepers {*|gaia_main:*|*}]
+set_multicycle_path -hold  2 -from [get_keepers {*|TG68KdotC_Kernel:*|*}] -to [get_keepers {*|gaia_main:*|*}]
+
+# The Z80 (tv80) steps on cen_8m, one clock in twelve: its registers, and
+# the sound board's registers and RAM ports it drives, change only at those
+# steps, and what the board hands back (data, wait) is sampled only there
+set Z80 [get_keepers {*|tv80s_cen:*|*}]
+set SND [get_keepers {*|gaia_sound:*|*}]
+set_multicycle_path -setup 4 -from $Z80 -to $SND
+set_multicycle_path -hold  3 -from $Z80 -to $SND
+set_multicycle_path -setup 4 -from $SND -to $Z80
+set_multicycle_path -hold  3 -from $SND -to $Z80

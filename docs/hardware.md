@@ -409,3 +409,24 @@ that brought it to 52% are in `docs/rtl-conventions.md` ("What Quartus will
 and will not make a block RAM of"). `projects/output_files/
 gaia_pocket.fit.summary` and `.sta.summary` are the numbers to watch; the CI
 compile fails the build if a corner's slack goes negative.
+
+### Timing at 96 MHz (projects/gaia_pocket.sdc)
+
+The first fit closed at -7.6 ns. What it took, in order of appearance in
+`projects/report_worst.tcl`'s reports:
+
+* arithmetic that was one expression became short pipelines: the K054539's
+  volume (table, pan table, product, gain product, cap: one state each), the
+  ROZ's control decode and line start, the sprite rasterizer's column offset
+  and object geometry, the K054000's compares, the master volume stage;
+* multicycle constraints for logic that re-evaluates less than once a clock:
+  the scan-out (line buffers, K055555 encoder, palette: once per 8 MHz
+  pixel, 4 cycles granted), TG68K to the board (its outputs are sampled
+  after gaia_main's three-clock gap: 3), the Z80 and the sound board both
+  ways (it steps on cen_8m: 4), plus the kernels' own from the S.T.U.N.
+  Runner core;
+* the SDRAM clock phase 6.77 ns instead of 5.86: this design's address
+  registers sat a few hundred ps further from the pins.
+
+Worst corner after all that: +0.34 ns on the machine clock, +0.30 on the
+SDRAM clock, at 52% of the logic.

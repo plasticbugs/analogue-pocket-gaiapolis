@@ -341,12 +341,23 @@ module gaia_core #(
         if (v < -33'sd32768) return 16'h8000;
         return v[15:0];
     endfunction
+    // three steps a sample -- the chips' sum, the gain product, the cap --
+    // since the sum, multiply and saturate in one cycle were a -0.8 ns path
+    logic signed [15:0] mix_l_r, mix_r_r;
+    logic signed [32:0] prod_l, prod_r;
+    logic         [2:0] snd_stage;
     always_ff @(posedge clk) begin
-        snd_valid <= cen_48k;
-        if (cen_48k) begin
-            snd_l <= snd_active[1] ? sat16(($signed(mix_l) * $signed({1'b0, snd_gain})) >>> 12) : '0;
-            snd_r <= snd_active[0] ? sat16(($signed(mix_r) * $signed({1'b0, snd_gain})) >>> 12) : '0;
+        snd_stage <= {snd_stage[1:0], cen_48k};
+        if (cen_48k) begin mix_l_r <= mix_l; mix_r_r <= mix_r; end
+        if (snd_stage[0]) begin
+            prod_l <= $signed(mix_l_r) * $signed({1'b0, snd_gain});
+            prod_r <= $signed(mix_r_r) * $signed({1'b0, snd_gain});
         end
+        if (snd_stage[1]) begin
+            snd_l <= snd_active[1] ? sat16(prod_l >>> 12) : '0;
+            snd_r <= snd_active[0] ? sat16(prod_r >>> 12) : '0;
+        end
+        snd_valid <= snd_stage[2];
     end
 
     /* verilator lint_off UNUSEDSIGNAL */
