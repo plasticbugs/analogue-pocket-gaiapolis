@@ -700,6 +700,15 @@ def mixer_pool(st, layers):
     return pool
 
 
+def render_roz_only(st, roms):
+    """The ROZ layer's palette indices for the RTL bench, 0xffff transparent."""
+    pix = [-1] * (VIS_W * VIS_H)
+    fb = [0] * (VIS_W * VIS_H)
+    pri = [0] * (VIS_W * VIS_H)
+    render_roz(st, roms, pix, fb, pri, 0)
+    return pix
+
+
 def render_layers_only(st, roms):
     """Per-layer palette indices for the RTL bench: 4 x VIS_H x VIS_W uint16,
     0xffff where the layer is transparent. Bypasses the mixer so the tilemap
@@ -768,6 +777,16 @@ def main():
     st = State(args[0])
     roms = Roms(args[1])
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
+
+    dumproz = opts.get('dump-roz')
+    if dumproz:
+        import struct
+        layer = render_roz_only(st, roms)
+        with open(dumproz, 'wb') as f:
+            f.write(struct.pack('<%dH' % len(layer),
+                                *[(v & 0xffff) if v >= 0 else 0xffff for v in layer]))
+        print(f'wrote {dumproz} ({VIS_H} x {VIS_W} uint16)')
+        return
 
     dump = opts.get('dump-layers')
     if dump:

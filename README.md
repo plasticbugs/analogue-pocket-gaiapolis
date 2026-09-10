@@ -12,7 +12,15 @@ zero differing pixels (24 substantive; the trivial ones are labelled).
 Covered: K056832 tilemaps, K053936 ROZ plane, K055673 sprites with the
 per-pixel Z buffer and shadows, and the K055555 priority mixer.
 
-Next: RTL.
+RTL so far, each gated against the reference renderer with zero differing
+pixels (`sim/run_tilemap.sh`, `sim/run_roz.sh`):
+
+| block | worst line | budget |
+|---|---|---|
+| `rtl/k056832_tilemap.sv` -- four tilemap layers | 2,660 clocks | 6,144 |
+| `rtl/k053936_roz.sv` -- rotate/zoom plane | 2,777 clocks | 6,144 |
+
+Next: the sprite engine, then the mixer, then CPUs and platform integration.
 
 ## What is here
 
@@ -28,7 +36,9 @@ Next: RTL.
 | `tools/dump_state.lua` | MAME Lua: freezes one frame (VRAM, palette, sprite RAM, ROZ, all chip registers) next to MAME's own snapshot; `FORCE_ENABLE` isolates a single layer |
 | `tools/render_model.py` | Reference renderer -- the executable spec the RTL is written against |
 | `tools/pngio.py` | Dependency-free PNG read/write |
-| `tools/regress_render.sh` | Frozen-state gate: renders every state and requires zero differing pixels |
+| `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
+| `sim/run_tilemap.sh`, `sim/run_roz.sh` | Frozen-state gates for the RTL, diffed against the model |
+| `rtl/` | Core RTL |
 | `artifacts/states/` | The frozen-state corpus and its matching MAME snapshots |
 | `artifacts/` | Snapshots, measurements, and other generated output |
 
