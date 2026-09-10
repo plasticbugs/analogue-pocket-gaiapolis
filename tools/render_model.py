@@ -525,141 +525,209 @@ def draw_sprite_tile(st, roms, pix, fb, zbuf, szbuf, tile, color, flipx, flipy,
                 fb[o] = apply_shadow(fb[o], deltas, noclip)
 
 
-def render_sprites(st, roms, pix, fb):
-    """K053247 objects: solid pens with a per-pixel Z buffer, plus shadow
-    objects with their own Z/priority buffer."""
-    ram = st.spriteram
-    k46 = st.k46regs
-    opset = st.k47regs[6]
-    flipscreenx = k46[5] & 1
-    flipscreeny = (k46[5] >> 1) & 1
-    offx = s16((k46[0] << 8) | k46[1])
-    offy = s16((k46[2] << 8) | k46[3])
-    if opset & 0x40:
-        wrapsize, xwraplim, ywraplim = 512, 512 - 64, 512 - 128
-    else:
-        wrapsize, xwraplim, ywraplim = 1024, 1024 - 384, 1024 - 512
+class SpriteCtx:
+    """Per-frame sprite state shared by every object draw."""
 
-    zbuf = bytearray(b'\xff' * (VIS_W * VIS_H))          # wipezbuf: memset -1
-    szbuf = bytearray(b'\xff' * (VIS_W * VIS_H * 2))     # shadow z + priority
-    cache = {}
-    noclip = st.noclip()
-
-    for order, offs, code, color, drawmode, pri in sprite_objects(st):
-        zcode = (order >> 16) & 0xff
-        shd = (st.shadow_deltas(order & 3), noclip) if drawmode >= 4 else None
-        temp4 = ram[offs]
-
-        xa = ya = 0
-        if code & 0x01: xa += 1
-        if code & 0x02: ya += 1
-        if code & 0x04: xa += 2
-        if code & 0x08: ya += 2
-        if code & 0x10: xa += 4
-        if code & 0x20: ya += 4
-        code &= ~0x3f
-
-        oy = ram[offs + 2] & 0x3ff
-        ox = ram[offs + 3] & 0x3ff
-
-        scaley = ram[offs + 4] & 0x3ff
-        zoomy = ((0x400000 + (scaley >> 1)) // scaley) if scaley else 0x800000
-        if temp4 & 0x4000:
-            zoomx, scalex = zoomy, scaley
+    def __init__(self, st):
+        k46 = st.k46regs
+        opset = st.k47regs[6]
+        self.flipscreenx = k46[5] & 1
+        self.flipscreeny = (k46[5] >> 1) & 1
+        self.offx = s16((k46[0] << 8) | k46[1])
+        self.offy = s16((k46[2] << 8) | k46[3])
+        if opset & 0x40:
+            self.wrap = (512, 512 - 64, 512 - 128)
         else:
-            scalex = ram[offs + 5] & 0x3ff
-            zoomx = ((0x400000 + (scalex >> 1)) // scalex) if scalex else 0x800000
-        nozoom = (scalex == 0x40 and scaley == 0x40)
+            self.wrap = (1024, 1024 - 384, 1024 - 512)
+        self.zbuf = bytearray(b'\xff' * (VIS_W * VIS_H))       # wipezbuf: memset -1
+        self.szbuf = bytearray(b'\xff' * (VIS_W * VIS_H * 2))  # shadow z + priority
+        self.cache = {}
+        self.noclip = st.noclip()
 
-        flipx = temp4 & 0x1000
-        flipy = temp4 & 0x2000
-        attr = ram[offs + 6]
-        mirrorx = attr & 0x4000
-        if mirrorx:
-            flipx = 0
-        mirrory = attr & 0x8000
 
-        if flipscreenx:
-            ox = -ox
-            if not mirrorx:
-                flipx = not flipx
-        if flipscreeny:
-            oy = -oy
-            if not mirrory:
-                flipy = not flipy
+def draw_sprite_object(st, roms, pix, fb, ctx, obj):
+    """One entry of the mixer's object pool."""
+    ram = st.spriteram
+    order, offs, code, color, drawmode, pri = obj
+    flipscreenx, flipscreeny = ctx.flipscreenx, ctx.flipscreeny
+    offx, offy = ctx.offx, ctx.offy
+    wrapsize, xwraplim, ywraplim = ctx.wrap
+    zbuf, szbuf, cache = ctx.zbuf, ctx.szbuf, ctx.cache
 
-        # GX path applies the global offsets before wrapping
-        ox += SPR_DX
-        oy -= SPR_DY
-        ox = (ox - offx) & (wrapsize - 1)
-        oy = ((-oy) - offy) & (wrapsize - 1)
-        if ox >= xwraplim: ox -= wrapsize
-        if oy >= ywraplim: oy -= wrapsize
+    zcode = (order >> 16) & 0xff
+    shd = (st.shadow_deltas(order & 3), ctx.noclip) if drawmode >= 4 else None
+    temp4 = ram[offs]
 
-        sz = (temp4 >> 8) & 0x0f
-        width = 1 << (sz & 3)
-        height = 1 << ((sz >> 2) & 3)
+    xa = ya = 0
+    if code & 0x01: xa += 1
+    if code & 0x02: ya += 1
+    if code & 0x04: xa += 2
+    if code & 0x08: ya += 2
+    if code & 0x10: xa += 4
+    if code & 0x20: ya += 4
+    code &= ~0x3f
 
-        ox -= (zoomx * width) >> 13
-        oy -= (zoomy * height) >> 13
+    oy = ram[offs + 2] & 0x3ff
+    ox = ram[offs + 3] & 0x3ff
 
-        for y in range(height):
-            sy = oy + ((zoomy * y + (1 << 11)) >> 12)
-            zh = (oy + ((zoomy * (y + 1) + (1 << 11)) >> 12)) - sy
-            for x in range(width):
-                sx = ox + ((zoomx * x + (1 << 11)) >> 12)
-                zw = (ox + ((zoomx * (x + 1) + (1 << 11)) >> 12)) - sx
-                tempcode = code
+    scaley = ram[offs + 4] & 0x3ff
+    zoomy = ((0x400000 + (scaley >> 1)) // scaley) if scaley else 0x800000
+    if temp4 & 0x4000:
+        zoomx, scalex = zoomy, scaley
+    else:
+        scalex = ram[offs + 5] & 0x3ff
+        zoomx = ((0x400000 + (scalex >> 1)) // scalex) if scalex else 0x800000
+    nozoom = (scalex == 0x40 and scaley == 0x40)
 
-                if mirrorx:
-                    if (not flipx) ^ ((x << 1) < width):
-                        tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
-                        fx = 1
-                    else:
-                        tempcode += SPR_XOFFSET[(x + xa) & 7]
-                        fx = 0
+    flipx = temp4 & 0x1000
+    flipy = temp4 & 0x2000
+    attr = ram[offs + 6]
+    mirrorx = attr & 0x4000
+    if mirrorx:
+        flipx = 0
+    mirrory = attr & 0x8000
+
+    if flipscreenx:
+        ox = -ox
+        if not mirrorx:
+            flipx = not flipx
+    if flipscreeny:
+        oy = -oy
+        if not mirrory:
+            flipy = not flipy
+
+    # GX path applies the global offsets before wrapping
+    ox += SPR_DX
+    oy -= SPR_DY
+    ox = (ox - offx) & (wrapsize - 1)
+    oy = ((-oy) - offy) & (wrapsize - 1)
+    if ox >= xwraplim: ox -= wrapsize
+    if oy >= ywraplim: oy -= wrapsize
+
+    sz = (temp4 >> 8) & 0x0f
+    width = 1 << (sz & 3)
+    height = 1 << ((sz >> 2) & 3)
+
+    ox -= (zoomx * width) >> 13
+    oy -= (zoomy * height) >> 13
+
+    for y in range(height):
+        sy = oy + ((zoomy * y + (1 << 11)) >> 12)
+        zh = (oy + ((zoomy * (y + 1) + (1 << 11)) >> 12)) - sy
+        for x in range(width):
+            sx = ox + ((zoomx * x + (1 << 11)) >> 12)
+            zw = (ox + ((zoomx * (x + 1) + (1 << 11)) >> 12)) - sx
+            tempcode = code
+
+            if mirrorx:
+                if (not flipx) ^ ((x << 1) < width):
+                    tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
+                    fx = 1
                 else:
-                    if flipx:
-                        tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
-                    else:
-                        tempcode += SPR_XOFFSET[(x + xa) & 7]
-                    fx = bool(flipx)
-
-                if mirrory:
-                    if (not flipy) ^ ((y << 1) >= height):
-                        tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
-                        fy = 1
-                    else:
-                        tempcode += SPR_YOFFSET[(y + ya) & 7]
-                        fy = 0
+                    tempcode += SPR_XOFFSET[(x + xa) & 7]
+                    fx = 0
+            else:
+                if flipx:
+                    tempcode += SPR_XOFFSET[(width - 1 - x + xa) & 7]
                 else:
-                    if flipy:
-                        tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
-                    else:
-                        tempcode += SPR_YOFFSET[(y + ya) & 7]
-                    fy = bool(flipy)
+                    tempcode += SPR_XOFFSET[(x + xa) & 7]
+                fx = bool(flipx)
 
-                w, h = (0x10, 0x10) if nozoom else (zw, zh)
-                draw_sprite_tile(st, roms, pix, fb, zbuf, szbuf, tempcode, color,
-                                 fx, fy, sx, sy, w, h, zcode, drawmode, pri,
-                                 shd, cache)
+            if mirrory:
+                if (not flipy) ^ ((y << 1) >= height):
+                    tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
+                    fy = 1
+                else:
+                    tempcode += SPR_YOFFSET[(y + ya) & 7]
+                    fy = 0
+            else:
+                if flipy:
+                    tempcode += SPR_YOFFSET[(height - 1 - y + ya) & 7]
+                else:
+                    tempcode += SPR_YOFFSET[(y + ya) & 7]
+                fy = bool(flipy)
+
+            w, h = (0x10, 0x10) if nozoom else (zw, zh)
+            draw_sprite_tile(st, roms, pix, fb, zbuf, szbuf, tempcode, color,
+                             fx, fy, sx, sy, w, h, zcode, drawmode, pri,
+                             shd, cache)
 
 
 # ------------------------------------------------------------------ main
+# ---------------------------------------------------------------- mixer
+# K055555 priority encoder. MAME models it as konamigx_mixer: every input --
+# the four tilemaps, the ROZ sub-layer and all 256 sprites -- goes into one
+# object pool keyed by a 32-bit `order`, sorted descending, and drawn
+# back-to-front. Real silicon compares per pixel instead, which is what the
+# RTL should do; the draw order is the observable part and that is what this
+# reproduces.
+#
+# Not modelled, because nothing in the state corpus exercises it (see
+# docs/hardware.md): tilemap and object alpha (V_INMIX and OS_INMIX are 0 in
+# every captured frame) and layer brightness (V_BRI only ever selects a
+# 0xff level). MAME also applies brightness as a global palette contrast
+# whose last value leaks into the sprite draw, which this does not copy.
+
+def mixer_pool(st, layers):
+    """The layer half of the object pool, in MAME's order."""
+    layerid = [0, 1, 2, 3, 4, 5]
+    layerpri = [
+        st.k55regs[K55_PRIINP['A']],
+        st.k55regs[K55_PRIINP['B']],
+        st.k55regs[K55_PRIINP['C']],
+        st.k55regs[K55_PRIINP['D']],
+        st.k55regs[16],                       # K55_PRIINP_9  = SUB1
+        st.k55regs[17],                       # K55_PRIINP_10 = SUB2
+    ]
+    for j in range(5):                        # selection sort, descending
+        for i in range(j + 1, 6):
+            if layerpri[j] <= layerpri[i]:
+                layerpri[j], layerpri[i] = layerpri[i], layerpri[j]
+                layerid[j], layerid[i] = layerid[i], layerid[j]
+
+    pool = []
+    for i in range(5, -1, -1):
+        code = layerid[i]
+        if code == 4:
+            # sub1 is the ROZ tilemap, present only while it is enabled
+            offs = -2 if (st.rozctrl[0] & 0x0100) else -128
+        elif code == 5:
+            offs = -128                        # no sub2 on this board
+        else:
+            offs = -1
+        if offs != -128:
+            pool.append((layerpri[i] << 24, offs, code, 0, 0, 0))
+    return pool
+
+
 def render(st, roms, layers):
     n = VIS_W * VIS_H
     pix = [-1] * n
     pri = [0] * n
     fb = [st.bgcolor()] * n
-    if 'OBJ' in layers:
-        render_sprites(st, roms, pix, fb)
-    if 'SUB1' in layers:
-        render_roz(st, roms, pix, fb, pri, st.k55regs[K55_PRIINP['SUB1']])
-    for name in ('D', 'C', 'B', 'A'):        # back to front for now
-        if name not in layers:
-            continue
-        li = 'ABCD'.index(name)
-        render_tilemap(st, roms, li, pix, fb, pri, st.k55regs[K55_PRIINP[name]])
+
+    disp = st.k55regs[K55_INPUT_ENABLES]
+    pool = mixer_pool(st, layers)
+    ctx = None
+    if 'OBJ' in layers and (disp & K55_INP_BIT['OBJ']):
+        ctx = SpriteCtx(st)
+        pool += sprite_objects(st)
+
+    pool.reverse()
+    pool.sort(key=lambda o: -o[0])             # stable: ties keep order
+
+    for obj in pool:
+        offs = obj[1]
+        if offs >= 0:
+            draw_sprite_object(st, roms, pix, fb, ctx, obj)
+        elif offs == -1:
+            name = 'ABCD'[obj[2]]
+            if name in layers and (disp & K55_INP_BIT[name]):
+                render_tilemap(st, roms, obj[2], pix, fb, pri,
+                               st.k55regs[K55_PRIINP[name]])
+        elif offs == -2:
+            if 'SUB1' in layers and (disp & K55_INP_BIT['SUB1']):
+                render_roz(st, roms, pix, fb, pri, st.k55regs[16])
     return pix, fb
 
 
@@ -685,7 +753,7 @@ def main():
         sys.exit(__doc__)
     st = State(args[0])
     roms = Roms(args[1])
-    layers = set((opts.get('layers') or 'A,B,C,D').split(','))
+    layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
 
     pix, fb = render(st, roms, layers)
     w, h, rgb = to_rgb_rot90(fb)

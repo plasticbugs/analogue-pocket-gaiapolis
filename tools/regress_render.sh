@@ -22,7 +22,7 @@ for st in artifacts/states/*.txt; do
         *_tm) layers=A,B,C,D ;;
         *_roz) layers=SUB1 ;;
         *_obj) layers=OBJ ;;
-        *) continue ;;          # full-frame states need sprites + ROZ; not yet
+        *) layers=A,B,C,D,OBJ,SUB1 ;;   # full frame through the mixer
     esac
     out=$(python3 tools/render_model.py "$st" "$ROM" --layers="$layers" \
             --out="artifacts/render/$name.png" --ref="$ref" \

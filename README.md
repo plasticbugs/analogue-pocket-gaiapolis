@@ -5,14 +5,14 @@ Pocket via openFPGA/opengateware.
 
 **Status: reference renderer in progress. No RTL yet.**
 
-Done: hardware analysis, ROM path (CRC + byte-exact against MAME), frozen-state
-capture harness, and a reference renderer in which the **K056832 tilemap
-layers, the K053936 ROZ plane and the K055673 sprite engine are all
-pixel-exact against MAME** (`tools/regress_render.sh`: 22 gates, zero
-differing pixels; 18 substantive, the trivial ones are labelled as such).
+**The reference renderer is complete and reproduces MAME's output exactly** --
+full frames, not just individual layers. `tools/regress_render.sh`: 28 gates,
+zero differing pixels (24 substantive; the trivial ones are labelled).
 
-Next: the K055555 / K054338 mixer -- the one chip with no open RTL anywhere --
-then RTL.
+Covered: K056832 tilemaps, K053936 ROZ plane, K055673 sprites with the
+per-pixel Z buffer and shadows, and the K055555 priority mixer.
+
+Next: RTL.
 
 ## What is here
 
