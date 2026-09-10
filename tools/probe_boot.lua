@@ -1,14 +1,10 @@
 local f = 0
-local snapdir = "artifacts/snap"
-local plan = {}
--- frames at which to snapshot (attract mode)
-for _,n in ipairs({120, 300, 600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000}) do plan[n]=true end
-local stop = 3100
-
+local shots = 0
 emu.add_machine_frame_notifier(function()
   f = f + 1
-  if plan[f] then
+  if f % 300 == 0 and shots < 12 then
     manager.machine.video:snapshot()
+    shots = shots + 1
   end
-  if f >= stop then manager.machine:exit() end
+  if f >= 3700 then manager.machine:exit() end
 end)

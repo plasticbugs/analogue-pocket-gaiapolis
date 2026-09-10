@@ -1,0 +1,324 @@
+# Gaiapolis — Konami "pre-GX" hardware (GX123)
+
+Source of truth: MAME 0.288 `src/mame/konami/mystwarr.cpp`, `mystwarr_v.cpp`,
+`konamigx_v.cpp` and the device files listed in §9. Everything here was read out
+of that source or measured with the Lua probes in `tools/`.
+
+MAME driver status for `gaiapols`: **`MACHINE_IMPERFECT_GRAPHICS`**, sound
+`imperfect`. That matters — see §10.
+
+---
+
+## 1. Board summary
+
+| | |
+|---|---|
+| Game | Gaiapolis (ver EAF), Konami, 1993 |
+| Board | GX123, "pre-GX" family (shared with Mystic Warriors, Violent Storm, Metamorphic Force, Martial Champion, Monster Maulers) |
+| Main CPU | MC68000 @ 16.000 MHz (32 MHz / 2) |
+| Sound CPU | Z80 @ 8.000 MHz (32 MHz / 4) |
+| Sound | 2 × K054539 8-channel PCM/ADPCM @ 18.432 MHz (16 voices total), stereo |
+| EEPROM | ER5911, 128 × 8, serial |
+| Display | 376 × 224 visible, **ROT90** (vertical monitor → 224 wide × 376 tall) |
+| Pixel clock | 8.000 MHz, htotal 512, vtotal 264 → **59.1856 Hz** |
+| Palette | 2048 entries, **xRGB_888** (24-bit colour), shadows + highlights enabled |
+| ROM total | 18.875 MB across 19 files |
+
+Raster geometry (`set_raw(8000000, 384+24+64+40, 0, 383, 224+16+8+16, 0, 223)`
+plus `set_visarea(40, 40+376-1, 16, 16+224-1)`):
+
+```
+htotal 512 px  @ 8 MHz  → 64.0 us per line
+vtotal 264 lines        → 16.896 ms per frame  (59.1856 Hz)
+visible 376 x 224, origin (40, 16)
+K053252 CRTC offsets for this game: (40, 16)
+```
+
+The raster line runs along the **376-pixel axis**. After ROT90 that axis is
+vertical on the cabinet. Sprite/tilemap X is the 376 axis; Y is the 224 axis.
+
+## 2. Custom chip set
+
+| Chip | Function | Notes |
+|---|---|---|
+| K056832 | Tilemap generator, 4 layers (A/B/C/D) | configured `K056832_BPP_5`, but only 4 planes are populated — see §6 |
+| K055673 | Sprite generator (K053246/K053247 family) | layout `K055673_LAYOUT_RNG` (**4bpp**), global offset (dx,dy) = (−61, −22) |
+| K055555 | 8-input 5bpp priority encoder / mixer | inputs A,B,C,D + OBJ + SUB1..3 |
+| K054338 | Colour mixer: alpha blend, brightness, shadow RGB | |
+| K053936-class | PSAC2 rotate/zoom plane ("ROZ", SUB1 input) | driven through `K053936GP_*` helpers in `konamigx_v.cpp` |
+| K053252 | CRTC / timing / interrupt controller | 6 MHz input in MAME |
+| K054321 | Main↔sound CPU latch (3 × 8-bit) | |
+| K054000 | Bounding-box collision protection | |
+
+## 3. Main CPU memory map (`gaiapols_map`)
+
+| Range | Width | Function |
+|---|---|---|
+| `000000–2FFFFF` | R | Program ROM, 3 MB |
+| `400000–40FFFF` | RW | Sprite RAM, **scattered** window (see §4) |
+| `410000–411FFF` | RW | K056832 tilemap RAM (8 KB) |
+| `412000–413FFF` | RW | K056832 tilemap RAM mirror (**essential**, game reads it) |
+| `420000–421FFF` | RW | Palette RAM, 2048 × xRGB_888 (4 bytes/entry) |
+| `430000–430007` | W | K055673 / K053246 registers (`k053246_w`) |
+| `440000–441FFF` | R | K056832 tile-ROM readback |
+| `450000–45000F` | R | K055673 sprite-ROM readback |
+| `450010–45001F` | W | K055673 registers |
+| `460000–46001F` | W | ROZ control registers (`k053936_0_ct16`) |
+| `470000–470FFF` | RW | ROZ line RAM (`k053936_0_li16`), 4 KB |
+| `480000–48003F` | W | K056832 VACSET |
+| `482000–482007` | W | K056832 VSCCS |
+| `484000–484003` | W | ROZ clip window (`ddd_053936_clip_w`) |
+| `486000–48601F` | RW | K053252 CRTC (byte, `umask16(0x00ff)`) |
+| `488000–4880FF` | W | K055555 registers (48 × 8-bit) |
+| `48A000–48A01F` | RW | K054321 sound latch (`umask16(0xff00)`) |
+| `48C000–48C01F` | W | K054338 |
+| `48E000` | R | `IN0_P1` (bit 3 = test switch) |
+| `48E020` | R | `IN1` (high byte) / `P2` (low byte) |
+| `600000–60FFFF` | RW | Work RAM, 64 KB |
+| `660000–66003F` | RW | K054000 collision (byte) |
+| `6A0000` | W | EEPROM out (DI / CS / CLK on bits 0/1/2) |
+| `6C0000` | W | ROZ enable (bit 8) + ROZ ROM bank (bits 14–15) |
+| `6E0000` | W | Sound IRQ trigger (Z80 IRQ0, HOLD_LINE) |
+| `800000–87FFFF` | R | ROZ tilemap readback 0 (`gfx4`+0x20000 / +0x60000, byte-pair) |
+| `A00000–A7FFFF` | R | ROZ tilemap readback 1 (`gfx4`, byte at offset/2) |
+| `C00000–DFFFFF` | R | ROZ char readback (`gfx3`, banked by ROZ ROM bank) |
+| `E00000` | W | Watchdog |
+
+**Interrupt:** a single VBLANK interrupt on **IRQ5** (`ddd_interrupt`,
+`HOLD_LINE`). No scanline timer for this game (`scantimer` is removed).
+
+## 4. Sprite RAM scatter
+
+`400000–40FFFF` is a 64 KB window over the K053247's 0x800-word internal RAM:
+
+```
+if (offset & 0x0078)  -> plain RAM (shadow)
+else                  -> k053247 word ((offset & 7) | ((offset & 0x7f80) >> 4))
+```
+
+Inverting it, k053247 word `w` lives at byte address
+`0x400000 + ((w & 0x7f8) << 5) + (w & 7) * 2`. `tools/probe_sprites.lua` uses
+this to read the live sprite table.
+
+### Sprite entry (8 words per sprite, 256 sprites)
+
+| Word | Contents |
+|---|---|
+| 0 | bit15 active; bits 11–8 size (`w = 1 << (n & 3)`, `h = 1 << (n >> 2 & 3)` in 16×16 tiles → up to 128×128); bit12 flipx; bit13 flipy; bit14 "use Y zoom for X"; bits 7–0 **z-code** |
+| 1 | tile code |
+| 2 | Y (10-bit) |
+| 3 | X (10-bit) |
+| 4 | Y zoom (10-bit; 0x40 = 1:1, smaller = larger) |
+| 5 | X zoom (10-bit) |
+| 6 | colour/attr; bit14 mirror-X; bit15 mirror-Y; gaiapolis callback: `priority_mask = color & 0xe0`, `color = base | (color >> 4 & 0x20) | (color & 0x1f)` |
+
+Zoom is `zoom = (0x400000 + (raw >> 1)) / raw`, applied as 13.19 fixed point.
+**X and Y zoom are independent.**
+
+The K053247 maintains a **per-pixel Z buffer**: a sprite pixel is not drawn over
+a pixel with an equal or smaller Z value, regardless of priority. Shadows carry
+their host's Z but may take a different priority. Sprites are processed in
+Z-code order (ascending or descending per OPSET bit 4 of register 0x0c).
+
+## 5. ROZ / PSAC2 plane (K055555 SUB1 input)
+
+* Virtual plane: 512 × 512 tiles of 16 × 16 px = **8192 × 8192 px**, wraparound on.
+* Tile map comes from ROM region `gfx4` (512 KB), not RAM:
+  * `dat1 = gfx4 + 0`, `dat2 = gfx4 + 0x20000`, `dat3 = gfx4 + 0x60000`
+  * `tile = dat3[i] | ((dat2[i] & 0x3f) << 8)`
+  * `colour = (i & 1) ? (dat1[i>>1] & 0xf) : (dat1[i>>1] >> 4) & 0xf`, `|= 0x10 if dat2[i] & 0x80`
+* Tile chars come from `gfx3` (1.5 MB), **4bpp 16×16, packed MSB**.
+* Per-line transform from the 4 KB line RAM at `470000`; global control at `460000`.
+* Clip window from `484000`: `minx = clip_x << 7`, size 1/2/4 × 128 px.
+* Enable + a 2-bit ROM bank at `6C0000`.
+* Global offset for gaiapolis: `K053936GP_set_offset(0, -10, 0)`.
+
+## 6. Tile layers (K056832)
+
+* 4 layers built from 8 KB of tile RAM, 8 x 8 tiles, pages of 64 x 32 tiles.
+* Chip is configured `K056832_BPP_5`, but **gaiapolis tiles are effectively
+  4bpp**: only two tile ROMs are loaded and the fifth-plane byte stays 0
+  (`ROMREGION_ERASE00`, no `ROM_LOADTILE_BYTE`). The tile callback masks the
+  colour to 4 bits: `color = layer_colorbase[layer] | (color >> 2 & 0x0f)`.
+* ROM storage. `ROM_LOADTILE_WORD` expands to
+  `ROM_GROUPWORD | ROM_SKIP(3) | ROM_REVERSE`, so MAME's 5-byte group is:
+
+  ```
+  region[5n+0] = 123e16[2n+1]     region[5n+2] = 123e17[2n+1]
+  region[5n+1] = 123e16[2n+0]     region[5n+3] = 123e17[2n+0]
+  region[5n+4] = 0                (fifth plane, unused here)
+  ```
+
+  Dropping the zero plane, the tile ROM is plain **4bpp packed chunky, MSB
+  first, 4 bytes per 8-pixel row** (byte 0 = pixels 0,1; byte 1 = pixels 2,3;
+  ...), i.e. 32 bytes per 8x8 tile, 65,536 tiles in 2 MB. `decode_tiles()` in
+  `mystwarr_v.cpp` only repacks this into GX planar order for MAME's own
+  `drawgfx`; RTL can read the chunky form directly. The raw layout must stay
+  intact because the game's self-test reads it back through `440000`.
+* Per-layer X offsets for gaiapolis: A -1, B +2, C +4, D +5 (Y all 0).
+
+## 7. Sound
+
+Z80 @ 8 MHz, banked:
+
+| Range | Function |
+|---|---|
+| `0000–7FFF` | ROM (fixed) |
+| `8000–BFFF` | ROM bank, 16 × 16 KB, selected by `sound_ctrl_w` bits 0–3 |
+| `C000–DFFF` | RAM (8 KB) |
+| `E000–E22F` | K054539 #1 |
+| `E230–E3FF` | RAM |
+| `E400–E62F` | K054539 #2 |
+| `E630–E7FF` | RAM |
+| `F000–F003` | K054321 sound side |
+| `F800` | `sound_ctrl_w`: bit 4 enables the K054539 timer NMI, bits 0–3 ROM bank |
+
+* Main CPU raises Z80 **IRQ0** by writing `6E0000`.
+* K054539 #1's timer output drives the Z80 **NMI** on its rising edge, gated by
+  `sound_ctrl` bit 4. **This is what paces the music** — see METHODOLOGY §5.3.
+* PCM sample ROM: 4 MB (`k054539` region), shared by both chips.
+* MAME applies per-channel gain fix-ups at reset for this driver (chip 1 ch 0–3
+  ×0.8, ch 4–7 ×2.0 for mystwarr; gaiapolis uses the `gaiapols` reset override).
+
+## 8. Inputs
+
+4 players, 8-way joystick + 3 buttons each, 2 coin slots.
+
+* `IN0_P1` low byte: bit0 L, bit1 R, bit2 U, bit3 D, bit4 B1, bit5 B2, bit6 B3, bit7 Start1
+* `IN0_P1` high byte: bit8 Coin1, bit9 Coin2, bit11 Service Mode, bit12 Service1, bit13 Service2
+* `P2`/`P3`/`P4`: same low-byte layout for players 2–4
+* `IN1`: bit0 EEPROM DO, bit1 EEPROM ready, bit3 service, bit4 Mono/Stereo, bit5 Flip Screen
+
+## 9. ROM map
+
+| File | Size | CRC32 | Region | Offset | Step |
+|---|---|---|---|---|---|
+| `123e07.24m` | 1 MB | `f1a1db0f` | maincpu | 0 | 2 (even) |
+| `123e09.19l` | 1 MB | `4b3b57e7` | maincpu | 1 | 2 (odd) |
+| `123eaf11.19p` | 256 KB | `9c324ade` | maincpu | 0x200000 | 2 (even) |
+| `123eaf12.17p` | 256 KB | `1dfa14c5` | maincpu | 0x200001 | 2 (odd) |
+| `123e13.9c` | 256 KB | `e772f822` | soundcpu | 0 | 1 |
+| `123e16.2t` | 1 MB | `a3238200` | k056832 | 0 | 2 |
+| `123e17.2x` | 1 MB | `bd0b9fb9` | k056832 | 2 | 2 |
+| `123e19.34u` | 2 MB | `219a7c26` | k055673 | 0 | 8 |
+| `123e21.34y` | 2 MB | `1888947b` | k055673 | 2 | 8 |
+| `123e18.36u` | 2 MB | `3719b6d4` | k055673 | 4 | 8 |
+| `123e20.36y` | 2 MB | `490a6f64` | k055673 | 6 | 8 |
+| `123e04.32n` | 512 KB | `0d4d5b8b` | gfx3 (ROZ chars) | 0 | 1 |
+| `123e05.29n` | 512 KB | `7d123f3e` | gfx3 | 0x80000 | 1 |
+| `123e06.26n` | 512 KB | `fa50121e` | gfx3 | 0x100000 | 1 |
+| `123e01.36j` | 128 KB | `9dbc9678` | gfx4 (ROZ map) | 0 | 1 |
+| `123e02.34j` | 256 KB | `b8e3f500` | gfx4 | 0x20000 | 1 |
+| `123e03.36m` | 256 KB | `fde4749f` | gfx4 | 0x60000 | 1 |
+| `123e14.2g` | 2 MB | `65dfd3ff` | k054539 (PCM) | 0 | 1 |
+| `123e15.2m` | 2 MB | `7017ff07` | k054539 | 0x200000 | 1 |
+| `gaiapols.nv` | 128 B | `44c78184` | eeprom | 0 | 1 |
+
+Region totals: maincpu 3 MB, soundcpu 256 KB, k056832 2 MB, k055673 **8 MB**,
+gfx3 1.5 MB, gfx4 512 KB (0xA0000 used), k054539 4 MB. **18.875 MB.**
+
+Note the sprite ROMs interleave on an **8-byte stride** — the sprite ROM bus is
+64 bits wide on the real board.
+
+## 10. The oracle problem
+
+MAME flags this driver `MACHINE_IMPERFECT_GRAPHICS`. `konamigx_v.cpp`'s mixer —
+the software stand-in for the K055555 + K054338 pair — carries explicit
+`UNIMPLEMENTED`, `HACK` and "not quite right" comments, and it is a
+sort-and-composite software model rather than the per-pixel priority encoder the
+real chip is. Captured attract-mode frames in `artifacts/snap/` show blocky
+seams around the ROZ/tilemap wipe that are almost certainly MAME artefacts.
+
+Consequence for METHODOLOGY §1: **a reference renderer built to match MAME
+cannot be validated to pixel-exactness against real hardware**, because MAME is
+not pixel-exact here. Two usable substitutes:
+
+1. Match MAME everywhere the two models agree, and treat disagreements as
+   open questions rather than bugs.
+2. Prefer Furrtek's silicon reverse-engineering of these Konami parts, and
+   jotego's HDL reconstructions derived from it, as the higher authority where
+   they exist (see `docs/prior-art.md`).
+
+## 11. Measured load and bandwidth budget
+
+Measured with `tools/probe_sprites.lua` over 5,322 frames (90 s) of attract,
+intro and the opening of play; 475 of 887 samples had >= 20 sprites on screen.
+Raw data in `artifacts/sprite_load.csv`.
+
+| Per raster line | p50 | p95 | p99 | max |
+|---|---|---|---|---|
+| sprites crossing the line | 9 | 14 | 17 | **20** |
+| destination pixels written | 345 | 856 | 1052 | **2110** |
+| source pixels fetched | 288 | 431 | 934 | **1378** |
+
+2110 destination pixels on a 376-pixel line is 5.6x overdraw, which the
+per-pixel Z buffer resolves.
+
+### Sprite ROM organisation
+
+`K055673_LAYOUT_RNG` is 16x16, 4bpp, planes at bit offsets {24,16,8,0}, x
+offsets 0..7 then 32..39, row stride 64 bits. So **one 64-bit word is one
+complete 16-pixel row** of a sprite tile, 128 bytes per tile, and the four
+2 MB ROMs interleave on an 8-byte stride precisely because the board's sprite
+ROM bus is 64 bits wide.
+
+That makes the fetch cost 4 x 16-bit words per 16 source pixels:
+
+```
+worst measured line: 1378 src px / 16 = 87 rows x 4 words = 348 words
+```
+
+### Line budget
+
+One line is 512 pixel clocks at 8 MHz = **64.0 us**.
+
+| Consumer | Words / line (worst) | Notes |
+|---|---|---|
+| Sprites | ~348 | 4 words per 16 px, measured worst case |
+| Tilemaps | 376 | 4 layers x 376 px, 4bpp chunky, 2 words per 8 px — deterministic |
+| ROZ plane | ~560 | 1 px/clk; map lookup + char byte, worst case with a 1-tile cache |
+| 68000 | ~150 | 16 MHz, 4 clk/bus cycle, most cycles hit work RAM in BRAM |
+| PCM | ~25 | 16 voices, negligible |
+
+### Proposed partition across the Pocket's four memory buses
+
+The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
+`sram` in the openFPGA `core_top` port list), which is what makes this fit:
+
+| Bus | Size | Contents | Used | Worst words/line |
+|---|---|---|---|---|
+| `dram` SDRAM | 32 MB | program 3 MB + tile ROM 2 MB + PCM 4 MB + sound 256 KB | 9.25 MB | ~550 |
+| `cram0` PSRAM | 8 MB | sprite ROM | 8.0 MB (exact fit) | ~348 |
+| `cram1` PSRAM | 8 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | ~560 |
+| `sram` | 256 KB | spare (line buffers / palette / scratch) | — | — |
+
+Feasibility of each bus:
+
+* **dram at 96 MHz** gives 6,144 clocks per line. 550 words with 2-4 word
+  bursts costs roughly 550 x 3 + overhead ~ 2,000 clocks: about 33%.
+* **cram PSRAM** is 70 ns per *random* async access (see the timing parameters
+  in `openfpga-SNES/target/pocket/psram.sv`), i.e. 914 accesses per line.
+  348 random accesses = 38% of the line; sprite rows are 4 consecutive words,
+  so page-mode reads bring it to roughly 18%.
+* The ROZ is the one consumer that genuinely needs a page-mode PSRAM
+  controller: 560 random accesses at 70 ns is 39 us of the 64 us line, which
+  leaves too little margin. Its own dedicated bus plus a tile cache is what
+  makes it comfortable.
+
+**Conclusion: bandwidth is not the blocker.** The blocker is logic and
+verification effort - see `docs/prior-art.md`.
+
+### BRAM budget (Cyclone V 5CEBA4: 308 x M10K = 385 KB)
+
+| Block | Size |
+|---|---|
+| Work RAM | 64 KB |
+| Palette (2048 x 32-bit) | 8 KB |
+| Tile RAM | 8 KB |
+| Sprite RAM (0x800 words) | 4 KB |
+| ROZ line RAM | 4 KB |
+| Z80 RAM | 8 KB |
+| Line buffers (6 layers + sprite line buffer with Z) | ~7 KB |
+| **Subtotal** | **~103 KB** |
+
+That leaves roughly 280 KB for tile/sprite/ROZ caches and CPU cores. Comfortable.
