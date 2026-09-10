@@ -2,7 +2,10 @@
 // port, loadable from the C++ driver. The ROM models answer in one cycle.
 `default_nettype none
 
-module tb_system_top (
+module tb_system_top #(
+    parameter int STEP_COST_BUS = 15,   // 68000 pacing, overridable with -G for calibration
+    parameter int STEP_COST_INT = 15
+) (
     input  logic        clk,
     input  logic        reset,
 
@@ -29,7 +32,11 @@ module tb_system_top (
     output logic        dbg_step, dbg_irq5, dbg_overrun, dbg_unsupported, dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
     output logic  [8:0] dbg_vcount,
-    output logic [15:0] dbg_zpc
+    output logic [15:0] dbg_zpc,
+    output logic        dbg_zstep, dbg_zwait, dbg_zwr, dbg_zrd,
+    output logic  [7:0] dbg_zwdata,
+    output logic [15:0] snd_l, snd_r,
+    output logic        snd_valid
 );
     logic [15:0] prog [4194304];      // 22-bit word address; 3 MB used
     logic [31:0] tile [524288];
@@ -46,6 +53,26 @@ module tb_system_top (
     logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [20:0] chr_addr; logic [19:0] spr_addr;
     logic [15:0] prog_q, map_q, chr_q; logic [31:0] tile_q; logic [63:0] spr_q;
 
+    // Each ROM answers LAT_* clocks after the request (+LAT_PROG=n etc. on the
+    // command line; 0 = the cycle after, the ideal). A request withdrawn
+    // before its ack is dropped, as the Pocket memory ports do.
+    int lat_prog, lat_tile, lat_map, lat_chr, lat_spr, lat_srom, lat_pcm;
+    initial begin
+        if (!$value$plusargs("LAT_PROG=%d", lat_prog)) lat_prog = 0;
+        if (!$value$plusargs("LAT_TILE=%d", lat_tile)) lat_tile = 0;
+        if (!$value$plusargs("LAT_MAP=%d",  lat_map))  lat_map  = 0;
+        if (!$value$plusargs("LAT_CHR=%d",  lat_chr))  lat_chr  = 0;
+        if (!$value$plusargs("LAT_SPR=%d",  lat_spr))  lat_spr  = 0;
+        if (!$value$plusargs("LAT_SROM=%d", lat_srom)) lat_srom = 0;
+        if (!$value$plusargs("LAT_PCM=%d",  lat_pcm))  lat_pcm  = 0;
+    end
+    int cnt_prog, cnt_tile, cnt_map, cnt_chr, cnt_spr, cnt_srom, cnt_pcm;
+    `define ROM_PORT(req, ack, cnt, lat) \
+        if (!req) begin cnt <= 0; ack <= 1'b0; end \
+        else if (ack) begin ack <= 1'b0; cnt <= 0; end \
+        else if (cnt >= lat) begin ack <= 1'b1; cnt <= 0; end \
+        else begin cnt <= cnt + 1; ack <= 1'b0; end
+
     always_ff @(posedge clk) begin
         if (prog_we) prog[prog_waddr] <= prog_wdata;
         if (tile_we) tile[tile_waddr] <= tile_wdata;
@@ -54,18 +81,18 @@ module tb_system_top (
         if (spr_we)  spr[spr_waddr]   <= spr_wdata;
         if (srom_we) srom[srom_waddr] <= srom_wdata;
         if (pcm_we)  pcm[pcm_waddr]   <= pcm_wdata;
-        srom_q <= srom[srom_addr];       srom_ack <= srom_req & ~srom_ack;
-        pcmr_q <= pcm[pcmr_addr];        pcmr_ack <= pcmr_req & ~pcmr_ack;
-        prog_q <= prog[prog_addr];       prog_ack <= prog_req & ~prog_ack;
-        tile_q <= tile[tile_addr];       tile_ack <= tile_req & ~tile_ack;
-        map_q  <= mapr[map_addr[19:1]];  map_ack  <= map_req  & ~map_ack;
-        chr_q  <= chr[chr_addr[20:1]];   chr_ack  <= chr_req  & ~chr_ack;
-        spr_q  <= spr[spr_addr];         spr_ack  <= spr_req  & ~spr_ack;
+        srom_q <= srom[srom_addr];       `ROM_PORT(srom_req, srom_ack, cnt_srom, lat_srom)
+        pcmr_q <= pcm[pcmr_addr];        `ROM_PORT(pcmr_req, pcmr_ack, cnt_pcm,  lat_pcm)
+        prog_q <= prog[prog_addr];       `ROM_PORT(prog_req, prog_ack, cnt_prog, lat_prog)
+        tile_q <= tile[tile_addr];       `ROM_PORT(tile_req, tile_ack, cnt_tile, lat_tile)
+        map_q  <= mapr[map_addr[19:1]];  `ROM_PORT(map_req,  map_ack,  cnt_map,  lat_map)
+        chr_q  <= chr[chr_addr[20:1]];   `ROM_PORT(chr_req,  chr_ack,  cnt_chr,  lat_chr)
+        spr_q  <= spr[spr_addr];         `ROM_PORT(spr_req,  spr_ack,  cnt_spr,  lat_spr)
     end
 
-    logic [7:0] eep_q; logic eep_dirty; logic [15:0] snd_l, snd_r;
+    logic [7:0] eep_q; logic eep_dirty;
 
-    gaia_core #(.HEXDIR("../rtl/data")) u_core (
+    gaia_core #(.HEXDIR("../rtl/data"), .STEP_COST_BUS(STEP_COST_BUS), .STEP_COST_INT(STEP_COST_INT)) u_core (
         .clk(clk), .reset(reset),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
@@ -77,12 +104,13 @@ module tb_system_top (
         .eep_ld_we(eep_we), .eep_ld_addr(eep_waddr), .eep_ld_wdata(eep_wdata), .eep_ld_q(eep_q), .eep_dirty(eep_dirty),
         .in0_p1(in0_p1), .in1(in1), .p2(p2),
         .cen_pix(cen_pix), .rgb(rgb), .hsync(hsync), .vsync(vsync), .de(de), .vblank(vblank),
-        .snd_l(snd_l), .snd_r(snd_r),
+        .snd_l(snd_l), .snd_r(snd_r), .snd_valid(snd_valid),
         .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
         .dbg_overrun(dbg_overrun), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
-        .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount), .dbg_zpc(dbg_zpc)
+        .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount), .dbg_zpc(dbg_zpc), .dbg_zstep(dbg_zstep), .dbg_zwait(dbg_zwait),
+        .dbg_zwr(dbg_zwr), .dbg_zrd(dbg_zrd), .dbg_zwdata(dbg_zwdata)
     );
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused = ^{eep_q, eep_dirty, snd_l, snd_r};
+    wire unused = ^{eep_q, eep_dirty};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule

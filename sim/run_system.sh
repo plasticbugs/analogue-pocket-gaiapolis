@@ -2,6 +2,10 @@
 # Full-system simulation: the whole machine from reset with the real program.
 #   sim/run_system.sh <gaiapolis.rom> [frames] [out-name]
 # Writes artifacts/system/<name>.rgb, .png and .trace.
+# Environment: SNAPEVERY=n (a PNG every n frames), AUDIO=1 (write <name>.wav),
+# LAT=pocket (the Pocket memories' latencies) or LAT="+LAT_PROG=12 ..." verbatim,
+# OBJ=dir (build directory, for parallel builds), PACE="-GSTEP_COST_BUS=n -GSTEP_COST_INT=m"
+# (68000 pacing overrides for calibration against MAME).
 set -e
 cd "$(dirname "$0")"
 ROM="$1"; FRAMES="${2:-4}"; NAME="${3:-sys}"
@@ -9,12 +13,18 @@ ROM="$1"; FRAMES="${2:-4}"; NAME="${3:-sys}"
 case "$ROM" in /*) ;; *) ROM="$PWD/$ROM" ;; esac
 
 verilator --cc --exe --build -j 8 -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY \
-    +1364-2005ext+v waivers.vlt --top-module tb_system_top -Mdir obj_system \
+    +1364-2005ext+v waivers.vlt --top-module tb_system_top -Mdir ${OBJ:-obj_system} ${PACE:-} \
     ../rtl/*.sv ../modules/cpu-tg68k/gen/tg68k.v ../modules/cpu-tv80/*.v tb_system_top.sv tb_system.cpp \
-    > obj_system.log 2>&1 || { tail -30 obj_system.log; exit 1; }
+    > ${OBJ:-obj_system}.log 2>&1 || { tail -30 ${OBJ:-obj_system}.log; exit 1; }
 
 mkdir -p ../artifacts/system
-./obj_system/Vtb_system_top "$ROM" "$FRAMES" ../artifacts/system/$NAME.rgb ../artifacts/system/$NAME.trace
+# ZLOG is given relative to the repository root
+case "${ZLOG:-}" in "") ;; /*) ;; *) ZLOG="../$ZLOG"; export ZLOG ;; esac
+case "${LAT:-}" in
+    pocket) LATARGS="+LAT_PROG=12 +LAT_TILE=12 +LAT_MAP=12 +LAT_CHR=12 +LAT_SPR=14 +LAT_SROM=12 +LAT_PCM=10" ;;
+    *)      LATARGS="${LAT:-}" ;;
+esac
+./${OBJ:-obj_system}/Vtb_system_top "$ROM" "$FRAMES" ../artifacts/system/$NAME.rgb ../artifacts/system/$NAME.trace $LATARGS
 # periodic frames (SNAPEVERY=n) become <name>.f<n>.png as well
 for f in ../artifacts/system/$NAME.rgb.f*; do
     [ -f "$f" ] || continue

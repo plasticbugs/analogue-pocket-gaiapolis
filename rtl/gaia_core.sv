@@ -5,15 +5,17 @@
 // same module runs under Verilator with ideal memories and on the Pocket
 // behind the SDRAM/PSRAM controllers. docs/hardware.md is the map.
 //
-// The sound board is fitted (gaia_sound.sv): the Z80 answers the latch and
-// runs its own self-test through the K054539s' ROM ports. Audio rendering in
-// the K054539 is not written yet, so the outputs are silent.
+// The sound board (gaia_sound.sv) mixes the two K054539s; the K054321's
+// master volume and channel enables are applied here, so the bench's WAV and
+// the Pocket's audio stage hear the same thing.
 //------------------------------------------------------------------------------
 `default_nettype none
 
 module gaia_core #(
     parameter string HEXDIR = "rtl/data",
-    parameter int    OBJ_BUILD_LINE = 12   // raster line at which the sprite list is built
+    parameter int    OBJ_BUILD_LINE = 12,  // raster line at which the sprite list is built
+    parameter int    STEP_COST_BUS = 15,   // 68000 pacing (gaia_main)
+    parameter int    STEP_COST_INT = 15
 ) (
     input  logic        clk,                // 96 MHz
     input  logic        reset,
@@ -72,9 +74,10 @@ module gaia_core #(
     output logic        de,
     output logic        vblank,
 
-    // audio (silent until the sound board exists)
+    // audio: a stereo sample on every snd_valid (48 kHz, clk/2000)
     output logic [15:0] snd_l,
     output logic [15:0] snd_r,
+    output logic        snd_valid,
 
     // diagnostics
     output logic [23:0] dbg_addr,
@@ -87,7 +90,12 @@ module gaia_core #(
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
     output logic  [8:0] dbg_vcount,
-    output logic [15:0] dbg_zpc
+    output logic [15:0] dbg_zpc,
+    output logic        dbg_zstep,      // one pulse per Z80 opcode fetch
+    output logic        dbg_zwait,      // the Z80 is being held by wait_n
+    output logic        dbg_zwr,        // Z80 bus strobes with dbg_zpc as the address
+    output logic        dbg_zrd,
+    output logic  [7:0] dbg_zwdata
 );
     // ------------------------------------------------------------ clocks
     logic cen_16m, cen_8m, cen_48k;
@@ -125,7 +133,7 @@ module gaia_core #(
     logic [18:0] ctrom_addr;
     logic [19:0] csrom_addr;
 
-    gaia_main u_main (
+    gaia_main #(.STEP_COST_BUS(STEP_COST_BUS), .STEP_COST_INT(STEP_COST_INT)) u_main (
         .clk(clk), .reset(reset), .cen_16m(cen_16m),
         .rom_req(prog_req), .rom_addr(prog_addr), .rom_ack(prog_ack), .rom_q(prog_q),
         .map_req(cmap_req), .map_addr(cmap_addr), .map_ack(cmap_ack), .map_q(map_q),
@@ -167,13 +175,14 @@ module gaia_core #(
     );
 
     logic [15:0] mix_l, mix_r;
-    gaia_sound u_snd (
+    gaia_sound #(.HEXDIR(HEXDIR)) u_snd (
         .clk(clk), .reset(reset), .cen_8m(cen_8m), .cen_48k(cen_48k),
         .rom_req(snd_rom_req), .rom_addr(snd_rom_addr), .rom_ack(snd_rom_ack), .rom_q(snd_rom_q),
         .pcm_req(pcm_req), .pcm_addr(pcm_addr), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
         .lat_wr(lat_wr), .lat_off(lat_off), .lat_wdata(lat_wdata), .lat_rdata(lat_rdata),
         .irq_pulse(snd_irq),
-        .snd_l(mix_l), .snd_r(mix_r), .dbg_pc(dbg_zpc)
+        .snd_l(mix_l), .snd_r(mix_r), .dbg_pc(dbg_zpc), .dbg_step(dbg_zstep), .dbg_wait(dbg_zwait),
+        .dbg_wr(dbg_zwr), .dbg_rd(dbg_zrd), .dbg_wdata(dbg_zwdata)
     );
 
     k054000 u_col (
@@ -304,13 +313,26 @@ module gaia_core #(
         .pal_addr(pal_raddr), .pal_q(pal_q), .rgb(rgb)
     );
 
-    // K054321 active bits gate the channels; the volume curve is applied by
-    // the platform's audio stage
-    assign snd_l = snd_active[1] ? mix_l : '0;
-    assign snd_r = snd_active[0] ? mix_r : '0;
+    // K054321 master volume, 2^((v - 40) / 10) as Q4.12 from the table, and
+    // the active bits gating the channels; saturated to 16 bits
+    logic [15:0] k321_vol [128];
+    initial $readmemh({HEXDIR, "/k321_vol.hex"}, k321_vol);
+    wire [15:0] snd_gain = k321_vol[snd_volume];
+    function automatic logic [15:0] sat16(input logic signed [32:0] v);
+        if (v > 33'sd32767)  return 16'h7fff;
+        if (v < -33'sd32768) return 16'h8000;
+        return v[15:0];
+    endfunction
+    always_ff @(posedge clk) begin
+        snd_valid <= cen_48k;
+        if (cen_48k) begin
+            snd_l <= snd_active[1] ? sat16(($signed(mix_l) * $signed({1'b0, snd_gain})) >>> 12) : '0;
+            snd_r <= snd_active[0] ? sat16(($signed(mix_r) * $signed({1'b0, snd_gain})) >>> 12) : '0;
+        end
+    end
 
     /* verilator lint_off UNUSEDSIGNAL */
     wire unused = ^{k56regsb[0], k56regsb[1], k56regsb[2], k56regsb[3], roz_rombank, col_rd,
-                    snd_volume, ol_done, dbg0, dbg1, dbg2, dbg3, px_valid};
+                    ol_done, dbg0, dbg1, dbg2, dbg3, px_valid};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule

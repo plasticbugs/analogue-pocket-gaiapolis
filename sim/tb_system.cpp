@@ -4,6 +4,8 @@
 // of the last frame, and the diagnostics flags.
 //
 //   tb_system <gaiapolis.rom> <frames> <out.rgb> [trace.txt]
+// The sound board's output is written next to the RGB dump as a 48 kHz
+// stereo 16-bit WAV (<out>.wav) when AUDIO=1.
 #include "Vtb_system_top.h"
 #include "verilated.h"
 #include <cstdio>
@@ -12,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <string>
 
 static const int VIS_W = 376, VIS_H = 224;
 static const long ROM_MAINCPU = 0x0000000, MAINCPU_LEN = 0x300000;
@@ -112,10 +115,29 @@ int main(int argc, char **argv) {
     // WATCH=addr[,addr...] (hex): count opcode fetches of these per frame
     std::vector<unsigned> watch; std::vector<unsigned> watch_n;
     if (getenv("WATCH")) { char *w = strdup(getenv("WATCH")); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) { watch.push_back(strtoul(t, nullptr, 16)); watch_n.push_back(0); } }
-    std::map<unsigned, unsigned> fr_hist;
+    std::map<unsigned, unsigned> fr_hist, z_hist;
+    unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0;
+    // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
+    // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
+    // its streaming-port reads counted per frame (zs1/zs2 in the frame line)
+    FILE *zlog = getenv("ZLOG") ? fopen(getenv("ZLOG"), "w") : nullptr;
+    bool zrd_d = false, zwr_d = false;
+    std::vector<short> audio; bool want_audio = getenv("AUDIO") && atoi(getenv("AUDIO"));
 
     while (frame < frames) {
         tick();
+        if (want_audio && dut->snd_valid) { audio.push_back((short)dut->snd_l); audio.push_back((short)dut->snd_r); }
+        if (dut->dbg_zstep) { z_steps++; z_hist[dut->dbg_zpc]++; }
+        if (dut->dbg_zwait) z_wait++;
+        if (dut->dbg_zrd && !zrd_d) { unsigned a = dut->dbg_zpc; if (a == 0xe22d) z_s1++; else if (a == 0xe62d) z_s2++; }
+        if (dut->dbg_zwr && !zwr_d && zlog) {
+            unsigned a = dut->dbg_zpc, lo = a & 0x3ff;
+            if (((a & 0xfc00) == 0xe000 || (a & 0xfc00) == 0xe400) && (lo == 0x22c || lo == 0x22e || lo == 0x22f || lo == 0x214 || lo == 0x215))
+                fprintf(zlog, "%d W %04x %02x\n", frame, a, (unsigned)dut->dbg_zwdata);
+            else if ((a & 0xfffc) == 0xf000) fprintf(zlog, "%d LAT %04x %02x\n", frame, a, (unsigned)dut->dbg_zwdata);
+            else if (a == 0xf800) fprintf(zlog, "%d CTL %02x\n", frame, (unsigned)dut->dbg_zwdata);
+        }
+        zrd_d = dut->dbg_zrd; zwr_d = dut->dbg_zwr;
         if (dut->dbg_step) {
             steps_total++; frame_steps++;
             if (rdlog && dut->dbg_busstate == 2) {
@@ -149,10 +171,13 @@ int main(int argc, char **argv) {
                 if (tr) {
                     unsigned hot = 0, hotn = 0;
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%d unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x\n",
+                    unsigned zhot = 0, zhotn = 0;
+                    for (auto &kv : z_hist) if (kv.second > zhotn) { zhotn = kv.second; zhot = kv.first; }
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%d unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
                             (int)dut->dbg_overrun, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
-                            (unsigned)dut->dbg_zpc);
+                            (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2);
+                    z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
                     for (size_t i = 0; i < watch.size(); i++) { fprintf(tr, "   watch %06x: %u\n", watch[i], watch_n[i]); watch_n[i] = 0; }
                     fr_hist.clear();
                 }
@@ -183,8 +208,23 @@ int main(int argc, char **argv) {
     printf("hottest fetch addresses in the last frame:");
     for (size_t i = 0; i < top.size() && i < 6; i++) printf(" %06x(%u)", top[i].first, top[i].second);
     printf("\n");
+    if (want_audio) {
+        std::string wp = argv[3]; size_t dot = wp.rfind('.'); if (dot != std::string::npos) wp.resize(dot); wp += ".wav";
+        FILE *wf = fopen(wp.c_str(), "wb");
+        if (wf) {
+            unsigned data_bytes = audio.size() * 2, rate = 48000;
+            auto u32 = [&](unsigned v) { fputc(v & 255, wf); fputc((v >> 8) & 255, wf); fputc((v >> 16) & 255, wf); fputc((v >> 24) & 255, wf); };
+            auto u16 = [&](unsigned v) { fputc(v & 255, wf); fputc((v >> 8) & 255, wf); };
+            fwrite("RIFF", 1, 4, wf); u32(36 + data_bytes); fwrite("WAVEfmt ", 1, 8, wf);
+            u32(16); u16(1); u16(2); u32(rate); u32(rate * 4); u16(4); u16(16);
+            fwrite("data", 1, 4, wf); u32(data_bytes);
+            fwrite(audio.data(), 2, audio.size(), wf); fclose(wf);
+            printf("audio: %zu stereo samples -> %s\n", audio.size() / 2, wp.c_str());
+        }
+    }
     if (tr) fclose(tr);
     if (rdlog) fclose(rdlog);
+    if (zlog) fclose(zlog);
     delete dut;
     return 0;
 }

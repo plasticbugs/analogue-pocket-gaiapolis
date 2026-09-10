@@ -65,3 +65,14 @@ currently use ~2,660.
 Four independent buses, partitioned in `docs/hardware.md` section 11. Graphics
 fetches use a level `req` / one-cycle `ack` handshake so a block can sit behind
 an arbiter without changing.
+
+## CPU bus strobes are levels; device side effects need edges
+
+A tv80 or TG68K bus cycle holds its strobes for whole T-states -- 24 system
+clocks for the Z80's WR at 8 MHz. A register write that is idempotent does
+not care, but any port with a side effect (the K054539's streaming pointer
+steps on every access to 0x22d) sees one access per *clock* unless the
+strobe is edge-detected. `gaia_sound.sv` turns WR into a one-clock pulse on
+the first clock of the strobe (the data is valid throughout) and the
+K054539's read pointer advances when the read strobe ends. The symptom was
+the Z80's RAM test through that port failing (items 4L/4G on the self-test).

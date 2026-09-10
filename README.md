@@ -3,7 +3,8 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: reference renderer in progress. No RTL yet.**
+**Status: the whole machine boots and runs in simulation; the Pocket
+platform port is being brought up.**
 
 **The reference renderer is complete and reproduces MAME's output exactly** --
 full frames, not just individual layers. `tools/regress_render.sh`: 28 gates,
@@ -32,7 +33,16 @@ pixel -- rather than as MAME's sort-and-paint. `tools/mixer_experiment.py`
 showed the two agree on every captured frame, shadows included, before that
 structure was chosen.
 
-Next: CPUs (68000 + Z80), sound (2 x K054539), then platform integration.
+**The full machine runs under Verilator** (`sim/run_system.sh`): 68000
+(TG68K), Z80 (tv80) sound board with two K054539s and the K054321 latch,
+ER5911 EEPROM, K054000 collision chip, and the video pipeline above, from
+reset with the real program. The self-test's ROM, RAM, EEPROM and sound
+checks pass; the boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
+`tools/eeprom_replay.py`).
+
+**Pocket port** (`target/pocket/`): `core_top.sv` is the APF glue, and
+`gaia_mem.sv` puts the 20 MB image across the SDRAM and both PSRAMs
+(`docs/hardware.md` section 11). The EEPROM is saved to `gaiapolis.sav`.
 
 ## What is here
 
@@ -50,6 +60,11 @@ Next: CPUs (68000 + Z80), sound (2 x K054539), then platform integration.
 | `tools/pngio.py` | Dependency-free PNG read/write |
 | `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
 | `sim/run_*.sh` | Frozen-state gates for each RTL block, and `run_frame.sh` for the whole pipeline, diffed against the model |
+| `sim/run_system.sh` | The whole machine from reset: frames as PNG, the 68000/Z80 trace, audio as WAV; `LAT=pocket` models the Pocket memories' latencies |
+| `tools/probe_*.lua` | MAME Lua oracles: device reads, the Z80's boot timeline, EEPROM pin traffic, the 68000's pacing |
+| `tools/eeprom_replay.py` | Replays MAME's EEPROM pin traffic through the ER5911 model: a regression gate for the protocol |
+| `tools/compare_audio.py` | Envelope comparison of the bench's WAV with MAME's recording |
+| `target/pocket/` | The Pocket: `core_top.sv` (APF glue), `gaia_mem.sv` (SDRAM + PSRAM partition), the vendored controllers |
 | `tools/mixer_experiment.py` | Shows a per-pixel priority encoder reproduces MAME's ordered composite on this game |
 | `artifacts/rtl_frames/` | Full frames rendered by the RTL |
 | `rtl/` | Core RTL |

@@ -239,6 +239,41 @@ not pixel-exact here. Two usable substitutes:
    jotego's HDL reconstructions derived from it, as the higher authority where
    they exist (see `docs/prior-art.md`).
 
+### Running the MAME oracles
+
+Every `tools/probe_*.lua` and `tools/dump_state.lua` runs the same way; the
+output goes to `artifacts/` and MAME's own console must not be piped (that
+kills the run):
+
+```sh
+mame gaiapols -rompath . -video none -sound none -nothrottle -skip_gameinfo \
+     -cfg_directory tmp/cfg -nvram_directory tmp/nvram \
+     -autoboot_script tools/probe_z80.lua -autoboot_delay 0 -seconds_to_run 23 \
+     > /dev/null 2>&1
+```
+
+What the boot looks like from the oracle's side (frames at 59.19 Hz):
+
+* frame 0-66: the Z80 pulls 4096 bytes a frame through K054539 #2's ROM
+  port (its first pass), then writes latch 2 = 0x80 and steps `sound_ctrl`
+  through banks 2..15 checking its own program (frames 66-171, 6.5 frames a
+  bank);
+* frames 171-196: latch 2 = 0x81, 0x83, 0x87, 0x97 -- results accumulating;
+* frames ~200-915: the PCM checksum, 4360 bytes a frame, chip 1 then chip 2;
+  latch 2 = 0x9f at 556, 0xbf then **0x3f at frame 915** -- bit 7 clear;
+* the 68000's own phases (`tools/probe_68k.lua`): RAM/ROM checks at
+  `201f80`-`202050` until frame 112, the DATA ROM checksum at `201eb8`-`201f64`
+  until 153, then the wait for the Z80;
+* the 68000 meanwhile sits in the loop at `201da4`: 6144 x 4096 `nop`/`dbf`
+  iterations (22 s) polling latch 2 after each 4096, and moves on the moment
+  bit 7 drops (`tools/probe_poll.lua` counts the polls: 4-5 a frame, i.e.
+  19,300 inner iterations a frame at 14 cycles each -- the pacing target for
+  `gaia_main`'s STEP_COST/STEP_GAIN);
+* frame ~1207: the EEPROM check (`tools/probe_late.lua` records the pin
+  traffic, `tools/eeprom_replay.py` replays it through the model);
+* frame ~1320: the results screen gives way to the attract mode, and the
+  first sound plays at 22.3 s (`artifacts/gaiapolis_mame_60s.wav`).
+
 ## 11. Measured load and bandwidth budget
 
 Measured with `tools/probe_sprites.lua` over 5,322 frames (90 s) of attract,
@@ -280,33 +315,34 @@ One line is 512 pixel clocks at 8 MHz = **64.0 us**.
 | 68000 | ~150 | 16 MHz, 4 clk/bus cycle, most cycles hit work RAM in BRAM |
 | PCM | ~25 | 16 voices, negligible |
 
-### Proposed partition across the Pocket's four memory buses
+### The partition across the Pocket's memory buses (target/pocket/gaia_mem.sv)
 
 The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
-`sram` in the openFPGA `core_top` port list), which is what makes this fit:
+`sram` in the openFPGA `core_top` port list). What is built:
 
-| Bus | Size | Contents | Used | Worst words/line |
+| Bus | Size | Contents | Used | Access |
 |---|---|---|---|---|
-| `dram` SDRAM | 32 MB | program 3 MB + tile ROM 2 MB + PCM 4 MB + sound 256 KB | 9.25 MB | ~550 |
-| `cram0` PSRAM | 8 MB | sprite ROM | 8.0 MB (exact fit) | ~348 |
-| `cram1` PSRAM | 8 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | ~560 |
-| `sram` | 256 KB | spare (line buffers / palette / scratch) | — | — |
+| `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB | 14 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), single words (PCM) |
+| `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, ~12 clocks |
+| `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, ~12 clocks |
+| `sram` | 256 KB | spare | -- | -- |
 
-Feasibility of each bus:
+Why this way round:
 
-* **dram at 96 MHz** gives 6,144 clocks per line. 550 words with 2-4 word
-  bursts costs roughly 550 x 3 + overhead ~ 2,000 clocks: about 33%.
-* **cram PSRAM** is 70 ns per *random* async access (see the timing parameters
-  in `openfpga-SNES/target/pocket/psram.sv`), i.e. 914 accesses per line.
-  348 random accesses = 38% of the line; sprite rows are 4 consecutive words,
-  so page-mode reads bring it to roughly 18%.
-* The ROZ is the one consumer that genuinely needs a page-mode PSRAM
-  controller: 560 random accesses at 70 ns is 39 us of the 64 us line, which
-  leaves too little margin. Its own dedicated bus plus a tile cache is what
-  makes it comfortable.
+* The 68000 is the one client that wants a *random* access every bus cycle
+  (24 clocks at 16 MHz). A PSRAM of its own answers each in ~12 clocks with
+  no other traffic to queue behind; on the SDRAM it would have taken ~40% of
+  the bus by itself. The Z80's fetches share that chip and fit in the gaps.
+* The SDRAM is the burst memory: a sprite row is four consecutive words and
+  a tile group two, one row activation each. Tiles ~2,100 + sprites ~520 +
+  PCM ~160 clocks of the 6,144-clock line.
+* The ROZ's map and character reads are single 16-bit words, which is what an
+  async PSRAM does natively; ~1,300 clocks per line with the tile cache.
 
-**Conclusion: bandwidth is not the blocker.** The blocker is logic and
-verification effort - see `docs/prior-art.md`.
+The bench models these latencies (`sim/run_system.sh` with `LAT=pocket`) so
+the budgets are measured, not assumed. Every memory holds big-endian 16-bit
+words, the packing `sim/tb_system.cpp` uses, so the core sees the same data
+in simulation and on the Pocket.
 
 ### BRAM budget (Cyclone V 5CEBA4: 308 x M10K = 385 KB)
 

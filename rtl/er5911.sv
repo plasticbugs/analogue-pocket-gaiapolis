@@ -54,15 +54,23 @@ module er5911 #(
     wire cs_fall  = ~cs & cs_d;
     wire clk_rise = sclk & ~clk_d;
 
+    // the array: the byte port's load, the serial WRITE and ERASEALL, one
+    // process (Quartus refuses an array driven from two)
+    logic       ser_we, ser_erase;
+    logic [6:0] ser_addr;
+    logic [7:0] ser_wdata;
     always_ff @(posedge clk) begin
         ld_q <= mem[ld_addr];
-        if (ld_we) mem[ld_addr] <= ld_wdata;
+        if (ser_erase)   for (int i = 0; i < 128; i++) mem[i] <= 8'hff;
+        else if (ser_we) mem[ser_addr] <= ser_wdata;
+        else if (ld_we)  mem[ld_addr] <= ld_wdata;
     end
 
     assign dout  = (st == S_READ) ? do_bit : 1'b1;
     assign ready = (busy == 16'd0);
 
     always_ff @(posedge clk) begin
+        ser_we <= 1'b0; ser_erase <= 1'b0;
         if (reset) begin
             st <= S_RESET; cs_d <= 1'b0; clk_d <= 1'b0; busy <= '0;
             locked <= 1'b1; do_bit <= 1'b1; nbits <= '0; dirty <= 1'b0;
@@ -94,7 +102,7 @@ module er5911 #(
                                     2'd0: locked <= 1'b1;                      // LOCK
                                     2'd2: begin                                // ERASEALL
                                         if (!locked) begin
-                                            for (int i = 0; i < 128; i++) mem[i] <= 8'hff;
+                                            ser_erase <= 1'b1;
                                             dirty <= ~dirty; busy <= 16'(BUSY_CLOCKS);
                                         end
                                     end
@@ -125,7 +133,7 @@ module er5911 #(
                     nbits <= nbits + 4'd1;
                     if (nbits == 4'd7) begin
                         if (!locked) begin
-                            mem[addr] <= {shreg[6:0], di};
+                            ser_we <= 1'b1; ser_addr <= addr; ser_wdata <= {shreg[6:0], di};
                             dirty <= ~dirty; busy <= 16'(BUSY_CLOCKS);
                         end
                         st <= S_WAIT;

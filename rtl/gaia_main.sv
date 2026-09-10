@@ -28,8 +28,9 @@
 `default_nettype none
 
 module gaia_main #(
-    parameter int STEP_COST = 15,     // tokens per kernel step
-    parameter int STEP_GAIN = 4       // tokens per cen_16m
+    parameter int STEP_COST_BUS = 15, // tokens per kernel step that runs a bus cycle (fetch, read, write)
+    parameter int STEP_COST_INT = 15, // tokens per internal step
+    parameter int STEP_GAIN = 4       // tokens per cen_16m: 4 tokens = one 16 MHz clock
 ) (
     input  logic        clk,
     input  logic        reset,
@@ -164,6 +165,7 @@ module gaia_main #(
 
     wire [23:1] A     = addr_out[23:1];
     wire        is_wr = (busstate == 2'b11);
+    wire  [5:0] step_cost = (busstate == 2'b01 || skipFetch) ? 6'(STEP_COST_INT) : 6'(STEP_COST_BUS);
     wire        uds   = ~nUDS;             // D15:8
     wire        lds   = ~nLDS;             // D7:0
     assign dbg_addr     = {addr_out[23:1], 1'b0};
@@ -330,13 +332,13 @@ module gaia_main #(
                 B_IDLE: begin
                     // sample the bus only after the kernel has settled (see the
                     // S.T.U.N. Runner core's note on the four-clock gap)
-                    if (tok >= 6'(STEP_COST) && !clkena && step_gap == 3'd0) begin
+                    if (tok >= 6'(step_cost) && !clkena && step_gap == 3'd0) begin
                         if (busstate == 2'b01 || skipFetch) begin
-                            clkena <= 1'b1; tok <= tok - 6'(STEP_COST); dbg_step <= 1'b1;
+                            clkena <= 1'b1; tok <= tok - 6'(STEP_COST_INT); dbg_step <= 1'b1;
                             if (fc == 3'b111) irq5_pend <= 1'b0;
                         end else if (is_wr) begin
                             // writes are posted: complete immediately
-                            tok <= tok - 6'(STEP_COST); clkena <= 1'b1; dbg_step <= 1'b1;
+                            tok <= tok - 6'(STEP_COST_BUS); clkena <= 1'b1; dbg_step <= 1'b1;
                             if (sel_wram) begin
                                 if (uds) wram[A[15:1]][1] <= data_write[15:8];
                                 if (lds) wram[A[15:1]][0] <= data_write[7:0];
@@ -407,7 +409,7 @@ module gaia_main #(
                             // sel_wdog and anything unmapped: ignored
                         end else begin
                             // reads
-                            tok <= tok - 6'(STEP_COST);
+                            tok <= tok - 6'(STEP_COST_BUS);
                             if (sel_rom) begin
                                 rom_addr <= A[22:1]; rom_req <= 1'b1; bst <= B_WAIT_ROM;
                             end else if (sel_rb0) begin

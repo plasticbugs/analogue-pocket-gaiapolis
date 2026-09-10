@@ -4,7 +4,7 @@
 // Three 8-bit latches: two from the 68000 to the Z80, one back. The volume
 // is a counter -- one address resets it, another increments it by one -- and
 // `active` gates the left/right outputs. MAME models the gain as
-// 2^((volume - 40) / 10) with 40 as "normal"; the audio stage applies it.
+// 2^((volume - 40) / 10) with 40 as "normal"; gaia_core applies it.
 // busy_r always reads 0 on the real chip as far as anyone knows.
 //
 // Main side (byte register at word offset, high byte of the bus):

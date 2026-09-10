@@ -9,7 +9,9 @@
 //------------------------------------------------------------------------------
 `default_nettype none
 
-module gaia_sound (
+module gaia_sound #(
+    parameter string HEXDIR = "rtl/data"
+) (
     input  logic        clk,
     input  logic        reset,
     input  logic        cen_8m,
@@ -36,7 +38,12 @@ module gaia_sound (
 
     output logic [15:0] snd_l,
     output logic [15:0] snd_r,
-    output logic [15:0] dbg_pc
+    output logic [15:0] dbg_pc,
+    output logic        dbg_step,
+    output logic        dbg_wait,
+    output logic        dbg_wr,         // memory write strobe, dbg_pc = address
+    output logic        dbg_rd,
+    output logic  [7:0] dbg_wdata
 );
     // ------------------------------------------------------------- CPU
     logic        m1_n, mreq_n, iorq_n, rd_n, wr_n, rfsh_n;
@@ -51,9 +58,20 @@ module gaia_sound (
         .rfsh_n(rfsh_n), .halt_n(), .busak_n(), .A(A), .di(cpu_di), .dout(cpu_do)
     );
     assign dbg_pc = A;
+    logic m1_d;
+    always_ff @(posedge clk) m1_d <= !m1_n && !mreq_n;
+    assign dbg_step = !m1_n && !mreq_n && !m1_d;
+    assign dbg_wait = !wait_n;
 
     wire mem_rd = !mreq_n && !rd_n && rfsh_n;
-    wire mem_wr = !mreq_n && !wr_n && rfsh_n;
+    // WR is low for two T-states (24 clocks); the devices see one write per
+    // bus cycle, on its first clock, since a K054539 port write has side
+    // effects (0x22d steps the streaming pointer)
+    logic mem_wr_d;
+    wire  mem_wr_lvl = !mreq_n && !wr_n && rfsh_n;
+    always_ff @(posedge clk) mem_wr_d <= mem_wr_lvl;
+    wire  mem_wr = mem_wr_lvl && !mem_wr_d;
+    assign dbg_wr = mem_wr; assign dbg_rd = mem_rd && wait_n; assign dbg_wdata = cpu_do;
 
     // ---------------------------------------------------------- decode
     wire sel_rom0 = (A[15] == 1'b0);                        // 0000-7fff
@@ -129,13 +147,14 @@ module gaia_sound (
     logic [21:0] p1_addr, p2_addr;
     logic [15:0] l1, r1, l2, r2;
 
-    k054539 u_k1 (
+    // MACHINE_RESET gaiapols: chip 1 channels 5-7 ("voice") x2.0
+    k054539 #(.HEXDIR(HEXDIR), .GAIN_Q14({16'h8000, 16'h8000, 16'h8000, 16'h4000, 16'h4000, 16'h4000, 16'h4000, 16'h4000})) u_k1 (
         .clk(clk), .reset(reset), .cen_48k(cen_48k),
         .cs(sel_k1), .wr(mem_wr), .rd(mem_rd), .addr(A[9:0]), .wdata(cpu_do), .rdata(k1_q), .rd_stall(k1_stall),
         .rom_req(p1_req), .rom_addr(p1_addr), .rom_ack(p1_ack), .rom_q(pcm_q),
         .timer_out(timer1), .snd_l(l1), .snd_r(r1)
     );
-    k054539 u_k2 (
+    k054539 #(.HEXDIR(HEXDIR)) u_k2 (
         .clk(clk), .reset(reset), .cen_48k(cen_48k),
         .cs(sel_k2), .wr(mem_wr), .rd(mem_rd), .addr(A[9:0]), .wdata(cpu_do), .rdata(k2_q), .rd_stall(k2_stall),
         .rom_req(p2_req), .rom_addr(p2_addr), .rom_ack(p2_ack), .rom_q(pcm_q),
