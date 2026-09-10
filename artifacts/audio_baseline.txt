@@ -1,0 +1,4 @@
+channels=2 rate=48000 bits=16 frames=2879925 (60.0s)
+L: peak= 17856 ( -5.27 dBFS)  rms=  2098.0 (-23.87 dBFS)
+R: peak= 19292 ( -4.60 dBFS)  rms=  2149.8 (-23.66 dBFS)
+5s-interval L rms: 0 0 0 0 0 2123 1660 2462 2792 2111 2822 3266

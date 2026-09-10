@@ -19,3 +19,7 @@ greybox_tmp/
 .qsys_edit/
 
 .DS_Store
+
+# large captures stay local
+artifacts/*.wav
+artifacts/mame_regions.txt
