@@ -20,16 +20,21 @@ for st in artifacts/states/*.txt; do
     case "$name" in
         *_A) layers=A ;; *_B) layers=B ;; *_C) layers=C ;; *_D) layers=D ;;
         *_tm) layers=A,B,C,D ;;
+        *_roz) layers=SUB1 ;;
         *) continue ;;          # full-frame states need sprites + ROZ; not yet
     esac
     out=$(python3 tools/render_model.py "$st" "$ROM" --layers="$layers" \
             --out="artifacts/render/$name.png" --ref="$ref" \
             --diff="artifacts/render/${name}_diff.png" | grep differing)
-    n=$(echo "$out" | sed 's/.*: \([0-9]*\) .*/\1/')
+    n=$(echo "$out" | sed 's/.*differing pixels: \([0-9]*\) .*/\1/')
+    cov=$(echo "$out" | sed 's/.*coverage //')
     if [ "$n" = "0" ]; then
-        printf '  PASS  %-16s %s\n' "$name" "$layers"
+        case "$cov" in
+            0.0%) printf '  pass  %-16s %-8s (trivial: layer blank)\n' "$name" "$layers" ;;
+            *)    printf '  PASS  %-16s %-8s coverage %s\n' "$name" "$layers" "$cov" ;;
+        esac
     else
-        printf '  FAIL  %-16s %s  %s\n' "$name" "$layers" "$out"
+        printf '  FAIL  %-16s %-8s %s\n' "$name" "$layers" "$out"
         fail=1
     fi
 done

@@ -118,8 +118,10 @@ class Roms:
         return self.d[o:o + 8]
 
     def roz_map(self, i):
+        """gfx4 layout: colour nibbles (two tiles per byte) at 0, attribute
+        bytes at 0x20000, tile low bytes at 0x60000."""
         b = ROM_ROZMAP
-        return self.d[b + i], self.d[b + 0x20000 + i], self.d[b + 0x60000 + i]
+        return self.d[b + (i >> 1)], self.d[b + 0x20000 + i], self.d[b + 0x60000 + i]
 
     def sprite_row(self, code, row):
         """8 bytes = one 16-pixel row of a 16x16 4bpp sprite tile."""
@@ -192,11 +194,108 @@ def render_tilemap(st, roms, layer, pix, pri, layer_pri):
                 pri[o] = layer_pri
 
 
+# ------------------------------------------------------------------ ROZ
+# K053936-class PSAC2 plane, driven through the K053936GP_* helpers in
+# MAME's k053936.cpp. Virtual plane is 512x512 tiles of 16x16 = 8192x8192.
+def roz_tile(st, roms, ti):
+    """-> (tile number, colour) for tilemap index ti, per get_gai_936_tile_info"""
+    d1, d2, d3 = roms.roz_map(ti)
+    tileno = d3 | ((d2 & 0x3f) << 8)
+    colour = (d1 & 0x0f) if (ti & 1) else ((d1 >> 4) & 0x0f)
+    if d2 & 0x80:
+        colour |= 0x10
+    colour |= st.k55regs[K55_PALBASE_SUB1] << 4
+    return tileno, colour
+
+
+def render_roz(st, roms, pix, pri, layer_pri):
+    if not (st.rozctrl[0] & 0x0100):        # ddd_053936_enable_w bit 8
+        return
+    c = st.rozct16
+    startx = s16(c[0]) << 8
+    starty = s16(c[1]) << 8
+    incyx, incyy = s16(c[2]), s16(c[3])
+    incxx, incxy = s16(c[4]), s16(c[5])
+    if c[6] & 0x4000:
+        incyx <<= 8; incyy <<= 8
+    if c[6] & 0x0040:
+        incxx <<= 8; incxy <<= 8
+
+    if c[7] & 0x0040:
+        raise NotImplementedError('K053936 "super" (per-line) mode not modelled yet')
+
+    ox, oy = ROZ_OFFS
+    startx -= oy * incyx; starty -= oy * incyy
+    startx -= ox * incxx; starty -= ox * incxy
+    startx <<= 5; starty <<= 5
+    incxx <<= 5; incxy <<= 5; incyx <<= 5; incyy <<= 5
+
+    # copyroz32clip: the caller's cliprect is the visible area, and the walk
+    # starts from its top-left corner in raster coordinates. MAME carries the
+    # accumulators as uint32_t, so the >>16 is an unsigned shift -- Python's
+    # unbounded ints have to be masked to match.
+    startx = (startx + VIS_X0 * incxx + VIS_Y0 * incyx) & 0xffffffff
+    starty = (starty + VIS_X0 * incxy + VIS_Y0 * incyy) & 0xffffffff
+    incxx &= 0xffffffff; incxy &= 0xffffffff
+    incyx &= 0xffffffff; incyy &= 0xffffffff
+
+    # source clip window (ddd_053936_clip_w)
+    clip = st.rozclip[1] & 0x0100
+    if clip:
+        m = st.rozclip[0]
+        cx, cy = m & 0x3f, (m & 0x0fc0) >> 6
+        sxs, sys = (m & 0x3000) >> 12, (m & 0xc000) >> 14
+        sxs = {3: 1, 2: 2}.get(sxs, 4)
+        sys = {3: 1, 2: 2}.get(sys, 4)
+        minx, maxx = cx << 7, ((cx + sxs) << 7) - 1
+        miny, maxy = cy << 7, ((cy + sys) << 7) - 1
+    else:
+        minx = miny = -0x10000
+        maxx = maxy = 0x10000
+
+    tile_cache = {}
+    # MAME's K053936GP_copyroz32clip advances its destination pointer by one
+    # row before the loop body while leaving the accumulators at their initial
+    # value, so raster row N is painted with the transform for row N-1 and the
+    # first visible row is never written. Reproduced here so the frozen-state
+    # gate can be exact; flagged because it looks like a MAME artefact rather
+    # than hardware behaviour (docs/hardware.md section 10) and the RTL should
+    # probably not copy it.
+    for ti in range(VIS_H):
+        y = ti + 1
+        cx, cy = startx, starty
+        startx = (startx + incyx) & 0xffffffff
+        starty = (starty + incyy) & 0xffffffff
+        if y >= VIS_H:
+            break
+        for x in range(VIS_W):
+            srcx = (cx >> 16) & 0x1fff
+            srcy = (cy >> 16) & 0x1fff
+            cx = (cx + incxx) & 0xffffffff
+            cy = (cy + incxy) & 0xffffffff
+            if srcx < minx or srcx > maxx or srcy < miny or srcy > maxy:
+                continue
+            ti = ((srcy >> 4) << 9) | (srcx >> 4)
+            ent = tile_cache.get(ti)
+            if ent is None:
+                ent = roz_tile(st, roms, ti)
+                tile_cache[ti] = ent
+            tileno, colour = ent
+            pv = nib(roms.roz_char_row(tileno, srcy & 15), srcx & 15)
+            if not pv:                       # cmask 0xf for 4bpp: pen 0 is clear
+                continue
+            o = y * VIS_W + x
+            pix[o] = (colour << 4) | pv
+            pri[o] = layer_pri
+
+
 # ------------------------------------------------------------------ main
 def render(st, roms, layers):
     n = VIS_W * VIS_H
     pix = [-1] * n
     pri = [0] * n
+    if 'SUB1' in layers:
+        render_roz(st, roms, pix, pri, st.k55regs[K55_PRIINP['SUB1']])
     for name in ('D', 'C', 'B', 'A'):        # back to front for now
         if name not in layers:
             continue
@@ -242,7 +341,11 @@ def main():
             sys.exit(f'reference is {rw}x{rh}, model is {w}x{h}')
         diff = sum(1 for i in range(0, len(rgb), 3)
                    if rgb[i:i + 3] != rpx[i:i + 3])
-        print(f'differing pixels: {diff} / {w*h} ({100.0*diff/(w*h):.2f}%)')
+        # coverage: how much of the frame the model actually painted. A state
+        # where the layer is blank passes trivially, so report it alongside.
+        drawn = sum(1 for v in pix if v >= 0)
+        print(f'differing pixels: {diff} / {w*h} ({100.0*diff/(w*h):.2f}%) '
+              f'coverage {100.0*drawn/(VIS_W*VIS_H):.1f}%')
         dimg = opts.get('diff')
         if dimg:
             dd = bytearray(w * h * 3)
