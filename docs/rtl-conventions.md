@@ -39,7 +39,11 @@ something plausible and wrong, and the bench fails on it. Adding a mode means
 adding a state that exercises it first.
 
 Currently flagged in `k056832_tilemap.sv`: scroll modes other than xy scroll,
-global screen flip, and a page span of three.
+global screen flip, and a page span of three. In `k053936_roz.sv`: the
+per-line "super" mode.
+
+Generated ROM contents (`rtl/data/*.hex`) are produced by a tool in `tools/`
+and loaded with `$readmemh`, never by an `initial` block of logic.
 
 ## Clocks
 
