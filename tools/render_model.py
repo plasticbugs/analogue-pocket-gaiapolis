@@ -700,6 +700,20 @@ def mixer_pool(st, layers):
     return pool
 
 
+def render_layers_only(st, roms):
+    """Per-layer palette indices for the RTL bench: 4 x VIS_H x VIS_W uint16,
+    0xffff where the layer is transparent. Bypasses the mixer so the tilemap
+    RTL can be gated on its own."""
+    out = []
+    for li in range(4):
+        pix = [-1] * (VIS_W * VIS_H)
+        fb = [0] * (VIS_W * VIS_H)
+        pri = [0] * (VIS_W * VIS_H)
+        render_tilemap(st, roms, li, pix, fb, pri, 0)
+        out.append(pix)
+    return out
+
+
 def render(st, roms, layers):
     n = VIS_W * VIS_H
     pix = [-1] * n
@@ -754,6 +768,17 @@ def main():
     st = State(args[0])
     roms = Roms(args[1])
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
+
+    dump = opts.get('dump-layers')
+    if dump:
+        import struct
+        data = render_layers_only(st, roms)
+        with open(dump, 'wb') as f:
+            for layer in data:
+                f.write(struct.pack('<%dH' % len(layer),
+                                    *[(v & 0xffff) if v >= 0 else 0xffff for v in layer]))
+        print(f'wrote {dump} (4 x {VIS_H} x {VIS_W} uint16)')
+        return
 
     pix, fb = render(st, roms, layers)
     w, h, rgb = to_rgb_rot90(fb)
