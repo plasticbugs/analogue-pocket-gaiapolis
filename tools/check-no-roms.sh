@@ -1,5 +1,6 @@
 #!/bin/sh
-# Refuse to publish ROM data. Run before every push.
+# Refuse to publish ROM data. Run after staging and before every push --
+# it checks the tracked set, so run it once `git add` is done.
 #
 # Checks every tracked file for: ROM/romset file extensions, the romset
 # directory, oversized binaries, and text files carrying long runs of hex that
@@ -24,8 +25,14 @@ fi
 report=$(mktemp)
 trap 'rm -f "$report"' EXIT
 
+# Known-large files that are provably not ROM data. Each needs a reason.
+#   modules/cpu-tg68k/gen/tg68k.v -- ghdl-generated Verilog of the TG68K.C
+#   68000 core (GPL-3.0), see modules/VENDOR.md
+ALLOW_LARGE="modules/cpu-tg68k/gen/tg68k.v"
+
 git ls-files | while IFS= read -r f; do
     [ -f "$f" ] || continue
+    case " $ALLOW_LARGE " in *" $f "*) continue ;; esac
     case "$f" in
         *.rom|*.zip|*.7z|*.bin|*.nv|gaiapols/*|*/gaiapols/*)
             printf '  REFUSE  %s\n            ROM or romset file\n' "$f" >>"$report" ;;
