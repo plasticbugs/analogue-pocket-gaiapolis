@@ -1,10 +1,12 @@
 //------------------------------------------------------------------------------
 // ER5911 serial EEPROM, 128 x 8, as MAME's eeprom_serial_er5911_device models
-// it (eepromser.cpp): a start bit, a 2-bit opcode and a 7-bit address on
-// rising CLK while CS is high; READ shifts data out MSB first after a dummy 0;
-// WRITE takes 8 more data bits; opcode 0 uses the top two address bits for
-// LOCK / ERASEALL / UNLOCK. ERASE maps to WRITE on this part. DO reads 1 when
-// not shifting data out (pull-up), READY reads 0 for a while after a write.
+// it (eepromser.cpp): a start bit, a 2-bit opcode and a 9-bit address field
+// (only the low 7 bits select a cell) on rising CLK while CS is high; READ
+// shifts data out MSB first after a dummy 0; WRITE takes 8 more data bits;
+// opcode 0 uses the top two address bits for LOCK / ERASEALL / UNLOCK. ERASE
+// maps to WRITE on this part. DO reads 1 when not shifting data out (pull-up),
+// READY reads 0 for a while after a write. tools/eeprom_replay.py checks this
+// protocol against MAME's pin traffic.
 //
 // Contents load through the byte port: the 128-byte default image in the ROM
 // file at start, and a saved image later if the platform provides one.
@@ -40,7 +42,7 @@ module er5911 #(
     state_t st;
 
     logic        cs_d, clk_d;
-    logic  [7:0] cmdacc;          // the first 8 of the 9 command bits; the 9th arrives with di
+    logic  [9:0] cmdacc;          // the first 10 of the 11 command bits; the 11th arrives with di
     logic  [3:0] nbits;
     logic  [7:0] shreg;
     logic        do_bit;
@@ -80,15 +82,15 @@ module er5911 #(
                 end
 
                 S_CMD: if (clk_rise) begin
-                    cmdacc <= {cmdacc[6:0], di};
+                    cmdacc <= {cmdacc[8:0], di};
                     nbits  <= nbits + 4'd1;
-                    if (nbits == 4'd8) begin
-                        // full 9 bits present after this shift
-                        logic [8:0] c; c = {cmdacc, di};
+                    if (nbits == 4'd10) begin
+                        // full 11 bits present after this shift
+                        logic [10:0] c; c = {cmdacc, di};
                         addr <= c[6:0];
-                        case (c[8:7])
+                        case (c[10:9])
                             2'd0: begin
-                                case (c[6:5])
+                                case (c[8:7])
                                     2'd0: locked <= 1'b1;                      // LOCK
                                     2'd2: begin                                // ERASEALL
                                         if (!locked) begin
