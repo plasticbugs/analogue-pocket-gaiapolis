@@ -1,0 +1,4 @@
+frame 0: steps=1 irq5=1 objs=0 overrun=0 unsup=0 de_px=0
+frame 1: steps=65536 irq5=0 objs=0 overrun=0 unsup=1 de_px=84224
+frame 2: steps=72089 irq5=0 objs=0 overrun=0 unsup=1 de_px=84224
+frame 3: steps=72090 irq5=0 objs=0 overrun=0 unsup=1 de_px=84224

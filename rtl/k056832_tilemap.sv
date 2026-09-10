@@ -12,10 +12,14 @@
 // fetches; four layers land near 2,500 clocks of the 6,144 a 64 us line gives
 // at 96 MHz (docs/hardware.md section 11).
 //
-// `unsupported` is raised for any configuration outside what the frozen-state
-// corpus exercises and the model has therefore been checked against, rather
-// than rendering something plausible and wrong:
-//   * scroll modes other than 3 (xy scroll)
+// Scroll modes: 3 (xy scroll) is what every captured frame uses and is gated;
+// 0 (line scroll) and 2 (row scroll) read the per-line/per-8-line X scroll
+// from the scroll page in tile RAM exactly as the model does, but no state in
+// the corpus exercises them -- they are here because the chip comes out of
+// reset in mode 0 and flagging that as unsupported was a false alarm.
+//
+// `unsupported` is raised for configurations the model has not been checked
+// against, rather than rendering something plausible and wrong:
 //   * global screen flip
 //   * a page span of 3 (not a power of two, so the wrap cannot be a mask)
 //------------------------------------------------------------------------------
@@ -100,8 +104,8 @@ module k056832_tilemap #(
     assign opaque = {rd3[12], rd2[12], rd1[12], rd0[12]};
 
     // ------------------------------------------------------------------- FSM
-    typedef enum logic [2:0] {
-        S_IDLE, S_SETUP, S_ATTR, S_CODE, S_LATCH, S_ROM, S_EMIT
+    typedef enum logic [3:0] {
+        S_IDLE, S_SETUP, S_SCRL, S_SCRLW, S_SCRL2, S_ATTR, S_CODE, S_LATCH, S_ROM, S_EMIT
     } state_t;
     state_t st;
 
@@ -147,10 +151,23 @@ module k056832_tilemap #(
 
     // scroll for the layer being set up. Only the low bits survive the page
     // wrap, so the sum is taken at the width the wrap mask needs.
+    // Modes 0/2 replace the register X scroll with a word from the scroll
+    // page: page regs[0x18] (bits {4:3,1:0}), word (layer << 11 >> 1) +
+    // line*2 + 1 for line scroll, + (line >> 3)*16 + 1 for row scroll.
+    wire  [3:0] smsel      = {2'd0, cur_l} << 1;
+    wire  [1:0] scrollmode = regs[5][smsel +: 2];
+    wire  [3:0] scrollbank = {regs[24][4:3], regs[24][1:0]};
+    // word index inside the scroll page: layer*1024, then line*2+1 (mode 0)
+    // or (line/8)*16+1 (mode 2)
+    wire [11:0] ls_word = {cur_l, 10'd0}
+                        + (scrollmode[1] ? {2'd0, line[8:3], 4'd1} : {2'd0, line, 1'b1});
+    wire [15:0] scroll_vram_addr = {scrollbank, ls_word};
+    logic [15:0] scroll_word;
+    wire  [15:0] scroll_reg = (scrollmode == 2'd3) ? regs[sx_i] : scroll_word;
     /* verilator lint_off UNUSEDSIGNAL */
     wire [4:0] sx_i = 5'd20 + {3'd0, cur_l};
     wire [4:0] sy_i = 5'd16 + {3'd0, cur_l};
-    wire signed [16:0] scroll_x = $signed({regs[sx_i][15], regs[sx_i]})
+    wire signed [16:0] scroll_x = $signed({scroll_reg[15], scroll_reg})
                                 - $signed({{7{OFFS_X[cur_l][9]}}, OFFS_X[cur_l]});
     wire signed [16:0] scroll_y = $signed({regs[sy_i][15], regs[sy_i]})
                                 - $signed({{7{OFFS_Y[cur_l][9]}}, OFFS_Y[cur_l]});
@@ -164,6 +181,11 @@ module k056832_tilemap #(
         if (reset) begin
             st <= S_IDLE; busy <= 1'b0; bank <= 1'b0;
             rom_req <= 1'b0; unsupported <= 1'b0; cur_l <= 2'd0;
+        end else if (line_start && st != S_IDLE) begin
+            // the previous line overran its budget: abandon it and start this
+            // one, as the hardware would -- whatever was drawn is what shows
+            bank <= ~bank; busy <= 1'b1;
+            rom_req <= 1'b0; cur_l <= 2'd0; st <= S_SETUP;
         end else begin
             case (st)
                 S_IDLE: begin
@@ -179,10 +201,21 @@ module k056832_tilemap #(
 
                 S_SETUP: begin
                     cur_x <= '0;
+                    if (colspan == 2'd2 || rowspan == 2'd2) unsupported <= 1'b1;
+                    if (scrollmode == 2'd3) begin
+                        vx <= vx0 & (wrap_x - 12'd1);
+                        vy <= vy0 & (wrap_y - 11'd1);
+                        st <= S_ATTR;
+                    end else begin
+                        vram_addr <= scroll_vram_addr;   // line/row scroll word
+                        st <= S_SCRL;
+                    end
+                end
+                S_SCRL:  st <= S_SCRLW;
+                S_SCRLW: begin scroll_word <= vram_q; st <= S_SCRL2; end
+                S_SCRL2: begin
                     vx <= vx0 & (wrap_x - 12'd1);
                     vy <= vy0 & (wrap_y - 11'd1);
-                    if (regs[5][cur_l*2 +: 2] != 2'd3) unsupported <= 1'b1;
-                    if (colspan == 2'd2 || rowspan == 2'd2) unsupported <= 1'b1;
                     st <= S_ATTR;
                 end
 

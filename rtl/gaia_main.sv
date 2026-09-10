@@ -13,10 +13,17 @@
 // files of every video chip, exported to the renderers. Renderers read the
 // memories through their own ports.
 //
-// Stubbed, with the reason: the K056832 and K055673 ROM-readback windows
-// (440000, 450000) return 0 -- they exist for the self-test, and whether that
-// test gates boot is the first thing the full-system bench will tell us. The
-// three ROZ readback windows are real, through the ROZ ROM ports.
+// All five ROM-readback windows are real. The self-test checksums every
+// graphics ROM through them, and the full-system bench showed what a stub
+// costs: with 440000/450000 returning 0 the DATA ROM item failed and the test
+// re-ran it forever. They share the renderers' ROM ports through arbiters
+// that give the renderer priority.
+//   440000  K056832 mw_rom_word_r: bank regs[0x1a]|regs[0x1b]<<16 (mod 256)
+//           selects 2048 four-byte groups; a word is one half of a group.
+//           regsb[2] bit 3 asks for the fifth plane, which this ROM set does
+//           not populate, so that reads 0.
+//   450000  K055673 rom_word_r (4bpp): a 16-bit little-endian view of the
+//           sprite ROM at the offset in k053246 regs 6/7/4.
 //------------------------------------------------------------------------------
 `default_nettype none
 
@@ -43,6 +50,15 @@ module gaia_main #(
     output logic [20:0] chr_addr,
     input  logic        chr_ack,
     input  logic [15:0] chr_q,
+    // tile ROM (K056832 readback) and sprite ROM (K055673 readback)
+    output logic        trom_req,
+    output logic [18:0] trom_addr,
+    input  logic        trom_ack,
+    input  logic [31:0] trom_q,
+    output logic        srom_req,
+    output logic [19:0] srom_addr,
+    input  logic        srom_ack,
+    input  logic [63:0] srom_q,
 
     // vblank interrupt (IRQ5, held until acknowledged)
     input  logic        vblank_rise,
@@ -224,11 +240,13 @@ module gaia_main #(
         sram_q      <= sram[sram_raddr];
         rozli_q     <= rozli[A[11:1]];
     end
-    assign pal_q = {pal_rd_q[1][7:0], pal_rd_q[0]};
+    // xRGB888 across the two words: word0 = 00RR, word1 = GGBB
+    assign pal_q = {pal_rd_q[0][7:0], pal_rd_q[1]};
 
     // ------------------------------------------------- bus sequencer
-    typedef enum logic [2:0] {
-        B_IDLE, B_RAM_RD, B_WAIT_ROM, B_WAIT_MAP0, B_WAIT_MAP0B, B_WAIT_MAP1, B_WAIT_CHR, B_STEP
+    typedef enum logic [3:0] {
+        B_IDLE, B_RAM_RD, B_WAIT_ROM, B_WAIT_MAP0, B_WAIT_MAP0B, B_WAIT_MAP1, B_WAIT_CHR,
+        B_WAIT_TROM, B_WAIT_SROM
     } bst_t;
     bst_t bst;
     logic [5:0]  tok;
@@ -238,6 +256,16 @@ module gaia_main #(
     logic [15:0] in1_word;
 
     assign ipl_n    = irq5_pend ? 3'b010 : 3'b111;    // level 5
+
+    // K056832 readback: 32-bit group index = bank * 2048 + (offset >> 1)
+    wire [23:0] tile_bank32 = {k56regs[27][7:0], k56regs[26]};      // regs[0x1b]<<16 | regs[0x1a]
+    wire  [7:0] tile_bank   = tile_bank32[7:0];                    // mod 256 banks
+    wire [18:0] trom_group  = {tile_bank, A[12:2]};
+    wire        tile_plane5 = k56regsb[2][3];
+    // K055673 readback: 16-bit word index from k053246 regs 6/7/4
+    wire [23:0] spr_romofs  = {k46regs[6], k46regs[7], k46regs[4]};
+    wire [23:0] spr_widx    = {spr_romofs[23:2], 2'b00} + (A[3] ? 24'd0 : 24'd2) + {22'd0, A[2:1]};
+    logic [1:0] srom_sel;
     assign dbg_irq5 = irq5_pend;
     assign in1_word = {in1[7:2], eep_ready, eep_do, p2};
 
@@ -255,7 +283,6 @@ module gaia_main #(
         else if (sel_in1)    rd_mux = in1_word;
         else if (sel_k321)   rd_mux = {snd_rdata, 8'h00};
         else if (sel_k000)   rd_mux = {8'h00, col_rdata};
-        else if (sel_tmrb || sel_sprrb) rd_mux = 16'h0000;    // stubbed readbacks
     end
 
     always_ff @(posedge clk) begin
@@ -267,7 +294,7 @@ module gaia_main #(
 
         if (reset) begin
             bst <= B_IDLE; tok <= '0; step_gap <= '0; irq5_pend <= 1'b0;
-            rom_req <= 1'b0; map_req <= 1'b0; chr_req <= 1'b0;
+            rom_req <= 1'b0; map_req <= 1'b0; chr_req <= 1'b0; trom_req <= 1'b0; srom_req <= 1'b0;
             roz_enable <= 1'b0; roz_rombank <= 2'd0;
             eep_di <= 1'b0; eep_cs <= 1'b0; eep_clk <= 1'b0;
             for (int i = 0; i < 32; i++) k56regs[i] <= '0;
@@ -375,6 +402,15 @@ module gaia_main #(
                             end else if (sel_rb2) begin
                                 // gfx3[(bank * 0x100000 + off) / 2] << 8
                                 chr_addr <= {roz_rombank, A[20:2]}; chr_req <= 1'b1; bst <= B_WAIT_CHR;
+                            end else if (sel_tmrb) begin
+                                if (tile_plane5) begin
+                                    bst <= B_RAM_RD;             // rd_mux gives 0
+                                end else begin
+                                    trom_addr <= trom_group; trom_req <= 1'b1; bst <= B_WAIT_TROM;
+                                end
+                            end else if (sel_sprrb) begin
+                                srom_addr <= spr_widx[21:2]; srom_sel <= spr_widx[1:0];
+                                srom_req <= 1'b1; bst <= B_WAIT_SROM;
                             end else begin
                                 if (sel_k321) snd_rd <= 1'b1;
                                 if (sel_k000) col_rd <= 1'b1;
@@ -409,6 +445,23 @@ module gaia_main #(
                 B_WAIT_CHR: if (chr_ack) begin
                     chr_req <= 1'b0;
                     data_in <= {chr_addr[0] ? chr_q[7:0] : chr_q[15:8], 8'h00};
+                    clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
+                end
+                B_WAIT_TROM: if (trom_ack) begin
+                    trom_req <= 1'b0;
+                    // rom[addr+1] | rom[addr] << 8: the group's first or second byte pair
+                    data_in <= A[1] ? trom_q[15:0] : trom_q[31:16];
+                    clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
+                end
+                B_WAIT_SROM: if (srom_ack) begin
+                    srom_req <= 1'b0;
+                    // (u16*) view on a little-endian host: low byte is the even byte
+                    case (srom_sel)
+                        2'd0: data_in <= {srom_q[55:48], srom_q[63:56]};
+                        2'd1: data_in <= {srom_q[39:32], srom_q[47:40]};
+                        2'd2: data_in <= {srom_q[23:16], srom_q[31:24]};
+                        default: data_in <= {srom_q[7:0], srom_q[15:8]};
+                    endcase
                     clkena <= 1'b1; dbg_step <= 1'b1; bst <= B_IDLE;
                 end
                 default: bst <= B_IDLE;

@@ -133,6 +133,11 @@ module k053936_roz #(
             st <= R_IDLE; busy <= 1'b0; bank <= 1'b0;
             map_req <= 1'b0; chr_req <= 1'b0; unsupported <= 1'b0;
             cache_valid <= 1'b0; cache_miss <= 1'b0;
+        end else if (line_start && st != R_IDLE) begin
+            // the previous line overran its budget: abandon it and start this
+            // one, as the hardware would -- whatever was drawn is what shows
+            bank <= ~bank; busy <= 1'b1;
+            map_req <= 1'b0; chr_req <= 1'b0; st <= R_SETUP;
         end else begin
             case (st)
                 R_IDLE: begin

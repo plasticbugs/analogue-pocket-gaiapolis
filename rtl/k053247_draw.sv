@@ -245,6 +245,11 @@ module k053247_draw #(
             st <= D_IDLE; busy <= 1'b0; bank <= 1'b0;
             rom_req <= 1'b0; shadow_overlap <= 1'b0;
             dbg_objs <= '0; dbg_rows <= '0; dbg_cols <= '0; dbg_pxw <= '0;
+        end else if (line_start && st != D_IDLE) begin
+            // the previous line overran its budget: abandon it and start this
+            // one, as the hardware would -- whatever was drawn is what shows
+            bank <= ~bank; busy <= 1'b1;
+            rom_req <= 1'b0; clr_i <= '0; st <= D_CLR;
         end else begin
             case (st)
                 D_IDLE: begin
