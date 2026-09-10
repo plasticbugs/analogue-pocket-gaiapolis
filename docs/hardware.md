@@ -274,6 +274,26 @@ What the boot looks like from the oracle's side (frames at 59.19 Hz):
 * frame ~1320: the results screen gives way to the attract mode, and the
   first sound plays at 22.3 s (`artifacts/gaiapolis_mame_60s.wav`).
 
+### 68000 pacing (gaia_main STEP_COST_BUS / STEP_COST_INT)
+
+TG68K.C is paced by a token bucket: 4 tokens per 16 MHz clock, a bus-cycle
+step costs 16 (four clocks, as the 68000's) and an internal step 8. Measured
+against MAME with `sim/run_system.sh` (`PACE="-GSTEP_COST_BUS=n
+-GSTEP_COST_INT=m"` overrides) on three phases of the boot:
+
+| phase | MAME | 15/15 | 16/8 | 18/8 | 20/4 |
+|---|---|---|---|---|---|
+| RAM/ROM checks (branchy, write-heavy), frames | 110 | 77 | 77 | 86 | 93 |
+| DATA ROM checksum, frames | 41 | 39 | 38 | 43 | 46 |
+| `nop`/`dbf` wait loop, iterations a frame | 19,314 | 18,007 | 19,292 | 17,423 | 16,876 |
+
+16/8 is the setting: exact on the fetch-bound loop, within 7% on the
+checksum. The check phase runs ~30% fast whatever the costs because TG68K
+takes fewer steps than the 68000 spends cycles on taken branches; a
+per-instruction refinement is possible if a game phase ever turns out to
+depend on it. The Pocket memories' ~12-clock latency sits inside the
+24-clock bus step, so the paced rate holds with `LAT=pocket` too.
+
 ## 11. Measured load and bandwidth budget
 
 Measured with `tools/probe_sprites.lua` over 5,322 frames (90 s) of attract,

@@ -14,8 +14,8 @@
 module gaia_core #(
     parameter string HEXDIR = "rtl/data",
     parameter int    OBJ_BUILD_LINE = 12,  // raster line at which the sprite list is built
-    parameter int    STEP_COST_BUS = 15,   // 68000 pacing (gaia_main)
-    parameter int    STEP_COST_INT = 15
+    parameter int    STEP_COST_BUS = 16,   // 68000 pacing (gaia_main)
+    parameter int    STEP_COST_INT = 8
 ) (
     input  logic        clk,                // 96 MHz
     input  logic        reset,

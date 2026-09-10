@@ -3,8 +3,8 @@
 `default_nettype none
 
 module tb_system_top #(
-    parameter int STEP_COST_BUS = 15,   // 68000 pacing, overridable with -G for calibration
-    parameter int STEP_COST_INT = 15
+    parameter int STEP_COST_BUS = 16,   // 68000 pacing, overridable with -G for calibration
+    parameter int STEP_COST_INT = 8
 ) (
     input  logic        clk,
     input  logic        reset,

@@ -3,7 +3,7 @@
 //
 // Address decode follows docs/hardware.md section 3 (gaiapols_map). The CPU
 // is TG68K.C, paced by a token bucket the way the S.T.U.N. Runner core paces
-// its 68010 -- STEP_COST/STEP_GAIN set the average step rate, and the values
+// its 68010 -- STEP_COST_BUS/STEP_COST_INT/STEP_GAIN set the step rate, and the values
 // here are a starting point to be calibrated against MAME's frame timing,
 // not a measurement.
 //
@@ -28,8 +28,8 @@
 `default_nettype none
 
 module gaia_main #(
-    parameter int STEP_COST_BUS = 15, // tokens per kernel step that runs a bus cycle (fetch, read, write)
-    parameter int STEP_COST_INT = 15, // tokens per internal step
+    parameter int STEP_COST_BUS = 16, // tokens per kernel step that runs a bus cycle: 4 clocks, as the 68000's
+    parameter int STEP_COST_INT = 8,  // tokens per internal step: 2 clocks
     parameter int STEP_GAIN = 4       // tokens per cen_16m: 4 tokens = one 16 MHz clock
 ) (
     input  logic        clk,
