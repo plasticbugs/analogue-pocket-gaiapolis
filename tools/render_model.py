@@ -700,6 +700,22 @@ def mixer_pool(st, layers):
     return pool
 
 
+def dump_objlist(st, path):
+    """The mixer's sprite object list in draw order, for the RTL bench.
+
+    One record per object: order(u32), offs(u16), code(u16), color(u16),
+    drawmode(u8), pri(u8). Little-endian, packed.
+    """
+    import struct
+    objs = sprite_objects(st)
+    with open(path, 'wb') as f:
+        f.write(struct.pack('<I', len(objs)))
+        for order, offs, code, color, drawmode, pri in objs:
+            f.write(struct.pack('<IHHHBB', order, offs, code, color & 0xffff,
+                                drawmode, pri))
+    return len(objs)
+
+
 def render_roz_only(st, roms):
     """The ROZ layer's palette indices for the RTL bench, 0xffff transparent."""
     pix = [-1] * (VIS_W * VIS_H)
@@ -777,6 +793,12 @@ def main():
     st = State(args[0])
     roms = Roms(args[1])
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
+
+    dumpobj = opts.get('dump-objlist')
+    if dumpobj:
+        n = dump_objlist(st, dumpobj)
+        print(f'wrote {dumpobj} ({n} objects)')
+        return
 
     dumproz = opts.get('dump-roz')
     if dumproz:
