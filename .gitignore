@@ -22,3 +22,4 @@ greybox_tmp/
 
 # large captures stay local
 artifacts/*.wav
+artifacts/mame_regions.txt
