@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
         long n = 0; bool poked = false;
         while (!dut->test_done && n++ < 60000000) {
             tick();
-            if (poke_vram && !poked && dut->rootp->tb_mem_top__DOT__dut__DOT__u_test__DOT__st == 4) {   // T_VR
+            if (poke_vram && !poked && dut->rootp->tb_mem_top__DOT__dut__DOT__u_test__DOT__st == 5) {   // T_VR
                 dut->rootp->tb_mem_top__DOT__sram__DOT__mem[0x8234] ^= 0x0001;
                 dut->rootp->tb_mem_top__DOT__sram__DOT__mem[0x8235] ^= 0x8000; poked = true;
             }

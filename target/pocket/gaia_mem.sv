@@ -648,7 +648,7 @@ module mem_test #(
     end
 
     // the read-back
-    typedef enum logic [2:0] { T_IDLE, T_REQ, T_NEXT, T_VW, T_VR, T_VZ, T_DONE } tst_t;
+    typedef enum logic [3:0] { T_IDLE, T_REQ, T_SUM, T_NEXT, T_VW, T_VR, T_VZ, T_DONE } tst_t;
     tst_t        st;
     logic  [2:0] region;
     logic        pass;
@@ -658,6 +658,8 @@ module mem_test #(
     logic        start_d;
     logic [16:0] vbad;                  // bad tile RAM words, counted in full
     logic [10:0] bytes;                 // the bytes of one access, summed
+    logic [10:0] bytes_r;               // ... taken into a register, added the clock after (an eight-byte
+    logic        add_pend;              //     sum and the 24-bit add in one clock missed 96 MHz)
     logic        ack;
     always_comb begin
         case (region)
@@ -692,14 +694,22 @@ module mem_test #(
         if (init) begin st <= T_IDLE; run <= 1'b0; done <= 1'b0; ok <= '0; stable <= '0; vram_ok <= 1'b0; vram_bad <= '0; vbad <= '0; end
         else case (st)
             T_IDLE: if (start && !start_d && ready) begin
-                run <= 1'b1; done <= 1'b0; region <= 3'd0; pass <= 1'b0; idx <= '0; acc <= '0; st <= T_REQ;
+                run <= 1'b1; done <= 1'b0; region <= 3'd0; pass <= 1'b0; idx <= '0; acc <= '0; add_pend <= 1'b0; st <= T_REQ;
             end
             T_REQ: begin
-                if (region == 3'd3 && blk_wr) acc <= acc + 24'(blk_data[15:8]) + 24'(blk_data[7:0]);
-                if (ack) begin
-                    if (region != 3'd3) acc <= acc + 24'(bytes);
-                    if (idx == n_end - 23'd1) st <= T_NEXT; else idx <= idx + 23'd1;
+                if (region == 3'd3) begin       // blocks: a word a clock as it streams
+                    add_pend <= blk_wr; bytes_r <= 11'(blk_data[15:8]) + 11'(blk_data[7:0]);
+                end else begin
+                    add_pend <= ack; bytes_r <= bytes;
                 end
+                if (add_pend) acc <= acc + 24'(bytes_r);
+                if (ack) begin
+                    if (idx == n_end - 23'd1) st <= T_SUM; else idx <= idx + 23'd1;
+                end
+            end
+            T_SUM: begin                        // the last add lands
+                if (add_pend) acc <= acc + 24'(bytes_r);
+                add_pend <= 1'b0; st <= T_NEXT;
             end
             T_NEXT: begin
                 if (!pass) begin asum[region] <= acc; ok[region] <= (acc == lsum[region]); end
