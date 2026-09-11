@@ -623,6 +623,11 @@ set_instance_assignment -name OUTPUT_TERMINATION "SERIES 50 OHM WITHOUT CALIBRAT
 set_instance_assignment -name OUTPUT_TERMINATION "SERIES 50 OHM WITHOUT CALIBRATION" -to scal_vs
 set_instance_assignment -name OUTPUT_TERMINATION "SERIES 50 OHM WITHOUT CALIBRATION" -to vpll_feed
 set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|dram_*
+# The registers behind the SDRAM pins live in sdram_ctrl as SDRAM_A/BA/DQM:
+# with synchronous clear and load extracted, the fitter refuses to pack them
+# into the IO cells ("cannot simultaneously use clear and load signals") and
+# their clock-to-pin drifts with placement (-0.042 ns on dram_a[1] once).
+set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|sdram_ctrl:*|SDRAM_*
 set_instance_assignment -name IO_STANDARD "1.8 V" -to aux_scl
 set_instance_assignment -name IO_STANDARD "1.8 V" -to aux_sda
 set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to bist
