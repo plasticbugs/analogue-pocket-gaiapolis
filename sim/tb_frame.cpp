@@ -152,8 +152,10 @@ int main(int argc, char **argv) {
         long n = render_line(VIS_Y0 + y + 1);
         if (n > worst) worst = n;
         for (int x = 0; x < VIS_W; x++) {
-            dut->px = x;
-            for (int k = 0; k < 5; k++) tick();     // line buffers + mixer latency
+            // a 12-clock pixel as gaia_video paces it: px changes on the tick,
+            // the encoder and colour stages latch at fixed phases after it
+            dut->px = x; dut->cen_pix = 1; tick(); dut->cen_pix = 0;
+            for (int k = 0; k < 11; k++) tick();
             out[y * VIS_W + x] = dut->rgb;
         }
     }

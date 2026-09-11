@@ -5,6 +5,7 @@
 
 module tb_frame_top (
     input  logic        clk,
+    input  logic        cen_pix,        // the 8 MHz pixel tick the mixer's phases count from
     input  logic        reset,
 
     // ---- loads ----
@@ -165,7 +166,7 @@ module tb_frame_top (
         .dbg_objs(dbg0), .dbg_rows(dbg1), .dbg_cols(dbg2), .dbg_pxw(dbg3)
     );
     k055555_mixer u_mx (
-        .clk(clk), .reset(reset),
+        .clk(clk), .reset(reset), .cen_pix(cen_pix),
         .tm_pen(tm_pen), .tm_opq(tm_opq), .roz_pen(roz_pen), .roz_opq(roz_opq),
         .spr_opq(spr_opq), .spr_pen(spr_pen), .spr_pri(spr_pri),
         .spr_shadow(spr_shadow), .spr_shtab(spr_shtab), .spr_shpri(spr_shpri),

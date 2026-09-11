@@ -63,14 +63,22 @@ module gaia_sound #(
     assign dbg_step = !m1_n && !mreq_n && !m1_d;
     assign dbg_wait = !wait_n;
 
-    wire mem_rd = !mreq_n && !rd_n && rfsh_n;
-    // WR is low for two T-states (24 clocks); the devices see one write per
-    // bus cycle, on its first clock, since a K054539 port write has side
-    // effects (0x22d steps the streaming pointer)
-    logic mem_wr_d;
-    wire  mem_wr_lvl = !mreq_n && !wr_n && rfsh_n;
-    always_ff @(posedge clk) mem_wr_d <= mem_wr_lvl;
-    wire  mem_wr = mem_wr_lvl && !mem_wr_d;
+    // The Z80 steps on cen_8m, so its address and data are multicycle paths
+    // (projects/gaia_pocket.sdc): the devices see the strobes four clocks
+    // after the CPU raises them, when both have settled. RD stays a level
+    // (the RAMs and ports are read on it); WR is low for two T-states (24
+    // clocks) and becomes one pulse per bus cycle, since a K054539 port
+    // write has side effects (0x22d steps the streaming pointer).
+    wire  mem_rd_raw = !mreq_n && !rd_n && rfsh_n;
+    wire  mem_wr_raw = !mreq_n && !wr_n && rfsh_n;
+    logic [3:0] rd_dl;
+    logic [4:0] wr_dl;
+    always_ff @(posedge clk) begin
+        rd_dl <= {rd_dl[2:0], mem_rd_raw};
+        wr_dl <= {wr_dl[3:0], mem_wr_raw};
+    end
+    wire  mem_rd = rd_dl[3];
+    wire  mem_wr = wr_dl[3] && !wr_dl[4];
     assign dbg_wr = mem_wr; assign dbg_rd = mem_rd && wait_n; assign dbg_wdata = cpu_do;
 
     // ---------------------------------------------------------- decode

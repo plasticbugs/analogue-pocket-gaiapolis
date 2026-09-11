@@ -325,7 +325,7 @@ module gaia_core #(
         .m_req(spr_req), .m_addr(spr_addr), .m_ack(spr_ack), .m_q(spr_q), .q()
     );
     k055555_mixer u_mx (
-        .clk(clk), .reset(reset),
+        .clk(clk), .reset(reset), .cen_pix(cen_pix),
         .tm_pen(tm_pen), .tm_opq(tm_opq & {4{px_valid}}), .roz_pen(roz_pen), .roz_opq(roz_opq & px_valid),
         .spr_opq(spr_opq & px_valid), .spr_pen(spr_pen), .spr_pri(spr_pri),
         .spr_shadow(spr_shadow & px_valid), .spr_shtab(spr_shtab), .spr_shpri(spr_shpri),

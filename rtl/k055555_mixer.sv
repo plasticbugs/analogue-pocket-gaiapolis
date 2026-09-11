@@ -19,13 +19,18 @@
 // (V_INMIX / OS_INMIX are 0 in every frame) and brightness (V_BRI only ever
 // selects the 0xff level). See docs/hardware.md section 11.
 //
-// Latency: inputs at cycle 0, palette address at 1, rgb valid at 3.
+// Timing: the inputs change once per pixel, at the clock after cen_pix; the
+// palette address latches at phase 5 of the 12-clock pixel and the colour at
+// phase 9, so each stage has three or more clocks to settle (the encoder
+// alone was a 17 ns path) and the registers only ever hold a settled value.
+// gaia_video presents the colour at the next cen_pix.
 //------------------------------------------------------------------------------
 `default_nettype none
 
 module k055555_mixer (
     input  logic        clk,
     input  logic        reset,
+    input  logic        cen_pix,        // the pixel tick the phases count from
 
     // per-pixel inputs, all valid together
     input  logic [11:0] tm_pen [4],
@@ -94,12 +99,21 @@ module k055555_mixer (
                & !(have_lyr & !win_spr & (spr_shpri >= best_pri));
     end
 
+    // the phase inside the pixel: 0 is the cen_pix clock, 1 the clock the
+    // new px is seen, 2 the first with the line-buffer reads for it
+    logic [3:0] phase;
+    always_ff @(posedge clk) phase <= cen_pix ? 4'd0 : (phase == 4'd15 ? 4'd15 : phase + 4'd1);
+    wire cen_mix = (phase == 4'd5);
+    wire cen_rgb = (phase == 4'd9);
+
     // ------------------------------------------- stage 1: palette address
     logic        s1_any, s1_darken, s2_any, s2_darken;
     logic  [1:0] s1_tab, s2_tab;
     always_ff @(posedge clk) begin
-        pal_addr  <= best_pen[10:0];
-        s1_any    <= win_any;  s1_darken <= darken;  s1_tab <= spr_shtab;
+        if (cen_mix) begin
+            pal_addr  <= best_pen[10:0];
+            s1_any    <= win_any;  s1_darken <= darken;  s1_tab <= spr_shtab;
+        end
         s2_any    <= s1_any;   s2_darken <= s1_darken; s2_tab <= s1_tab;
     end
 
@@ -140,7 +154,7 @@ module k055555_mixer (
 
     always_ff @(posedge clk) begin
         if (reset) rgb <= '0;
-        else rgb <= s2_darken ? {clampd(r5, noclip), clampd(g5, noclip), clampd(b5, noclip)}
-                              : base;
+        else if (cen_rgb) rgb <= s2_darken ? {clampd(r5, noclip), clampd(g5, noclip), clampd(b5, noclip)}
+                                           : base;
     end
 endmodule

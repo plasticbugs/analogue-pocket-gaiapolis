@@ -49,9 +49,11 @@ set_false_path -from [get_ports {sram_dq[*]}]
 
 # The scan-out pipeline -- the line-buffer reads, the K055555 priority
 # encoder, the palette read and the RGB stage -- re-evaluates once per 8 MHz
-# pixel, twelve clocks apart, and nothing samples it in between (gaia_video
-# presents the colour at the next cen_pix). A register written by the CPU
-# may reach the encoder up to four clocks late, which is inside one pixel.
+# pixel, twelve clocks apart, and its registers latch only at fixed phases
+# inside the pixel (k055555_mixer.sv: the address at phase 5, the colour at
+# 9), so a path really has those clocks. Registers that clock every cycle
+# must never be given a multicycle on that reasoning alone: the first
+# Pocket build did and showed noise.
 set MIX [get_registers {*|k055555_mixer:*|*}]
 set_multicycle_path -setup 4 -to $MIX
 set_multicycle_path -hold  3 -to $MIX
