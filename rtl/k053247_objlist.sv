@@ -87,7 +87,7 @@ module k053247_objlist #(
     assign cnt_rd = (st == O_PRE) ? cnt_idx : sort_key;
 
     typedef enum logic [4:0] {
-        O_IDLE, O_B0, O_B1, O_B2, O_B3, O_B4, O_B5, O_B6, O_B7, O_B8, O_B9, O_EMIT, O_NEXTENT,
+        O_IDLE, O_B0, O_B1, O_B2, O_B3, O_B4, O_B5, O_B6, O_B7, O_B8, O_B9, O_B10, O_EMIT, O_NEXTENT,
         O_CLR, O_CNT, O_CNTW, O_CNT2, O_CNT3, O_PRE, O_PRE2, O_SCAT, O_SCATW, O_SCAT2, O_SCAT3,
         O_NEXTPASS, O_DONE
     } state_t;
@@ -113,17 +113,19 @@ module k053247_objlist #(
     wire signed [17:0] oyr = $signed({8'd0, w2[9:0]});
     wire signed [17:0] oy1 = (objset1[1] ? -oyr : oyr) - DYS;
     wire signed [17:0] oy2 = ((-oy1) - $signed({2'd0, k46_offy})) & $signed(wrapmsk);
-    logic signed [17:0] oy2_r, goy_r;
+    logic signed [17:0] oy2_r, goy_r, bot_r;
     logic [23:0] zoomy;
+    logic [15:0] span_r;
     wire signed [17:0] oy3 = (oy2_r >= $signed(ywlim)) ? oy2_r - $signed(wrapsz) : oy2_r;
     wire [23:0] ghshift = zoomy >> ghsh;
     wire signed [17:0] goy = oy3 - $signed({4'd0, ghshift[13:0]});
-    // the rows span goy .. goy + ((height * zoomy + 2048) >> 12) - 1
-    wire [27:0] hz = {4'd0, zoomy} * {24'd0, height};
+    // the rows span goy .. goy + ((height * zoomy + 2048) >> 12) - 1; height is
+    // a power of two, so the product is a shift, and the sum is taken over
+    // three clocks (the one-clock version missed 96 MHz by 2.9 ns)
+    wire [27:0] hz = {4'd0, zoomy} << szc[3:2];
     wire [27:0] hzr = hz + 28'd2048;
-    wire signed [17:0] bot = goy_r + $signed({2'd0, hzr[27:12]}) - 18'sd1;
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused_yr = ^{szc[1:0], ghshift[23:14], hzr[11:0]};
+    wire unused_yr = ^{szc[1:0], ghshift[23:14], hzr[11:0], height};
     /* verilator lint_on UNUSEDSIGNAL */
     function automatic logic [10:0] clip11(input logic signed [17:0] v);
         return (v > 18'sd1023) ? 11'h3ff : (v < -18'sd1024) ? 11'h400 : v[10:0];
@@ -190,9 +192,10 @@ module k053247_objlist #(
                 O_B5: begin w4 <= ram_q; zoom_addr <= ram_q[9:0]; st <= O_B6; end
                 O_B6: st <= O_B7;
                 O_B7: begin zoomy <= zoom_q; oy2_r <= oy2; st <= O_B8; end
-                O_B8: begin goy_r <= goy; st <= O_B9; end
-                O_B9: begin
-                    yr[ent] <= {clip11(goy_r - 18'sd1), clip11(bot + 18'sd1)};
+                O_B8: begin goy_r <= goy; span_r <= hzr[27:12]; st <= O_B9; end
+                O_B9: begin bot_r <= goy_r + $signed({2'd0, span_r}); st <= O_B10; end   // last line + 1
+                O_B10: begin
+                    yr[ent] <= {clip11(goy_r - 18'sd1), clip11(bot_r)};
                     emit_step <= 2'd1; st <= O_EMIT;
                 end
 
