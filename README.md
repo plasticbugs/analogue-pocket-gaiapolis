@@ -50,7 +50,8 @@ boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
 
 **Pocket port** (`target/pocket/`): `core_top.sv` is the APF glue, and
 `gaia_mem.sv` puts the 20 MB image across the SDRAM and both PSRAMs
-(`docs/hardware.md` section 11). The EEPROM is saved to `gaiapolis.sav`.
+(`docs/hardware.md` section 11; `sim/run_mem.sh` is its gate). The EEPROM is
+saved to `gaiapolis.sav`.
 
 ## What is here
 
@@ -69,6 +70,7 @@ boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
 | `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
 | `sim/run_*.sh` | Frozen-state gates for each RTL block, and `run_frame.sh` for the whole pipeline, diffed against the model |
 | `sim/run_system.sh` | The whole machine from reset: frames as PNG, the 68000/Z80 trace, audio as WAV; `LAT=pocket` models the Pocket memories' latencies |
+| `sim/run_mem.sh` | The Pocket memory subsystem with behavioural SDRAM, PSRAM and SRAM chips: the image in through the loader port at the APF's maximum rate, back out through every core port |
 | `tools/probe_*.lua` | MAME Lua oracles: device reads, the Z80's boot timeline, EEPROM pin traffic, the 68000's pacing |
 | `tools/eeprom_replay.py` | Replays MAME's EEPROM pin traffic through the ER5911 model: a regression gate for the protocol |
 | `tools/compare_audio.py` | Envelope comparison of the bench's WAV with MAME's recording |
@@ -88,12 +90,16 @@ SD card root, build `gaiapolis.rom` as described below (or in the package's
 `README.txt`) and put it in `Assets/gaia/common/`. `./build-local.sh` does
 the same compile in Docker and leaves the package in `release/pocket/`.
 
-What has not been seen on hardware yet, in the order it will be noticed:
-the SDRAM/PSRAM/SRAM controllers' pin timing (the image load and the first
-picture), the 8 MHz video clock pair and `video.json`'s rotation direction
-(the picture should be upright with the sunset at the top), the audio
-hand-off, the controls' mapping, and the EEPROM save (`gaiapolis.sav`
-should appear after five seconds, and the settings survive a power cycle).
+Seen on hardware so far: the PLLs, the SDRAM's initialisation and the
+picture path (the diagnostic overlay -- interact menu -- draws and its frame
+counter ticks), and `video.json`'s rotation is applied (the overlay band, the
+bottom of the raster, stands along the left edge of the screen). Not yet:
+the program ROMs out of the PSRAMs (the CPUs fetched all-ones; the loader
+wrote every PSRAM word twice, the second time with the next byte -- fixed
+by `sim/run_mem.sh`, awaiting a run), the picture itself (it should be
+upright with the sunset at the top), the audio hand-off, the controls'
+mapping, and the EEPROM save (`gaiapolis.sav` should appear after five
+seconds, and the settings survive a power cycle).
 
 ## Open items
 

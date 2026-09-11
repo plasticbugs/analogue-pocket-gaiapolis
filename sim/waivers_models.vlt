@@ -1,0 +1,8 @@
+`verilator_config
+// Behavioural chip models: bench-only code, counters bumped from several places.
+lint_off -rule BLKSEQ -file "*sdram_model.sv"
+lint_off -rule MULTIDRIVEN -file "*sdram_model.sv"
+lint_off -rule WIDTHTRUNC -file "*sdram_model.sv"
+lint_off -rule WIDTHEXPAND -file "*sdram_model.sv"
+lint_off -rule MULTIDRIVEN -file "*psram_model.sv"
+lint_off -rule PROCASSINIT -file "*psram_model.sv"

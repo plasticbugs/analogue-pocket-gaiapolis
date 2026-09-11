@@ -375,6 +375,25 @@ the budgets are measured, not assumed. Every memory holds big-endian 16-bit
 words, the packing `sim/tb_system.cpp` uses, so the core sees the same data
 in simulation and on the Pocket.
 
+**The load.** The APF loader (`platform/pocket/interface/data_loader.sv`)
+hands over one byte per 8 clocks at most, and a PSRAM write costs about 13,
+so `gaia_mem` pairs each even byte with the odd one that follows it into a
+single 16-bit write before its FIFO (the bridge delivers aligned 4-byte
+words, so a pair never straddles a pause). The PSRAM writer acks on *take*,
+not completion, so the next word queues while one writes. The core is held
+in reset until the first `dataslot_allcomplete`, and the renderers hold
+their requests low in reset, so the load has every bus to itself.
+
+`sim/run_mem.sh <gaiapolis.rom> [gap]` is the gate for this module: the
+memory subsystem with behavioural SDRAM, PSRAM and SRAM chips behind it,
+2 KB from each end of every region loaded through the download port at
+`gap` clocks a byte (default 8, the loader's maximum) and read back through
+every core port, plus the tile RAM's byte lanes and the EEPROM hand-over.
+It found the first hardware bug: a port re-arbitrating in the clock its ack
+is visible, while the client's request is still standing, ran every access
+twice -- harmless for reads, but the writer's second pass carried the *next*
+byte, so every word loaded into a PSRAM held its neighbour's data.
+
 ### BRAM budget (Cyclone V 5CEBA4: 308 x M10K = 385 KB)
 
 | Block | Size |

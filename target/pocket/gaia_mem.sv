@@ -75,71 +75,93 @@ module gaia_mem (
     localparam [22:0] PS_CHR = 23'h000000, PS_MAP = 23'h0C0000, PS_PROG = 23'h000000, PS_SND = 23'h180000;
 
     // ------------------------------------------------------------ download
-    // A small FIFO absorbs the loader's bursts; the dispatcher behind it
-    // routes each byte to its memory as a byte-enabled word write.
-    logic [32:0] wfifo [64];
-    logic  [6:0] wf_wp, wf_rp;
+    // The APF loader delivers at most one byte per 8 clocks. A PSRAM write
+    // costs about 13, so consecutive even/odd bytes are paired into one
+    // 16-bit word write before a small FIFO that absorbs the loader's
+    // bursts; the dispatcher behind it routes each entry to its memory as a
+    // byte-enabled word write. A lone even byte waits for its partner (the
+    // bridge delivers aligned 4-byte words, so the partner is next) and is
+    // flushed alone if none arrives.
     logic        dl_we_d;
-    wire         wf_empty = (wf_wp == wf_rp);
-    wire         wf_full  = (wf_wp[5:0] == wf_rp[5:0]) && (wf_wp[6] != wf_rp[6]);
-    wire [32:0]  wf_head  = wfifo[wf_rp[5:0]];
-    wire [24:0]  wa       = wf_head[32:8];
-    wire  [7:0]  wd       = wf_head[7:0];
+    logic        pend_v;
+    logic [24:0] pend_a;
+    logic  [7:0] pend_d, pend_age;
+    wire         nb = dl_we && !dl_we_d;                // a new byte this clock
+    logic        wf_push;
+    logic [41:0] wf_in;                                 // {word addr[24:1], be[1:0], data[15:0]}
+    always_comb begin
+        wf_push = 1'b0; wf_in = '0;
+        if (nb && pend_v && dl_addr == {pend_a[24:1], 1'b1}) begin
+            wf_push = 1'b1; wf_in = {pend_a[24:1], 2'b11, pend_d, dl_data};
+        end else if (pend_v && (nb || pend_age == 8'hff)) begin
+            wf_push = 1'b1; wf_in = {pend_a[24:1], pend_a[0] ? 2'b01 : 2'b10, pend_d, pend_d};
+        end
+    end
 
-    typedef enum logic [2:0] { W_IDLE, W_SDRAM, W_PS0, W_PS1, W_EEP, W_POP } wst_t;
+    logic [41:0] wfifo [64];
+    logic  [6:0] wf_wp, wf_rp;
+    wire         wf_empty = (wf_wp == wf_rp);
+    wire [41:0]  wf_head  = wfifo[wf_rp[5:0]];
+    wire [24:1]  wa       = wf_head[41:18];
+    wire  [1:0]  wbe      = wf_head[17:16];
+    wire [15:0]  wd       = wf_head[15:0];
+
+    typedef enum logic [2:0] { W_IDLE, W_SDRAM, W_PS0, W_PS1, W_EEP, W_EEP2 } wst_t;
     wst_t wst;
 
     // SDRAM write client (client 1) and PSRAM writer ports
     logic        sd_wr_req, sd_wr_ack;
     logic [24:1] sd_wr_addr;
-    logic  [1:0] sd_wr_be;
     logic        ps0_wr_req, ps0_wr_ack, ps1_wr_req, ps1_wr_ack;
     logic [22:0] ps_wr_addr;
-    logic  [1:0] ps_wr_be;
 
     always_ff @(posedge clk) begin
         dl_we_d <= dl_we;
         eep_we  <= 1'b0;
         if (init) begin
-            wf_wp <= '0; wf_rp <= '0; wst <= W_IDLE;
+            wf_wp <= '0; wf_rp <= '0; wst <= W_IDLE; pend_v <= 1'b0; pend_age <= '0;
             sd_wr_req <= 1'b0; ps0_wr_req <= 1'b0; ps1_wr_req <= 1'b0;
         end else begin
-            if (dl_we && !dl_we_d && !wf_full) begin
-                wfifo[wf_wp[5:0]] <= {dl_addr, dl_data};
+            // pairing stage
+            if (nb) begin
+                if (pend_v && dl_addr == {pend_a[24:1], 1'b1}) pend_v <= 1'b0;
+                else begin pend_v <= 1'b1; pend_a <= dl_addr; pend_d <= dl_data; pend_age <= '0; end
+            end else if (pend_v) begin
+                if (pend_age == 8'hff) pend_v <= 1'b0; else pend_age <= pend_age + 8'd1;
+            end
+            if (wf_push) begin              // never full: entries arrive at most one per 16 clocks
+                wfifo[wf_wp[5:0]] <= wf_in;
                 wf_wp <= wf_wp + 7'd1;
             end
             case (wst)
                 W_IDLE: if (!wf_empty) begin
-                    if (wa < IMG_SND) begin                       // 68000 program -> CRAM1
-                        ps_wr_addr <= PS_PROG + 23'(wa[24:1]); ps_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        ps1_wr_req <= 1'b1; wst <= W_PS1;
-                    end else if (wa < IMG_TILE) begin             // Z80 program -> CRAM1
-                        ps_wr_addr <= PS_SND + 23'((wa - IMG_SND) >> 1); ps_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        ps1_wr_req <= 1'b1; wst <= W_PS1;
-                    end else if (wa < IMG_CHR) begin              // tiles -> SDRAM
-                        sd_wr_addr <= SD_TILE + 24'((wa - IMG_TILE) >> 1); sd_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        sd_wr_req <= 1'b1; wst <= W_SDRAM;
-                    end else if (wa < IMG_MAP) begin              // ROZ characters -> CRAM0
-                        ps_wr_addr <= PS_CHR + 23'((wa - IMG_CHR) >> 1); ps_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        ps0_wr_req <= 1'b1; wst <= W_PS0;
-                    end else if (wa < IMG_PCM) begin              // ROZ map -> CRAM0
-                        ps_wr_addr <= PS_MAP + 23'((wa - IMG_MAP) >> 1); ps_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        ps0_wr_req <= 1'b1; wst <= W_PS0;
-                    end else if (wa < IMG_SPR) begin              // PCM -> SDRAM
-                        sd_wr_addr <= SD_PCM + 24'((wa - IMG_PCM) >> 1); sd_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        sd_wr_req <= 1'b1; wst <= W_SDRAM;
-                    end else if (wa < IMG_EEP) begin              // sprites -> SDRAM
-                        sd_wr_addr <= SD_SPR + 24'((wa - IMG_SPR) >> 1); sd_wr_be <= wa[0] ? 2'b01 : 2'b10;
-                        sd_wr_req <= 1'b1; wst <= W_SDRAM;
-                    end else if (wa < IMG_END) begin              // EEPROM default -> the core
-                        eep_we <= 1'b1; eep_addr <= wa[6:0]; eep_data <= wd;
-                        wst <= W_POP;
-                    end else wst <= W_POP;                        // beyond the image: dropped
+                    if (wa < IMG_SND[24:1]) begin                 // 68000 program -> CRAM1
+                        ps_wr_addr <= PS_PROG + 23'(wa); ps1_wr_req <= 1'b1; wst <= W_PS1;
+                    end else if (wa < IMG_TILE[24:1]) begin       // Z80 program -> CRAM1
+                        ps_wr_addr <= PS_SND + 23'(wa - IMG_SND[24:1]); ps1_wr_req <= 1'b1; wst <= W_PS1;
+                    end else if (wa < IMG_CHR[24:1]) begin        // tiles -> SDRAM
+                        sd_wr_addr <= SD_TILE + (wa - IMG_TILE[24:1]); sd_wr_req <= 1'b1; wst <= W_SDRAM;
+                    end else if (wa < IMG_MAP[24:1]) begin        // ROZ characters -> CRAM0
+                        ps_wr_addr <= PS_CHR + 23'(wa - IMG_CHR[24:1]); ps0_wr_req <= 1'b1; wst <= W_PS0;
+                    end else if (wa < IMG_PCM[24:1]) begin        // ROZ map -> CRAM0
+                        ps_wr_addr <= PS_MAP + 23'(wa - IMG_MAP[24:1]); ps0_wr_req <= 1'b1; wst <= W_PS0;
+                    end else if (wa < IMG_SPR[24:1]) begin        // PCM -> SDRAM
+                        sd_wr_addr <= SD_PCM + (wa - IMG_PCM[24:1]); sd_wr_req <= 1'b1; wst <= W_SDRAM;
+                    end else if (wa < IMG_EEP[24:1]) begin        // sprites -> SDRAM
+                        sd_wr_addr <= SD_SPR + (wa - IMG_SPR[24:1]); sd_wr_req <= 1'b1; wst <= W_SDRAM;
+                    end else if (wa < IMG_END[24:1]) begin        // EEPROM default -> the core, a byte at a time
+                        eep_we <= wbe[1]; eep_addr <= {wa[6:1], 1'b0}; eep_data <= wd[15:8];
+                        wst <= W_EEP;
+                    end else begin wf_rp <= wf_rp + 7'd1; end     // beyond the image: dropped
                 end
-                W_SDRAM: if (sd_wr_ack)  begin sd_wr_req  <= 1'b0; wst <= W_POP; end
-                W_PS0:   if (ps0_wr_ack) begin ps0_wr_req <= 1'b0; wst <= W_POP; end
-                W_PS1:   if (ps1_wr_ack) begin ps1_wr_req <= 1'b0; wst <= W_POP; end
-                W_POP:   begin wf_rp <= wf_rp + 7'd1; wst <= W_IDLE; end
+                W_EEP: begin
+                    eep_we <= wbe[0]; eep_addr <= {wa[6:1], 1'b1}; eep_data <= wd[7:0];
+                    wf_rp <= wf_rp + 7'd1; wst <= W_IDLE;
+                end
+                // the acks pop the entry: the SDRAM's on completion, the PSRAM ports' on take
+                W_SDRAM: if (sd_wr_ack)  begin sd_wr_req  <= 1'b0; wf_rp <= wf_rp + 7'd1; wst <= W_IDLE; end
+                W_PS0:   if (ps0_wr_ack) begin ps0_wr_req <= 1'b0; wf_rp <= wf_rp + 7'd1; wst <= W_IDLE; end
+                W_PS1:   if (ps1_wr_ack) begin ps1_wr_req <= 1'b0; wf_rp <= wf_rp + 7'd1; wst <= W_IDLE; end
                 default: wst <= W_IDLE;
             endcase
         end
@@ -170,7 +192,7 @@ module gaia_mem (
     // client 1: the loader
     assign c_addr[1] = sd_wr_addr;
     assign c_req[1]  = sd_wr_req;
-    assign c_we[1]   = 1'b1; assign c_wdata[1] = {wd, wd}; assign c_be[1] = sd_wr_be;
+    assign c_we[1]   = 1'b1; assign c_wdata[1] = wd; assign c_be[1] = wbe;
     assign sd_wr_ack = c_ack[1];
     // clients 2-5: none
     genvar gi;
@@ -190,11 +212,11 @@ module gaia_mem (
         else begin
             tile_ack <= 1'b0; spr_ack <= 1'b0;
             case (bst)
-                B_IDLE: begin
-                    if (tile_req) begin
+                B_IDLE: begin                   // not a request being acked right now
+                    if (tile_req && !tile_ack) begin
                         bsel <= 1'b0; tile_addr_l <= tile_addr;
                         b_addr <= SD_TILE + {4'd0, tile_addr, 1'b0}; b_len <= 10'd2; b_req <= 1'b1; bst <= B_RUN;
-                    end else if (spr_req) begin
+                    end else if (spr_req && !spr_ack) begin
                         bsel <= 1'b1; spr_addr_l <= spr_addr;
                         b_addr <= SD_SPR + {2'd0, spr_addr, 2'b00}; b_len <= 10'd4; b_req <= 1'b1; bst <= B_RUN;
                     end
@@ -233,7 +255,7 @@ module gaia_mem (
         .clk(clk), .reset(init),
         .r0_req(chr_req), .r0_addr(PS_CHR + 23'(chr_addr[20:1])), .r0_ack(chr_ack), .r0_q(chr_q),
         .r1_req(map_req), .r1_addr(PS_MAP + 23'(map_addr[19:1])), .r1_ack(map_ack), .r1_q(map_q),
-        .w_req(ps0_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(ps_wr_be), .w_ack(ps0_wr_ack),
+        .w_req(ps0_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(wbe), .w_ack(ps0_wr_ack),
         .cram_a(cram0_a), .cram_dq(cram0_dq), .cram_wait(cram0_wait), .cram_clk(cram0_clk), .cram_adv_n(cram0_adv_n),
         .cram_cre(cram0_cre), .cram_ce0_n(cram0_ce0_n), .cram_ce1_n(cram0_ce1_n), .cram_oe_n(cram0_oe_n),
         .cram_we_n(cram0_we_n), .cram_ub_n(cram0_ub_n), .cram_lb_n(cram0_lb_n)
@@ -246,7 +268,7 @@ module gaia_mem (
         .clk(clk), .reset(init),
         .r0_req(prog_req), .r0_addr(PS_PROG + 23'(prog_addr[22:1])), .r0_ack(prog_ack), .r0_q(prog_q),
         .r1_req(snd_req),  .r1_addr(PS_SND  + 23'(snd_addr[17:1])),  .r1_ack(snd_ack),  .r1_q(snd_word),
-        .w_req(ps1_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(ps_wr_be), .w_ack(ps1_wr_ack),
+        .w_req(ps1_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(wbe), .w_ack(ps1_wr_ack),
         .cram_a(cram1_a), .cram_dq(cram1_dq), .cram_wait(cram1_wait), .cram_clk(cram1_clk), .cram_adv_n(cram1_adv_n),
         .cram_cre(cram1_cre), .cram_ce0_n(cram1_ce0_n), .cram_ce1_n(cram1_ce1_n), .cram_oe_n(cram1_oe_n),
         .cram_we_n(cram1_we_n), .cram_ub_n(cram1_ub_n), .cram_lb_n(cram1_lb_n)
@@ -261,7 +283,7 @@ module gaia_mem (
     );
 
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused = ^{b_widx, b_idx[9:2], dram_cs_n_unused, map_addr[0], chr_addr[0], IMG_PROG};
+    wire unused = ^{b_widx, b_idx[9:2], dram_cs_n_unused, map_addr[0], chr_addr[0], IMG_PROG, wf_head[0]};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule
 
@@ -269,16 +291,18 @@ endmodule
 //------------------------------------------------------------------------------
 // One PSRAM chip (async mode, single 16-bit accesses through psram.sv) behind
 // two read clients and one write client. The writer is only used while the
-// image loads and has priority; reader 0 comes before reader 1. An access
-// runs to completion even if its client withdraws; the ack is raised only
-// for a request that is still standing with the same address.
+// image loads and has priority; its ack means "taken" (address, data and
+// byte enables latched) so the loader can queue the next word while this
+// one writes. Reader 0 comes before reader 1. A read runs to completion
+// even if its client withdraws; the ack is raised only for a request that
+// is still standing with the same address.
 //------------------------------------------------------------------------------
 module psram_port (
     input  logic        clk,
     input  logic        reset,
     input  logic        r0_req, input  logic [22:0] r0_addr, output logic r0_ack, output logic [15:0] r0_q,
     input  logic        r1_req, input  logic [22:0] r1_addr, output logic r1_ack, output logic [15:0] r1_q,
-    input  logic        w_req,  input  logic [22:0] w_addr,  input  logic [7:0] w_data, input logic [1:0] w_be,
+    input  logic        w_req,  input  logic [22:0] w_addr,  input  logic [15:0] w_data, input logic [1:0] w_be,
     output logic        w_ack,
 
     output logic [21:16] cram_a,
@@ -290,6 +314,8 @@ module psram_port (
     pst_t        pst;
     logic  [1:0] who;                   // 0 reader 0, 1 reader 1, 2 writer
     logic [22:0] addr_l;
+    logic [15:0] wdata_l;
+    logic  [1:0] be_l;
     logic        is_wr;
     logic        rd_en, wr_en, busy, avail;
     logic [15:0] dout;
@@ -300,23 +326,26 @@ module psram_port (
         rd_en <= 1'b0; wr_en <= 1'b0;
         if (reset) begin pst <= P_IDLE; end
         else case (pst)
+            // A request is still standing in the clock its ack is visible
+            // (the client drops it on seeing the ack), so a request being
+            // acked right now is not a new one.
             P_IDLE: begin
-                if (w_req)       begin who <= 2'd2; addr_l <= w_addr;  is_wr <= 1'b1; pst <= P_ISSUE; end
-                else if (r0_req) begin who <= 2'd0; addr_l <= r0_addr; is_wr <= 1'b0; pst <= P_ISSUE; end
-                else if (r1_req) begin who <= 2'd1; addr_l <= r1_addr; is_wr <= 1'b0; pst <= P_ISSUE; end
+                if (w_req && !w_ack) begin
+                    who <= 2'd2; addr_l <= w_addr; wdata_l <= w_data; be_l <= w_be; is_wr <= 1'b1;
+                    w_ack <= 1'b1; pst <= P_ISSUE;
+                end
+                else if (r0_req && !r0_ack) begin who <= 2'd0; addr_l <= r0_addr; is_wr <= 1'b0; pst <= P_ISSUE; end
+                else if (r1_req && !r1_ack) begin who <= 2'd1; addr_l <= r1_addr; is_wr <= 1'b0; pst <= P_ISSUE; end
             end
             P_ISSUE: if (!busy && !rd_en && !wr_en) begin
                 if (is_wr) begin wr_en <= 1'b1; pst <= P_WRITE; end
                 else       begin rd_en <= 1'b1; pst <= P_READ;  end
             end
             P_READ: if (avail) begin q <= dout; pst <= P_ACK; end
-            P_WRITE: if (!busy && !wr_en) pst <= P_ACK;      // busy rises the cycle after the issue
+            P_WRITE: if (!busy && !wr_en) pst <= P_IDLE;     // busy rises the cycle after the issue
             P_ACK: begin
-                case (who)
-                    2'd0: if (r0_req && r0_addr == addr_l) r0_ack <= 1'b1;
-                    2'd1: if (r1_req && r1_addr == addr_l) r1_ack <= 1'b1;
-                    default: w_ack <= 1'b1;
-                endcase
+                if (who == 2'd0 && r0_req && r0_addr == addr_l) r0_ack <= 1'b1;
+                if (who == 2'd1 && r1_req && r1_addr == addr_l) r1_ack <= 1'b1;
                 pst <= P_IDLE;
             end
             default: pst <= P_IDLE;
@@ -334,7 +363,7 @@ module psram_port (
     ) u_psram (
         .clk(clk),
         .bank_sel(addr_l[22]), .addr(addr_l[21:0]),
-        .write_en(wr_en), .data_in({w_data, w_data}), .write_high_byte(w_be[1]), .write_low_byte(w_be[0]),
+        .write_en(wr_en), .data_in(wdata_l), .write_high_byte(be_l[1]), .write_low_byte(be_l[0]),
         .read_en(rd_en), .read_avail(avail), .data_out(dout), .busy(busy),
         .cram_a(cram_a), .cram_dq(cram_dq), .cram_wait(cram_wait), .cram_clk(cram_clk), .cram_adv_n(cram_adv_n),
         .cram_cre(cram_cre), .cram_ce0_n(cram_ce0_n), .cram_ce1_n(cram_ce1_n), .cram_oe_n(cram_oe_n),
@@ -379,7 +408,7 @@ module sram_port (
             st <= S_IDLE; sram_oe_n <= 1'b1; sram_we_n <= 1'b1; sram_ub_n <= 1'b1; sram_lb_n <= 1'b1;
             dq_oe <= 1'b0; sram_a <= '0;
         end else case (st)
-            S_IDLE: if (req) begin
+            S_IDLE: if (req && !ack) begin      // not the request being acked right now
                 addr_l <= addr; we_l <= we;
                 sram_a <= {1'b0, addr};
                 if (we) begin

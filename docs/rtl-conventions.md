@@ -66,6 +66,17 @@ Four independent buses, partitioned in `docs/hardware.md` section 11. Graphics
 fetches use a level `req` / one-cycle `ack` handshake so a block can sit behind
 an arbiter without changing.
 
+## A request is still standing in the clock its ack is visible
+
+The request/ack convention (level request, one-cycle ack) means the client
+sees the ack and drops its request one clock later. A server that returns
+to idle in the clock it raises the ack therefore sees the *old* request
+still high and starts it again. `gaia_mem.sv` did this on all three of its
+ports; the reads only wasted a slot, but the PSRAM writer's repeat carried
+the next byte's data (the FIFO had already popped) and corrupted every
+word it loaded. Idle arbitration must mask a request being acked right
+now: `if (req && !ack)`. `sim/run_mem.sh` is the gate.
+
 ## CPU bus strobes are levels; device side effects need edges
 
 A tv80 or TG68K bus cycle holds its strobes for whole T-states -- 24 system
