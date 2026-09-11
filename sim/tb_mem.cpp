@@ -126,6 +126,7 @@ int main(int argc, char **argv) {
     };
     for (auto &r : regs) load(r.base, S);
     run_test("clean", 0x7f);
+    dut->ps_slow = 1; dut->sram_slow = 1; run_test("clean, slow captures", 0x7f); dut->ps_slow = 0; dut->sram_slow = 0;
     dut->rootp->tb_mem_top__DOT__cram1__DOT__mem[5] ^= 0x0100;         // prog word 5
     dut->rootp->tb_mem_top__DOT__chip__DOT__mem[7] ^= 0x0001;          // tile word 7
     run_test("corrupted prog+tile", 0x7f & ~0x01 & ~0x04);         // bit 0 prog, bit 2 tile

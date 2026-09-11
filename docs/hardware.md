@@ -364,8 +364,12 @@ Why this way round:
   14-clock access the Z80 ran at 74% of its rate in the self-test's sound
   check (`MEM=pocket sim/run_system.sh`: 16.1K steps a frame against 21.8K,
   with six times the wait clocks) and the check took five seconds longer.
-  The read captures 8 clocks (83 ns) after the address strobe: the part's
-  70 ns plus the margin the SNES core proves at 85.9 MHz (7 clocks, 81.5 ns).
+  With the alternation, the 12-clock access and the prefetch the Z80 runs
+  at 96% of its pace (20.9K steps a frame) and the 68000 gives up 0.3%.
+  The read captures 9 clocks (94 ns) after the address strobe, the setting
+  the board has answered correctly; the SNES core captures at 81.5 ns
+  (7 clocks of 85.9 MHz), so 8 clocks (83 ns) is the next thing to try
+  once the memory test says the path is clean.
 * The SDRAM is the burst memory: a sprite row is four consecutive words and
   a tile group two, one row activation each. Tiles ~2,100 + sprites ~520 +
   PCM ~160 clocks of the 6,144-clock line.
@@ -394,14 +398,18 @@ in reset until the first `dataslot_allcomplete`, and the renderers hold
 their requests low in reset, so the load has every bus to itself.
 
 **The built-in memory test** (`mem_test` in `gaia_mem.sv`). Every byte of
-the image is summed per region as it streams in. When the load completes
-with the diagnostic overlay on, the core is held in reset while each region
-is read back through the core's own port and summed again, twice: a region
-is *ok* if the first pass matched the load, *stable* if the second pass
-matched the first, which separates a wrong write from a marginal read. The
-tile RAM is then written with a pattern and read back, counting bad words.
-About 2.5 s. The results are the overlay's rows (below); `sim/run_mem.sh`
-runs it on 1/64 of each region and checks it catches a corrupted word.
+the image is summed per region as it streams in. When the load completes,
+and again on the menu's "Reset Core", the core is held in reset while each
+region is read back through the core's own port and summed again, twice: a
+region is *ok* if the first pass matched the load, *stable* if the second
+pass matched the first, which separates a wrong write from a marginal
+read. The tile RAM is then written with a pattern, read back counting bad
+words, and cleared. About 2.5 s. The results are the overlay's rows
+(below); `sim/run_mem.sh` runs it on 1/64 of each region and checks it
+catches a corrupted word. Two menu switches bracket the read timing
+without a rebuild: "PSRAM slow reads" captures two clocks (21 ns) later
+than the 94 ns, "SRAM slow reads" one clock later than the 31 ns; set one,
+"Reset Core", and read the verdicts again.
 
 **The overlay** (interact menu "Diagnostic overlay", the bottom 12 lines,
 three rows of 32 squares read left to right, green = 1):

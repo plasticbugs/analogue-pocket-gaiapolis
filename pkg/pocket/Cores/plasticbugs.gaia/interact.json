@@ -129,6 +129,28 @@
         "defaultval": 0,
         "mask": "0xFFFFFFDF",
         "value": "0x00000020"
+      },
+      {
+        "name": "PSRAM slow reads",
+        "id": 67,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFFBF",
+        "value": "0x00000040"
+      },
+      {
+        "name": "SRAM slow reads",
+        "id": 68,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "mask": "0xFFFFFF7F",
+        "value": "0x00000080"
       }
     ],
     "messages": []

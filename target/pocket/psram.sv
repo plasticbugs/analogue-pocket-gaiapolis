@@ -21,6 +21,10 @@
 // SOFTWARE.
 //
 ////////////////////////////////////////////////////////////////////////////////
+//
+// Gaiapolis: a `slow` input captures read data two clocks later than
+// MAX_ACCESS_TIME_FROM_ADV says, selectable at run time from the Pocket's
+// menu, so the board's margin can be bracketed without a rebuild.
 
 function integer rtoi(input integer x);
   return x;
@@ -60,6 +64,7 @@ module psram #(
     input wire write_low_byte,
 
     input wire read_en,
+    input wire slow,
     output reg read_avail,
     output reg [15:0] data_out,
 
@@ -359,26 +364,28 @@ module psram #(
         // Data should arrive shortly, enable output
         cram_oe_n <= 0;
       end
-      STATE_READ_DATA_RECEIVED: begin
-        state <= STATE_NONE;
-
-        // Actually read data
-        read_avail <= 1;
-        data_out <= cram_dq;
-
-        // We're done reading, clean up
-        cram_ce0_n <= 1;
-        cram_ce1_n <= 1;
-
-        cram_ub_n <= 1;
-        cram_lb_n <= 1;
-
-        cram_oe_n <= 1;
-
-        // Clear busy now, so we don't have to wait for the state change
-        busy <= 0;
-      end
     endcase
+
+    // the read capture, two clocks later when slow
+    if (state == (slow ? STATE_READ_DATA_RECEIVED + 2 : STATE_READ_DATA_RECEIVED)) begin
+      state <= STATE_NONE;
+
+      // Actually read data
+      read_avail <= 1;
+      data_out <= cram_dq;
+
+      // We're done reading, clean up
+      cram_ce0_n <= 1;
+      cram_ce1_n <= 1;
+
+      cram_ub_n <= 1;
+      cram_lb_n <= 1;
+
+      cram_oe_n <= 1;
+
+      // Clear busy now, so we don't have to wait for the state change
+      busy <= 0;
+    end
   end
 
 endmodule

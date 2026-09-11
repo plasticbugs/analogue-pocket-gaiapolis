@@ -39,6 +39,8 @@ module gaia_mem #(
     output logic  [3:0] vram_bad,       // tile RAM words that read back wrong, saturating
     input  logic        rd_late,        // SDRAM diagnostics (Pocket menu)
     input  logic        burst_slow,
+    input  logic        ps_slow,        // PSRAM reads captured two clocks later (Pocket menu)
+    input  logic        sram_slow,      // SRAM reads captured one clock later (Pocket menu)
 
     // the ROM image arriving from the Pocket, a byte at an image offset
     input  logic        dl_we,
@@ -302,7 +304,7 @@ module gaia_mem #(
     // --------------------------------------------------------------- PSRAM
     // CRAM0: ROZ characters (reader 0) and map (reader 1)
     psram_port u_cram0 (
-        .clk(clk), .reset(init),
+        .clk(clk), .reset(init), .slow(ps_slow),
         .r0_req(chr_req_i), .r0_addr(PS_CHR + 23'(chr_addr_i[20:1])), .r0_ack(chr_ack), .r0_q(chr_q),
         .r1_req(map_req_i), .r1_addr(PS_MAP + 23'(map_addr_i[19:1])), .r1_ack(map_ack), .r1_q(map_q),
         .w_req(ps0_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(wbe), .w_ack(ps0_wr_ack),
@@ -315,7 +317,7 @@ module gaia_mem #(
     logic        snd_lo;
     always_ff @(posedge clk) snd_lo <= snd_addr_i[0];
     psram_port u_cram1 (
-        .clk(clk), .reset(init),
+        .clk(clk), .reset(init), .slow(ps_slow),
         .r0_req(prog_req_i), .r0_addr(PS_PROG + 23'(prog_addr_i[22:1])), .r0_ack(prog_ack), .r0_q(prog_q),
         .r1_req(snd_req_i),  .r1_addr(PS_SND  + 23'(snd_addr_i[17:1])),  .r1_ack(snd_ack),  .r1_q(snd_word),
         .w_req(ps1_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(wbe), .w_ack(ps1_wr_ack),
@@ -327,7 +329,7 @@ module gaia_mem #(
 
     // ---------------------------------------------------------------- SRAM
     sram_port u_sram (
-        .clk(clk), .reset(init),
+        .clk(clk), .reset(init), .slow(sram_slow),
         .req(vram_req_i), .we(vram_we_i), .addr(vram_addr_i), .be(vram_be_i), .wdata(vram_wdata_i), .ack(vram_ack), .q(vram_q),
         .sram_a(sram_a), .sram_dq(sram_dq), .sram_oe_n(sram_oe_n), .sram_we_n(sram_we_n), .sram_ub_n(sram_ub_n), .sram_lb_n(sram_lb_n)
     );
@@ -355,6 +357,7 @@ endmodule
 module psram_port (
     input  logic        clk,
     input  logic        reset,
+    input  logic        slow,
     input  logic        r0_req, input  logic [22:0] r0_addr, output logic r0_ack, output logic [15:0] r0_q,
     input  logic        r1_req, input  logic [22:0] r1_addr, output logic r1_ack, output logic [15:0] r1_q,
     input  logic        w_req,  input  logic [22:0] w_addr,  input  logic [15:0] w_data, input logic [1:0] w_be,
@@ -449,7 +452,7 @@ module psram_port (
         .clk(clk),
         .bank_sel(addr_l[22]), .addr(addr_l[21:0]),
         .write_en(wr_en), .data_in(wdata_l), .write_high_byte(be_l[1]), .write_low_byte(be_l[0]),
-        .read_en(rd_en), .read_avail(avail), .data_out(dout), .busy(busy),
+        .read_en(rd_en), .slow(slow), .read_avail(avail), .data_out(dout), .busy(busy),
         .cram_a(cram_a), .cram_dq(cram_dq), .cram_wait(cram_wait), .cram_clk(cram_clk), .cram_adv_n(cram_adv_n),
         .cram_cre(cram_cre), .cram_ce0_n(cram_ce0_n), .cram_ce1_n(cram_ce1_n), .cram_oe_n(cram_oe_n),
         .cram_we_n(cram_we_n), .cram_ub_n(cram_ub_n), .cram_lb_n(cram_lb_n)
@@ -467,6 +470,7 @@ endmodule
 module sram_port (
     input  logic        clk,
     input  logic        reset,
+    input  logic        slow,           // capture one clock later
     input  logic        req,
     input  logic        we,
     input  logic [15:0] addr,
@@ -479,7 +483,7 @@ module sram_port (
     inout  wire  [15:0] sram_dq,
     output logic        sram_oe_n, sram_we_n, sram_ub_n, sram_lb_n
 );
-    typedef enum logic [3:0] { S_IDLE, S_R1, S_R2, S_R3, S_RCAP, S_W0, S_W1, S_W2, S_W3, S_ACK } st_t;
+    typedef enum logic [3:0] { S_IDLE, S_R1, S_R2, S_R3, S_R4, S_RCAP, S_W0, S_W1, S_W2, S_W3, S_ACK } st_t;
     st_t         st;
     logic [15:0] addr_l, dq_out;
     logic        we_l, dq_oe;
@@ -508,7 +512,8 @@ module sram_port (
             // read: address and OE out, data back through the input register
             S_R1: st <= S_R2;
             S_R2: st <= S_R3;
-            S_R3: st <= S_RCAP;
+            S_R3: st <= slow ? S_R4 : S_RCAP;
+            S_R4: st <= S_RCAP;
             S_RCAP: begin q <= dq_in; sram_oe_n <= 1'b1; sram_ub_n <= 1'b1; sram_lb_n <= 1'b1; st <= S_ACK; end
             // write: address and data settle, WE low for two cycles, data held after
             S_W0: begin sram_we_n <= 1'b0; st <= S_W1; end
@@ -531,8 +536,8 @@ endmodule
 // back through the core's own port and summed again -- twice -- so a region
 // reports "ok" (read back what was loaded) and "stable" (the two passes
 // agreed), which separates a wrong write from a marginal read. The tile RAM
-// is then written with a pattern and read back, counting bad words. About
-// 2.5 s at 96 MHz; the results sit on the diagnostic overlay.
+// is then written with a pattern, read back counting bad words, and
+// cleared. About 2.5 s at 96 MHz; the results sit on the diagnostic overlay.
 //------------------------------------------------------------------------------
 module mem_test #(
     parameter int SHRINK = 0
@@ -583,7 +588,7 @@ module mem_test #(
     end
 
     // the read-back
-    typedef enum logic [2:0] { T_IDLE, T_REQ, T_NEXT, T_VW, T_VR, T_DONE } tst_t;
+    typedef enum logic [2:0] { T_IDLE, T_REQ, T_NEXT, T_VW, T_VR, T_VZ, T_DONE } tst_t;
     tst_t        st;
     logic  [2:0] region;
     logic        pass;
@@ -616,10 +621,10 @@ module mem_test #(
     assign spr_req  = run && st == T_REQ && region == 3'd6;  assign spr_addr  = idx[19:0];
     // the tile RAM pattern: every address bit in both bytes
     wire [15:0] vpat = idx[15:0] ^ {idx[10:0], 5'b10110} ^ 16'hA55A;
-    assign vram_req   = run && (st == T_VW || st == T_VR);
-    assign vram_we    = st == T_VW;
+    assign vram_req   = run && (st == T_VW || st == T_VR || st == T_VZ);
+    assign vram_we    = st == T_VW || st == T_VZ;
     assign vram_addr  = idx[15:0];
-    assign vram_wdata = vpat;
+    assign vram_wdata = (st == T_VZ) ? 16'd0 : vpat;
 
     always_ff @(posedge clk) begin
         start_d <= start;
@@ -645,6 +650,9 @@ module mem_test #(
             end
             T_VR: if (vram_ack) begin
                 if (vram_q != vpat && vram_bad != 4'hf) vram_bad <= vram_bad + 4'd1;
+                if (idx[15:0] == 16'hffff) begin idx <= '0; st <= T_VZ; end else idx <= idx + 23'd1;
+            end
+            T_VZ: if (vram_ack) begin       // leave the tile RAM clear, as the game expects
                 if (idx[15:0] == 16'hffff) st <= T_DONE; else idx <= idx + 23'd1;
             end
             T_DONE: begin vram_ok <= (vram_bad == 4'd0); run <= 1'b0; done <= 1'b1; st <= T_IDLE; end

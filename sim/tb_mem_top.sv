@@ -7,6 +7,7 @@ module tb_mem_top #(parameter int TEST_SHRINK = 6) (
     input  logic        clk,
     input  logic        init,
     output logic        ready,
+    input  logic        ps_slow, sram_slow,
     input  logic        test_start, output logic test_run, test_done,
     output logic  [6:0] test_ok, test_stable, output logic vram_ok, output logic [3:0] vram_bad,
     input  logic        dl_we, input logic [24:0] dl_addr, input logic [7:0] dl_data,
@@ -30,6 +31,7 @@ module tb_mem_top #(parameter int TEST_SHRINK = 6) (
 
     gaia_mem #(.TEST_SHRINK(TEST_SHRINK)) dut (
         .clk(clk), .clk_sdram(clk), .init(init), .ready(ready), .rd_late(1'b1), .burst_slow(1'b0),
+        .ps_slow(ps_slow), .sram_slow(sram_slow),
         .test_start(test_start), .test_run(test_run), .test_done(test_done), .test_ok(test_ok), .test_stable(test_stable),
         .vram_ok(vram_ok), .vram_bad(vram_bad),
         .dl_we(dl_we), .dl_addr(dl_addr), .dl_data(dl_data),
