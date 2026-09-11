@@ -309,7 +309,9 @@ module gaia_main #(
     logic [1:0] srom_sel;
     /* verilator lint_on UNUSEDSIGNAL */
     assign dbg_irq5 = irq5_pend;
-    assign in1_word = {in1[7:2], eep_ready, eep_do, p2};
+    // MAME's dddeeprom_r: an access that includes the high byte returns IN1
+    // there with a zero low byte; only a low-byte access reads P2
+    assign in1_word = {in1[7:2], eep_ready, eep_do, uds ? 8'h00 : p2};
 
     // sources that answer in one cycle
     always_comb begin
