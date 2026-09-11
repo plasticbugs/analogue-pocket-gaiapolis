@@ -4,9 +4,10 @@ Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
 **Status: the whole machine boots through its self-test with every item OK
-and into the attract mode with music in simulation; the Pocket build fits
-the FPGA (52% logic, 66% block RAM) with timing closed at 96 MHz, and is
-ready for its first run on hardware.**
+and into the attract mode with music in simulation -- 40 seconds in, the
+music's level is within 1 dB of MAME's recording; the Pocket build fits
+the FPGA (52% logic, 66% block RAM) with timing closed at 96 MHz, CI
+publishes the SD-card package, and the first run on hardware is next.**
 
 | RTL, frame 1400 | MAME, frame 1400 | self-test |
 |---|---|---|
