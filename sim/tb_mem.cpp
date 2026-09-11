@@ -31,7 +31,12 @@ static unsigned prog_rd(long w) { dut->prog_req = 1; dut->prog_addr = w; bool ok
 static unsigned snd_rd(long b)  { dut->snd_req = 1;  dut->snd_addr = b;  bool ok = wait_ack(dut->snd_ack, "snd");   unsigned q = dut->snd_q;  dut->snd_req = 0;  tick(2); return ok ? q : 0xdd; }
 static unsigned pcm_rd(long b)  { dut->pcm_req = 1;  dut->pcm_addr = b;  bool ok = wait_ack(dut->pcm_ack, "pcm");   unsigned q = dut->pcm_q;  dut->pcm_req = 0;  tick(2); return ok ? q : 0xdd; }
 static unsigned map_rd(long b)  { dut->map_req = 1;  dut->map_addr = b;  bool ok = wait_ack(dut->map_ack, "map");   unsigned q = dut->map_q;  dut->map_req = 0;  tick(2); return ok ? q : 0xdead; }
-static unsigned chr_rd(long b)  { dut->chr_req = 1;  dut->chr_addr = b;  bool ok = wait_ack(dut->chr_ack, "chr");   unsigned q = dut->chr_q;  dut->chr_req = 0;  tick(2); return ok ? q : 0xdead; }
+// a character block: 16 words streamed, checked against the image's tile*64 + row*4 + column
+static unsigned blk_rd(long blk, unsigned short *w) {
+    dut->blk_req = 1; dut->blk_addr = blk; unsigned got = 0;
+    for (int i = 0; i < 4000; i++) { tick(); if (dut->blk_wr) { w[dut->blk_idx] = dut->blk_data; got |= 1u << dut->blk_idx; } if (dut->blk_ack) break; }
+    bool ok = dut->blk_ack; dut->blk_req = 0; tick(2); return ok ? got : 0;
+}
 static unsigned tile_rd(long w) { dut->tile_req = 1; dut->tile_addr = w; bool ok = wait_ack(dut->tile_ack, "tile"); unsigned q = dut->tile_q; dut->tile_req = 0; tick(2); return ok ? q : 0xdeadbeef; }
 static unsigned long long spr_rd(long w) { dut->spr_req = 1; dut->spr_addr = w; bool ok = wait_ack(dut->spr_ack, "spr"); unsigned long long q = dut->spr_q; dut->spr_req = 0; tick(2); return ok ? q : 0xdeadbeefdeadbeefULL; }
 static void vram_wr(unsigned a, unsigned d, unsigned be) { dut->vram_req = 1; dut->vram_we = 1; dut->vram_addr = a; dut->vram_wdata = d; dut->vram_be = be; wait_ack(dut->vram_ack, "vram write"); dut->vram_req = 0; dut->vram_we = 0; tick(2); }
@@ -100,7 +105,24 @@ int main(int argc, char **argv) {
     check("snd",  IMG_SND, IMG_TILE - IMG_SND,  [](long, long off){ return (unsigned long long)snd_rd(off); }, 1, [](long a){ return (unsigned long long)img[a]; });
     check("tile", IMG_TILE, IMG_CHR - IMG_TILE, [](long w, long){ return (unsigned long long)tile_rd(w); }, 4,
           [](long a){ return (unsigned long long)(((unsigned)be16(a) << 16) | be16(a + 2)); });
-    check("chr",  IMG_CHR, IMG_MAP - IMG_CHR,   [](long, long off){ return (unsigned long long)chr_rd(off); }, 2, [](long a){ return (unsigned long long)be16(a); });
+    {   // chr: every block in the sampled windows
+        unsigned bad = 0, cnt = 0; long len = IMG_MAP - IMG_CHR;
+        for (int win = 0; win < 2; win++) {
+            long off0 = win ? len - S : 0;
+            for (long off = off0; off < off0 + S; off += 128) {            // one tile = 128 bytes = 4 blocks
+                long tile = off / 128;
+                for (int wc = 0; wc < 4; wc++) {
+                    unsigned short w[16]; unsigned got = blk_rd(tile * 4 + wc, w); cnt++;
+                    if (got != 0xffff) { if (bad < 4) printf("  chr block %ld: only %04x words arrived\n", tile * 4 + wc, got); bad++; continue; }
+                    for (int row = 0; row < 16; row++) {
+                        unsigned exp = be16(IMG_CHR + tile * 128 + row * 8 + wc * 2);
+                        if (w[row] != exp) { if (bad < 4) printf("  chr block %ld row %d: got %04x expected %04x\n", tile * 4 + wc, row, w[row], exp); bad++; }
+                    }
+                }
+            }
+        }
+        printf("chr   %u blocks checked, %u bad\n", cnt, bad); errors += bad;
+    }
     check("map",  IMG_MAP, IMG_PCM - IMG_MAP,   [](long, long off){ return (unsigned long long)map_rd(off); }, 2, [](long a){ return (unsigned long long)be16(a); });
     check("pcm",  IMG_PCM, IMG_SPR - IMG_PCM,   [](long, long off){ return (unsigned long long)pcm_rd(off); }, 1, [](long a){ return (unsigned long long)img[a]; });
     check("spr",  IMG_SPR, IMG_EEP - IMG_SPR,   [](long w, long){ return spr_rd(w); }, 8,
@@ -113,6 +135,47 @@ int main(int argc, char **argv) {
     vram_wr(0x1234, 0xaa55, 3); vram_wr(0x1234, 0x11ff, 2); { unsigned g = vram_rd(0x1234); if (g != 0x1155) { printf("  vram byte lane: got %04x expected 1155\n", g); vbad++; } }
     vram_wr(0x1234, 0x22cc, 1); { unsigned g = vram_rd(0x1234); if (g != 0x11cc) { printf("  vram byte lane: got %04x expected 11cc\n", g); vbad++; } }
     printf("vram  %u bad\n", vbad); errors += vbad;
+
+    // contention: tile, sprite and PCM requests raised together, each held
+    // until its ack (or withdrawn early and re-raised for another address, as
+    // a renderer restarting a line does), every word checked. Only the
+    // sampled 2 KB at the head of each region is loaded, so addresses come
+    // from there.
+    {
+        unsigned bad = 0, done_t = 0, done_s = 0, done_p = 0, withdrawn = 0; unsigned seed = 12345;
+        auto rnd = [&]() { seed = seed * 1103515245u + 12345u; return seed >> 8; };
+        long t_w = 0, s_w = 0, p_b = 0; bool t_on = false, s_on = false, p_on = false;
+        auto new_t = [&]() { t_w = rnd() % (S / 4); dut->tile_addr = t_w; dut->tile_req = 1; t_on = true; };
+        auto new_s = [&]() { s_w = rnd() % (S / 8); dut->spr_addr = s_w; dut->spr_req = 1; s_on = true; };
+        auto new_p = [&]() { p_b = rnd() % S; dut->pcm_addr = p_b; dut->pcm_req = 1; p_on = true; };
+        new_t(); new_s(); new_p();
+        for (long n = 0; n < 400000 && (done_t < 3000 || done_s < 3000 || done_p < 3000); n++) {
+            tick();
+            if (t_on && dut->tile_ack) {
+                unsigned long long exp = ((unsigned long long)be16(IMG_TILE + t_w * 4) << 16) | be16(IMG_TILE + t_w * 4 + 2);
+                if (dut->tile_q != exp) { if (bad < 6) printf("  contention tile w%ld: got %08x expected %08llx\n", t_w, dut->tile_q, exp); bad++; }
+                dut->tile_req = 0; t_on = false; done_t++;
+            }
+            if (s_on && dut->spr_ack) {
+                unsigned long long exp = 0; for (int b = 0; b < 8; b++) exp = (exp << 8) | img[IMG_SPR + s_w * 8 + b];
+                if (dut->spr_q != exp) { if (bad < 6) printf("  contention spr w%ld: got %016llx expected %016llx\n", s_w, (unsigned long long)dut->spr_q, exp); bad++; }
+                dut->spr_req = 0; s_on = false; done_s++;
+            }
+            if (p_on && dut->pcm_ack) {
+                if (dut->pcm_q != img[IMG_PCM + p_b]) { if (bad < 6) printf("  contention pcm b%ld: got %02x expected %02x\n", p_b, dut->pcm_q, img[IMG_PCM + p_b]); bad++; }
+                dut->pcm_req = 0; p_on = false; done_p++;
+            }
+            // withdraw a standing request now and then, then ask for something else
+            if (t_on && (rnd() % 97) == 0) { dut->tile_req = 0; t_on = false; withdrawn++; }
+            if (s_on && (rnd() % 89) == 0) { dut->spr_req = 0; s_on = false; withdrawn++; }
+            if (!t_on && (rnd() % 3) == 0) new_t();
+            if (!s_on && (rnd() % 3) == 0) new_s();
+            if (!p_on && (rnd() % 5) == 0) new_p();
+        }
+        dut->tile_req = 0; dut->spr_req = 0; dut->pcm_req = 0; tick(50);
+        printf("contention: %u tile, %u sprite, %u pcm reads, %u withdrawn, %u bad\n", done_t, done_s, done_p, withdrawn, bad);
+        errors += bad; if (done_t < 3000 || done_s < 3000 || done_p < 3000) { printf("  contention: a port starved\n"); errors++; }
+    }
 
     // the built-in memory test (1/64 of each region): reload the heads of
     // the regions so the load-time sums restart at image byte 0, run it,

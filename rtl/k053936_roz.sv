@@ -10,10 +10,16 @@
 // frozen-state corpus uses; "super" (per-line) mode raises `unsupported`.
 //
 // Locality note: at the transforms this game uses, consecutive pixels along a
-// raster line step one source pixel in Y, so a tile-map cache pays for itself
-// (376 pixels need only 25-65 map fetches) while a character-row cache would
-// not -- every pixel lands on a different row of the tile. Measured in
-// docs/hardware.md section 11.
+// raster line step one source pixel in Y (x step 0, y step 1.0, or 2.7 on
+// the busiest screen), so a tile-map cache pays for itself (376 pixels need
+// only 25-65 map fetches) while every pixel lands on a different row of the
+// tile. The characters therefore come in as 16-word blocks: a tile's
+// 4-pixel word column, one word per row, one burst from the platform's
+// memory (stored column-major within the tile at load time), into a
+// 32-block direct-mapped cache by tile row that also serves the next three
+// raster lines, which step one source pixel across. On the Pocket's memories
+// the one-word-per-pixel reads cost 7,900-9,600 clocks a line against the
+// 6,144 available (tools/roz_fetches.py sizes the blocks: 25-65 a line).
 //
 // Deliberate divergence from MAME: K053936GP_copyroz32clip advances its
 // destination row before the loop body, so MAME paints raster row N with the
@@ -56,10 +62,15 @@ module k053936_roz #(
     input  logic [15:0] map_q,
 
     // character ROM (gfx3), same convention
-    output logic        chr_req,
-    output logic [20:0] chr_addr,
-    input  logic        chr_ack,
-    input  logic [15:0] chr_q,
+    // the character blocks: a level request for block blk_addr (tile*4 + word
+    // column), its 16 words streamed back with blk_wr/blk_idx/blk_data, then
+    // blk_ack for a request still standing with the same address
+    output logic        blk_req,
+    output logic [15:0] blk_addr,
+    input  logic        blk_wr,
+    input  logic  [3:0] blk_idx,
+    input  logic [15:0] blk_data,
+    input  logic        blk_ack,
 
     input  logic [LB_AW-1:0] px,
     output logic [11:0] pix,
@@ -102,7 +113,7 @@ module k053936_roz #(
     // ------------------------------------------------------------------ FSM
     typedef enum logic [3:0] {
         R_IDLE, R_SETUP, R_SETUP2, R_PIX, R_M1, R_M1W, R_M2, R_M2W, R_M3, R_M3W,
-        R_CHR, R_CHRW, R_EMIT
+        R_CHR, R_CHRW, R_CHRP, R_EMIT
     } state_t;
     state_t st;
 
@@ -125,7 +136,21 @@ module k053936_roz #(
     // not the register. Using `tileno` here mis-fetches exactly one pixel
     // at every tile boundary.
     wire [13:0] tileno_next = cache_miss ? {d2[5:0], d3} : tileno;
-    wire [20:0] chr_byte = {tileno_next, srcy[3:0], srcx[3:1]};   // tile*128 + row*8 + col/2
+    // the block cache: 32 entries by the tile's row on the plane, each a
+    // tile's word column (16 words); tags hold the block id
+    wire [15:0] blk_now = {tileno_next, srcx[3:2]};
+    wire  [4:0] blk_set = srcy[8:4];
+    logic [15:0] blk_tag [32];
+    logic [31:0] blk_valid;
+    logic [15:0] blk_mem [512];         // {set, row}
+    logic [15:0] blk_word;
+    logic  [8:0] blk_raddr;
+    logic  [4:0] fill_set;
+    logic  [1:0] pix_sel;               // srcx[1:0] of the pixel being read
+    always_ff @(posedge clk) begin
+        if (blk_wr) blk_mem[{fill_set, blk_idx}] <= blk_data;
+        blk_word <= blk_mem[blk_raddr];
+    end
     // the line's offset into the visible area, registered every clock so the
     // subtract does not sit in front of the line-start multiply (that path
     // missed by 0.08 ns on the Pocket)
@@ -135,13 +160,13 @@ module k053936_roz #(
     always_ff @(posedge clk) begin
         if (reset) begin
             st <= R_IDLE; busy <= 1'b0; bank <= 1'b0;
-            map_req <= 1'b0; chr_req <= 1'b0; unsupported <= 1'b0;
-            cache_valid <= 1'b0; cache_miss <= 1'b0;
+            map_req <= 1'b0; blk_req <= 1'b0; unsupported <= 1'b0;
+            cache_valid <= 1'b0; cache_miss <= 1'b0; blk_valid <= '0;
         end else if (line_start && st != R_IDLE) begin
             // the previous line overran its budget: abandon it and start this
             // one, as the hardware would -- whatever was drawn is what shows
             bank <= ~bank; busy <= 1'b1;
-            map_req <= 1'b0; chr_req <= 1'b0; st <= R_SETUP;
+            map_req <= 1'b0; blk_req <= 1'b0; st <= R_SETUP;
         end else begin
             case (st)
                 R_IDLE: begin
@@ -180,6 +205,7 @@ module k053936_roz #(
                     clipped <= clip_en & ((srcx < minx) | (srcx > maxx)
                                         | (srcy < miny) | (srcy > maxy));
                     ti <= ti_now;
+                    blk_raddr <= {blk_set, srcy[3:0]};     // the row's word is read from here on
                     if (!roz_enable) begin
                         pen <= 4'd0; st <= R_EMIT;
                     end else if (cache_valid && ti_now == cache_ti) begin
@@ -229,14 +255,24 @@ module k053936_roz #(
                         cache_ti <= ti;
                         cache_valid <= 1'b1;
                     end
-                    chr_addr <= chr_byte;
-                    chr_req  <= 1'b1;
-                    st <= R_CHRW;
+                    pix_sel   <= srcx[1:0];
+                    if (blk_valid[blk_set] && blk_tag[blk_set] == blk_now) begin
+                        st <= R_CHRP;                      // the block is cached
+                    end else begin
+                        blk_addr <= blk_now; blk_req <= 1'b1; fill_set <= blk_set;
+                        blk_valid[blk_set] <= 1'b0;
+                        st <= R_CHRW;
+                    end
                 end
-                R_CHRW: if (chr_ack) begin
-                    pen <= srcx[0] ? (chr_addr[0] ? chr_q[3:0]  : chr_q[11:8])
-                                   : (chr_addr[0] ? chr_q[7:4]  : chr_q[15:12]);
-                    chr_req <= 1'b0;
+                R_CHRW: if (blk_ack) begin
+                    blk_req <= 1'b0;
+                    blk_tag[fill_set] <= blk_addr; blk_valid[fill_set] <= 1'b1;
+                    st <= R_CHRP;
+                end
+                R_CHRP: begin
+                    // the word for this row is in blk_word; x's low bits pick the nibble
+                    pen <= (pix_sel == 2'd0) ? blk_word[15:12] : (pix_sel == 2'd1) ? blk_word[11:8]
+                         : (pix_sel == 2'd2) ? blk_word[7:4] : blk_word[3:0];
                     st <= R_EMIT;
                 end
 

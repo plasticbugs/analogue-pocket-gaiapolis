@@ -959,11 +959,12 @@ module core_top
     wire        ga_sram_slow_wr = mod_sw1[7]; // SRAM writes stretched
 
     // the core's memory ports
-    wire        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, chr_req, chr_ack, spr_req, spr_ack;
+    wire        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
+    wire        blk_req, blk_wr, blk_ack; wire [15:0] blk_addr, blk_data; wire [3:0] blk_idx;
     wire        snd_req, snd_ack, pcm_req, pcm_ack;
-    wire [22:1] prog_addr; wire [18:0] tile_addr; wire [19:0] map_addr; wire [20:0] chr_addr; wire [19:0] spr_addr;
+    wire [22:1] prog_addr; wire [18:0] tile_addr; wire [19:0] map_addr; wire [19:0] spr_addr;
     wire [17:0] snd_addr; wire [21:0] pcm_addr;
-    wire [15:0] prog_q, map_q, chr_q; wire [31:0] tile_q; wire [63:0] spr_q; wire [7:0] snd_q, pcm_q;
+    wire [15:0] prog_q, map_q; wire [31:0] tile_q; wire [63:0] spr_q; wire [7:0] snd_q, pcm_q;
     wire        vram_req, vram_we, vram_ack; wire [15:0] vram_addr, vram_wdata, vram_q; wire [1:0] vram_be;
 
     // the EEPROM array port: the image's default, then the save file, then
@@ -984,7 +985,7 @@ module core_top
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
-        .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
         .snd_req(snd_req), .snd_addr(snd_addr), .snd_ack(snd_ack), .snd_q(snd_q),
         .pcm_req(pcm_req), .pcm_addr(pcm_addr), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
@@ -1015,7 +1016,7 @@ module core_top
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
-        .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
         .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr), .vram_be(vram_be), .vram_wdata(vram_wdata),
         .vram_ack(vram_ack), .vram_q(vram_q),

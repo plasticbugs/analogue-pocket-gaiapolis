@@ -29,7 +29,7 @@ mkdir -p ../artifacts/system
 # ZLOG is given relative to the repository root
 case "${ZLOG:-}" in "") ;; /*) ;; *) ZLOG="../$ZLOG"; export ZLOG ;; esac
 case "${LAT:-}" in
-    pocket) LATARGS="+LAT_PROG=12 +LAT_TILE=12 +LAT_MAP=12 +LAT_CHR=12 +LAT_SPR=14 +LAT_SROM=12 +LAT_PCM=10 +LAT_VRAM=5" ;;
+    pocket) LATARGS="+LAT_PROG=12 +LAT_TILE=12 +LAT_MAP=12 +LAT_SPR=14 +LAT_BLK=14 +LAT_SROM=12 +LAT_PCM=10 +LAT_VRAM=5" ;;
     *)      LATARGS="${LAT:-}" ;;
 esac
 ./${OBJ:-obj_system}/Vtb_system_top "$ROM" "$FRAMES" ../artifacts/system/$NAME.rgb ../artifacts/system/$NAME.trace $LATARGS

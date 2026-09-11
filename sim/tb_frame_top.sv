@@ -34,6 +34,7 @@ module tb_frame_top (
     input  logic        line_start,
     input  logic  [8:0] line,
     output logic        busy,
+    output logic  [2:0] busy_src,       // {tilemap, ROZ, sprites}
     input  logic  [8:0] px,
     output logic [23:0] rgb,
     output logic        unsupported,
@@ -89,7 +90,34 @@ module tb_frame_top (
     logic [15:0] mrom [327680];
     logic        mrom_req, mrom_ack; logic [19:0] mrom_addr; logic [15:0] mrom_q;
     logic [15:0] crom [786432];
-    logic        crom_req, crom_ack; logic [20:0] crom_addr; logic [15:0] crom_q;
+
+    // the character blocks, as the platform streams them: LAT_BLK clocks after
+    // the request the 16 words of the tile's word column follow, one a clock,
+    // out of the image-layout ROM (word tile*64 + row*4 + column)
+    logic        blk_req, blk_wr, blk_ack;
+    logic [15:0] blk_addr, blk_data;
+    logic  [3:0] blk_idx;
+    int lat_blk, cnt_blk;
+    logic  [4:0] blk_n;                 // 0..15 streaming, 16 done
+    logic        blk_run;
+    logic [15:0] blk_addr_l;
+    initial if (!$value$plusargs("LAT_BLK=%d", lat_blk)) lat_blk = 0;
+    always_ff @(posedge clk) begin
+        blk_wr <= 1'b0; blk_ack <= 1'b0;
+        if (!blk_run) begin
+            cnt_blk <= 0; blk_n <= 5'd0;
+            if (blk_req && !blk_ack) begin blk_run <= 1'b1; blk_addr_l <= blk_addr; end
+        end else if (cnt_blk < lat_blk) cnt_blk <= cnt_blk + 1;
+        else if (blk_n != 5'd16) begin
+            blk_wr <= 1'b1; blk_idx <= blk_n[3:0];
+            blk_data <= crom[{blk_addr_l[15:2], blk_n[3:0], blk_addr_l[1:0]}];
+            blk_n <= blk_n + 5'd1;
+        end else begin
+            blk_run <= 1'b0;
+            if (blk_req && blk_addr == blk_addr_l) blk_ack <= 1'b1;
+        end
+    end
+
     logic [15:0] sram [2048];
     logic [10:0] ol_sram_addr, dr_sram_addr, sram_addr; logic [15:0] sram_q;
     logic [63:0] srom [1048576];
@@ -102,16 +130,15 @@ module tb_frame_top (
     assign sram_addr = ol_busy ? ol_sram_addr : dr_sram_addr;
 
     // Each memory answers LAT_* clocks after the request (+LAT_VRAM=n
-    // +LAT_TROM=n +LAT_MROM=n +LAT_CROM=n +LAT_SROM=n; 0 = the clock after,
+    // +LAT_TROM=n +LAT_MROM=n +LAT_SROM=n +LAT_BLK=n; 0 = the clock after,
     // the ideal). A request withdrawn before its ack is dropped, as the
     // Pocket memory ports do.
-    int lat_vram, lat_trom, lat_mrom, lat_crom, lat_srom;
-    int cnt_vram, cnt_trom, cnt_mrom, cnt_crom, cnt_srom;
+    int lat_vram, lat_trom, lat_mrom, lat_srom;
+    int cnt_vram, cnt_trom, cnt_mrom, cnt_srom;
     initial begin
         if (!$value$plusargs("LAT_VRAM=%d", lat_vram)) lat_vram = 0;
         if (!$value$plusargs("LAT_TROM=%d", lat_trom)) lat_trom = 0;
         if (!$value$plusargs("LAT_MROM=%d", lat_mrom)) lat_mrom = 0;
-        if (!$value$plusargs("LAT_CROM=%d", lat_crom)) lat_crom = 0;
         if (!$value$plusargs("LAT_SROM=%d", lat_srom)) lat_srom = 0;
     end
     `define ROM_PORT(req, ack, cnt, lat) \
@@ -133,7 +160,6 @@ module tb_frame_top (
         vram_q  <= vram[vram_addr];      `ROM_PORT(vram_req, vram_ack, cnt_vram, lat_vram)
         trom_q  <= trom[trom_addr];      `ROM_PORT(trom_req, trom_ack, cnt_trom, lat_trom)
         mrom_q  <= mrom[mrom_addr[19:1]]; `ROM_PORT(mrom_req, mrom_ack, cnt_mrom, lat_mrom)
-        crom_q  <= crom[crom_addr[20:1]]; `ROM_PORT(crom_req, crom_ack, cnt_crom, lat_crom)
         sram_q  <= sram[sram_addr];
         srom_q  <= srom[srom_addr];      `ROM_PORT(srom_req, srom_ack, cnt_srom, lat_srom)
         zoom_q  <= zoomtab[zoom_addr];
@@ -150,6 +176,7 @@ module tb_frame_top (
     logic [31:0] dbg0, dbg1, dbg2, dbg3;
 
     assign busy = tm_busy | roz_busy | dr_busy;
+    assign busy_src = {tm_busy, roz_busy, dr_busy};
     assign unsupported = tm_unsup | roz_unsup | overflow;
 
     k056832_tilemap u_tm (
@@ -163,7 +190,7 @@ module tb_frame_top (
         .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(roz_busy),
         .ctrl(rozctrl), .clip(rozclip), .roz_enable(roz_enable), .palbase(roz_palbase),
         .map_req(mrom_req), .map_addr(mrom_addr), .map_ack(mrom_ack), .map_q(mrom_q),
-        .chr_req(crom_req), .chr_addr(crom_addr), .chr_ack(crom_ack), .chr_q(crom_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .px(px), .pix(roz_pen), .opaque(roz_opq), .unsupported(roz_unsup)
     );
     logic  [9:0] ol_zoom_addr, dr_zoom_addr;

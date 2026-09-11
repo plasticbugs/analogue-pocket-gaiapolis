@@ -129,6 +129,8 @@ int main(int argc, char **argv) {
     unsigned vc_last = 0xffff;
     unsigned dr_objs0 = 0, dr_rows0 = 0, dr_cols0 = 0, dr_pxw0 = 0;   // the sprite renderer's counters at the last frame print
     int sprdump = -1; { const char *e = getenv("SPRDUMP"); if (e) sprdump = atoi(e); }   // dump sprite RAM after this frame
+    // COINAT=<frame> holds player 1's coin (in0_p1 bit 8, active low) for 8 frames from that frame; STARTAT likewise bit 7
+    int coinat = -1, startat = -1; { const char *e = getenv("COINAT"); if (e) coinat = atoi(e); e = getenv("STARTAT"); if (e) startat = atoi(e); }
     bool ovr_d = false;
     // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
     // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
@@ -209,6 +211,12 @@ int main(int argc, char **argv) {
                     fr_hist.clear();
                 }
                 if (irq_seen) irq_frames++;
+                {   // scripted inputs for the next frame
+                    unsigned in0 = 0xffff;
+                    if (coinat  >= 0 && frame + 1 >= coinat  && frame + 1 < coinat  + 8) in0 &= ~0x0100u;
+                    if (startat >= 0 && frame + 1 >= startat && frame + 1 < startat + 8) in0 &= ~0x0080u;
+                    dut->in0_p1 = in0;
+                }
                 irq_seen = false; frame_steps = 0; de_pixels = 0;
                 if (snapevery && ((frame + 1) % snapevery) == 0) {
                     char path[512]; snprintf(path, sizeof path, "%s.f%d", argv[3], frame + 1);

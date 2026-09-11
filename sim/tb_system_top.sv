@@ -51,24 +51,50 @@ module tb_system_top #(
     logic [17:0] srom_addr; logic [21:0] pcmr_addr;
     logic  [7:0] srom_q, pcmr_q;
 
-    logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, chr_req, chr_ack, spr_req, spr_ack;
-    logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [20:0] chr_addr; logic [19:0] spr_addr;
-    logic [15:0] prog_q, map_q, chr_q; logic [31:0] tile_q; logic [63:0] spr_q;
+    logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
+    logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [19:0] spr_addr;
+    logic [15:0] prog_q, map_q; logic [31:0] tile_q; logic [63:0] spr_q;
+    // the ROZ character blocks: LAT_BLK clocks after the request the 16 words
+    // of the tile's word column follow, one a clock, out of the image-layout
+    // array (word tile*64 + row*4 + column); a withdrawn request is dropped
+    logic        blk_req, blk_wr, blk_ack;
+    logic [15:0] blk_addr, blk_data;
+    logic  [3:0] blk_idx;
+    int lat_blk, cnt_blk;
+    logic  [4:0] blk_n;
+    logic        blk_run;
+    logic [15:0] blk_addr_l;
+    initial if (!$value$plusargs("LAT_BLK=%d", lat_blk)) lat_blk = 0;
+    always_ff @(posedge clk) begin
+        blk_wr <= 1'b0; blk_ack <= 1'b0;
+        if (!blk_run) begin
+            cnt_blk <= 0; blk_n <= 5'd0;
+            if (blk_req && !blk_ack) begin blk_run <= 1'b1; blk_addr_l <= blk_addr; end
+        end else if (cnt_blk < lat_blk) cnt_blk <= cnt_blk + 1;
+        else if (blk_n != 5'd16) begin
+            blk_wr <= 1'b1; blk_idx <= blk_n[3:0];
+            blk_data <= chr[{blk_addr_l[15:2], blk_n[3:0], blk_addr_l[1:0]}];
+            blk_n <= blk_n + 5'd1;
+        end else begin
+            blk_run <= 1'b0;
+            if (blk_req && blk_addr == blk_addr_l) blk_ack <= 1'b1;
+        end
+    end
+
 
     // Each ROM answers LAT_* clocks after the request (+LAT_PROG=n etc. on the
     // command line; 0 = the cycle after, the ideal). A request withdrawn
     // before its ack is dropped, as the Pocket memory ports do.
-    int lat_prog, lat_tile, lat_map, lat_chr, lat_spr, lat_srom, lat_pcm;
+    int lat_prog, lat_tile, lat_map, lat_spr, lat_srom, lat_pcm;
     initial begin
         if (!$value$plusargs("LAT_PROG=%d", lat_prog)) lat_prog = 0;
         if (!$value$plusargs("LAT_TILE=%d", lat_tile)) lat_tile = 0;
         if (!$value$plusargs("LAT_MAP=%d",  lat_map))  lat_map  = 0;
-        if (!$value$plusargs("LAT_CHR=%d",  lat_chr))  lat_chr  = 0;
         if (!$value$plusargs("LAT_SPR=%d",  lat_spr))  lat_spr  = 0;
         if (!$value$plusargs("LAT_SROM=%d", lat_srom)) lat_srom = 0;
         if (!$value$plusargs("LAT_PCM=%d",  lat_pcm))  lat_pcm  = 0;
     end
-    int cnt_prog, cnt_tile, cnt_map, cnt_chr, cnt_spr, cnt_srom, cnt_pcm;
+    int cnt_prog, cnt_tile, cnt_map, cnt_spr, cnt_srom, cnt_pcm;
     `define ROM_PORT(req, ack, cnt, lat) \
         if (!req) begin cnt <= 0; ack <= 1'b0; end \
         else if (ack) begin ack <= 1'b0; cnt <= 0; end \
@@ -88,7 +114,6 @@ module tb_system_top #(
         prog_q <= prog[prog_addr];       `ROM_PORT(prog_req, prog_ack, cnt_prog, lat_prog)
         tile_q <= tile[tile_addr];       `ROM_PORT(tile_req, tile_ack, cnt_tile, lat_tile)
         map_q  <= mapr[map_addr[19:1]];  `ROM_PORT(map_req,  map_ack,  cnt_map,  lat_map)
-        chr_q  <= chr[chr_addr[20:1]];   `ROM_PORT(chr_req,  chr_ack,  cnt_chr,  lat_chr)
         spr_q  <= spr[spr_addr];         `ROM_PORT(spr_req,  spr_ack,  cnt_spr,  lat_spr)
     end
 
@@ -117,7 +142,7 @@ module tb_system_top #(
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
-        .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
         .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr), .vram_be(vram_be), .vram_wdata(vram_wdata),
         .vram_ack(vram_ack), .vram_q(vram_q),

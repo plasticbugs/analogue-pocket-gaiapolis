@@ -112,10 +112,11 @@ should appear after five seconds, and the settings survive a power cycle).
   computes from RAM, not in a device. Cosmetic, and next after hardware.
   (The "~90 stale sprite entries" once listed here were real: MAME's list
   holds the same 113, most parked off-screen -- `tools/probe_objcount.lua`.)
-* One or two scanlines a frame overrun the render budget while the tower
-  scrolls in, with ideal memory; the frozen frames of that scene render at
-  under 2,400 clocks a line in isolation, so it is an interaction the
-  system run has and the gates do not.
+* The busiest gameplay screen (`s_busy`, the ROZ plane at 2.7x) still
+  costs the ROZ renderer 6,900 clocks a line against 6,144 with the Pocket
+  latencies: 65 tile changes at three map reads each, and five states a
+  pixel. Fewer map reads (two bytes of the three in one word) and fewer
+  states per pixel would bring it under.
 
 ## Running the frozen-state gate
 

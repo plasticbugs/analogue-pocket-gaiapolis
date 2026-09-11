@@ -38,10 +38,14 @@ module gaia_core #(
     output logic [19:0] map_addr,
     input  logic        map_ack,
     input  logic [15:0] map_q,
-    output logic        chr_req,
-    output logic [20:0] chr_addr,
-    input  logic        chr_ack,
-    input  logic [15:0] chr_q,
+    // the ROZ characters come in 16-word blocks (a tile's word column, one
+    // word per row), streamed: see k053936_roz.sv
+    output logic        blk_req,
+    output logic [15:0] blk_addr,
+    input  logic        blk_wr,
+    input  logic  [3:0] blk_idx,
+    input  logic [15:0] blk_data,
+    input  logic        blk_ack,
     // sprite ROM, 8 MB as 1M x 64
     output logic        spr_req,
     output logic [19:0] spr_addr,
@@ -237,9 +241,9 @@ module gaia_core #(
     logic  [9:0] list_idx, list_count; logic [31:0] list_q;
     logic [10:0] ol_sram_addr, dr_sram_addr;
     logic  [9:0] zoom_addr; logic [10:0] recip_addr; logic [23:0] zoom_q, recip_q;
-    logic        rmap_req, rmap_ack, rchr_req, rchr_ack, rtile_req, rtile_ack, rspr_req, rspr_ack;
+    logic        rmap_req, rmap_ack, rtile_req, rtile_ack, rspr_req, rspr_ack;
+    logic [15:0] chr_q;                 // the CPU's read-back word
     logic [19:0] rmap_addr;
-    logic [20:0] rchr_addr;
     logic [18:0] rtile_addr;
     logic [19:0] rspr_addr;
 
@@ -289,7 +293,7 @@ module gaia_core #(
         .clk(clk), .reset(reset), .line_start(line_start), .line(render_line), .busy(roz_busy),
         .ctrl(rozctrl), .clip(rozclip), .roz_enable(roz_enable), .palbase(roz_palbase),
         .map_req(rmap_req), .map_addr(rmap_addr), .map_ack(rmap_ack), .map_q(map_q),
-        .chr_req(rchr_req), .chr_addr(rchr_addr), .chr_ack(rchr_ack), .chr_q(chr_q),
+        .blk_req(rblk_req), .blk_addr(rblk_addr), .blk_wr(rblk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(rblk_ack),
         .px(px), .pix(roz_pen), .opaque(roz_opq), .unsupported(roz_unsup)
     );
     rom_arb2 #(.AW(20), .DW(16)) u_map_arb (
@@ -298,12 +302,44 @@ module gaia_core #(
         .c1_req(cmap_req), .c1_addr(cmap_addr), .c1_ack(cmap_ack),
         .m_req(map_req), .m_addr(map_addr), .m_ack(map_ack), .m_q(map_q), .q()
     );
-    rom_arb2 #(.AW(21), .DW(16)) u_chr_arb (
-        .clk(clk), .reset(reset),
-        .c0_req(rchr_req), .c0_addr(rchr_addr), .c0_ack(rchr_ack),
-        .c1_req(cchr_req), .c1_addr(cchr_addr), .c1_ack(cchr_ack),
-        .m_req(chr_req), .m_addr(chr_addr), .m_ack(chr_ack), .m_q(chr_q), .q()
-    );
+    // The block port is shared by the renderer (client 0) and the CPU's
+    // character read-back window (client 1), which reads one word: its
+    // adapter fetches the word's block and keeps the row it wants. The
+    // stream reaches only the client that owns the port.
+    logic        rblk_req, rblk_wr, rblk_ack, cblk_req, cblk_wr, cblk_ack;
+    logic [15:0] rblk_addr, cblk_addr;
+    logic        blk_busy, blk_sel;
+    always_ff @(posedge clk) begin
+        if (reset) begin blk_busy <= 1'b0; blk_sel <= 1'b0; end
+        else if (!blk_busy) begin
+            if (rblk_req)      begin blk_busy <= 1'b1; blk_sel <= 1'b0; end
+            else if (cblk_req) begin blk_busy <= 1'b1; blk_sel <= 1'b1; end
+        end else if (blk_ack || !(blk_sel ? cblk_req : rblk_req)) blk_busy <= 1'b0;
+    end
+    assign blk_req  = blk_busy && (blk_sel ? cblk_req : rblk_req);
+    assign blk_addr = blk_sel ? cblk_addr : rblk_addr;
+    assign rblk_ack = blk_busy && !blk_sel && blk_ack;
+    assign cblk_ack = blk_busy &&  blk_sel && blk_ack;
+    assign rblk_wr  = blk_busy && !blk_sel && blk_wr;
+    assign cblk_wr  = blk_busy &&  blk_sel && blk_wr;
+    // the CPU's word: image word w = tile*64 + row*4 + column -> block
+    // {tile, column}, row w[5:2]
+    logic [3:0]  cblk_row;
+    logic [15:0] cblk_word;
+    logic        cblk_run;
+    assign cblk_addr = {cchr_addr[20:7], cchr_addr[2:1]};
+    always_ff @(posedge clk) begin
+        cchr_ack <= 1'b0;
+        if (reset) begin cblk_req <= 1'b0; cblk_run <= 1'b0; end
+        else if (!cblk_run) begin
+            if (cchr_req && !cchr_ack) begin cblk_req <= 1'b1; cblk_row <= cchr_addr[6:3]; cblk_run <= 1'b1; end
+        end else begin
+            if (cblk_wr && blk_idx == cblk_row) cblk_word <= blk_data;
+            if (cblk_ack) begin cblk_req <= 1'b0; cblk_run <= 1'b0; cchr_ack <= 1'b1; end
+            else if (!cchr_req) begin cblk_req <= 1'b0; cblk_run <= 1'b0; end
+        end
+    end
+    assign chr_q = cblk_word;
     logic  [9:0] ol_zoom_addr, dr_zoom_addr;
     logic  [7:0] yr_addr; logic [21:0] yr_q;
     assign zoom_addr = ol_busy ? ol_zoom_addr : dr_zoom_addr;
@@ -376,6 +412,6 @@ module gaia_core #(
 
     /* verilator lint_off UNUSEDSIGNAL */
     wire unused = ^{k56regsb[0], k56regsb[1], k56regsb[2], k56regsb[3], roz_rombank, col_rd,
-                    ol_done, px_valid, vblank_rise};
+                    ol_done, px_valid, vblank_rise, cchr_addr[0]};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule

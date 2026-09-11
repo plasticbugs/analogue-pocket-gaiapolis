@@ -140,11 +140,16 @@ int main(int argc, char **argv) {
     while (!dut->build_done) { tick(); if (++c > 2000000) { fprintf(stderr, "objlist hung\n"); return 1; } }
 
     std::vector<unsigned> out(VIS_H * VIS_W, 0);
-    long worst = 0;
+    long worst = 0, worst_tm = 0, worst_roz = 0, worst_dr = 0;
     auto render_line = [&](int raster_y) -> long {
         dut->line_start = 1; dut->line = raster_y; tick(); dut->line_start = 0;
         long n = 0;
-        while (dut->busy) { tick(); if (++n > 2000000) { fprintf(stderr, "line %d hung\n", raster_y); exit(1); } }
+        long n_tm = 0, n_roz = 0, n_dr = 0;
+        while (dut->busy) {
+            tick(); if (++n > 2000000) { fprintf(stderr, "line %d hung\n", raster_y); exit(1); }
+            if (dut->busy_src & 4) n_tm = n; if (dut->busy_src & 2) n_roz = n; if (dut->busy_src & 1) n_dr = n;
+        }
+        if (n_tm > worst_tm) worst_tm = n_tm; if (n_roz > worst_roz) worst_roz = n_roz; if (n_dr > worst_dr) worst_dr = n_dr;
         return n;
     };
     render_line(VIS_Y0);
@@ -165,7 +170,7 @@ int main(int argc, char **argv) {
     FILE *of = fopen(argv[5], "wb");
     if (!of) { fprintf(stderr, "cannot write %s\n", argv[5]); return 1; }
     fwrite(out.data(), 4, out.size(), of); fclose(of);
-    printf("worst line %ld clocks (budget 6144)\n", worst);
+    printf("worst line %ld clocks (budget 6144; tilemap %ld, ROZ %ld, sprites %ld)\n", worst, worst_tm, worst_roz, worst_dr);
     delete dut;
     return 0;
 }

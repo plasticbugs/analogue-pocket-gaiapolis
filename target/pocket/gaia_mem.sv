@@ -5,8 +5,10 @@
 //   SDRAM        tiles     2 MB   byte 0x000000    2-word bursts
 //                PCM       4 MB   byte 0x200000    single words, one byte used
 //                sprites   8 MB   byte 0x600000    4-word bursts
-//   CRAM0 (PSRAM) ROZ chars 1.5 MB word 0x000000   single words
-//                ROZ map   640 KB word 0x0C0000    single words
+//                ROZ chars 1.5 MB byte 0xE00000    16-word bursts: a tile's word
+//                                                  column, stored column-major
+//                                                  within the tile at load time
+//   CRAM0 (PSRAM) ROZ map   640 KB word 0x0C0000    single words
 //   CRAM1 (PSRAM) 68000 program 3 MB word 0x000000 single words
 //                Z80 program 256 KB word 0x180000  single words, one byte used
 //   SRAM         K056832 tile RAM, 64K x 16     single words, byte-enabled writes
@@ -55,7 +57,8 @@ module gaia_mem #(
     input  logic        prog_req,  input  logic [22:1] prog_addr, output logic prog_ack, output logic [15:0] prog_q,
     input  logic        tile_req,  input  logic [18:0] tile_addr, output logic tile_ack, output logic [31:0] tile_q,
     input  logic        map_req,   input  logic [19:0] map_addr,  output logic map_ack,  output logic [15:0] map_q,
-    input  logic        chr_req,   input  logic [20:0] chr_addr,  output logic chr_ack,  output logic [15:0] chr_q,
+    input  logic        blk_req,   input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [3:0] blk_idx,
+    output logic [15:0] blk_data,  output logic        blk_ack,
     input  logic        spr_req,   input  logic [19:0] spr_addr,  output logic spr_ack,  output logic [63:0] spr_q,
     input  logic        snd_req,   input  logic [17:0] snd_addr,  output logic snd_ack,  output logic  [7:0] snd_q,
     input  logic        pcm_req,   input  logic [21:0] pcm_addr,  output logic pcm_ack,  output logic  [7:0] pcm_q,
@@ -83,7 +86,7 @@ module gaia_mem #(
     localparam [24:0] IMG_CHR  = 25'h0540000, IMG_MAP  = 25'h06C0000, IMG_PCM  = 25'h0760000;
     localparam [24:0] IMG_SPR  = 25'h0B60000, IMG_EEP  = 25'h1360000, IMG_END  = 25'h1360080;
     // SDRAM word addresses
-    localparam [24:1] SD_TILE = 24'h000000, SD_PCM = 24'h100000, SD_SPR = 24'h300000;
+    localparam [24:1] SD_TILE = 24'h000000, SD_PCM = 24'h100000, SD_SPR = 24'h300000, SD_ROZ = 24'h700000;
     // PSRAM word addresses
     localparam [22:0] PS_CHR = 23'h000000, PS_MAP = 23'h0C0000, PS_PROG = 23'h000000, PS_SND = 23'h180000;
 
@@ -116,6 +119,7 @@ module gaia_mem #(
     wire         wf_empty = (wf_wp == wf_rp);
     wire [41:0]  wf_head  = wfifo[wf_rp[5:0]];
     wire [24:1]  wa       = wf_head[41:18];
+    wire [19:0]  wchr     = 20'(wa - IMG_CHR[24:1]);   // word within the character region
     wire  [1:0]  wbe      = wf_head[17:16];
     wire [15:0]  wd       = wf_head[15:0];
 
@@ -154,8 +158,8 @@ module gaia_mem #(
                         ps_wr_addr <= PS_SND + 23'(wa - IMG_SND[24:1]); ps1_wr_req <= 1'b1; wst <= W_PS1;
                     end else if (wa < IMG_CHR[24:1]) begin        // tiles -> SDRAM
                         sd_wr_addr <= SD_TILE + (wa - IMG_TILE[24:1]); sd_wr_req <= 1'b1; wst <= W_SDRAM;
-                    end else if (wa < IMG_MAP[24:1]) begin        // ROZ characters -> CRAM0
-                        ps_wr_addr <= PS_CHR + 23'(wa - IMG_CHR[24:1]); ps0_wr_req <= 1'b1; wst <= W_PS0;
+                    end else if (wa < IMG_MAP[24:1]) begin        // ROZ characters -> SDRAM, column-major within the tile
+                        sd_wr_addr <= SD_ROZ + {4'd0, wchr[19:6], wchr[1:0], wchr[5:2]}; sd_wr_req <= 1'b1; wst <= W_SDRAM;
                     end else if (wa < IMG_PCM[24:1]) begin        // ROZ map -> CRAM0
                         ps_wr_addr <= PS_MAP + 23'(wa - IMG_MAP[24:1]); ps0_wr_req <= 1'b1; wst <= W_PS0;
                     end else if (wa < IMG_SPR[24:1]) begin        // PCM -> SDRAM
@@ -195,8 +199,8 @@ module gaia_mem #(
     logic  [9:0] b_widx;
 
     // the memory test drives the ports while it runs (the core is in reset)
-    logic        t_prog_req, t_snd_req, t_tile_req, t_chr_req, t_map_req, t_pcm_req, t_spr_req;
-    logic [22:1] t_prog_addr; logic [17:0] t_snd_addr; logic [18:0] t_tile_addr; logic [20:0] t_chr_addr;
+    logic        t_prog_req, t_snd_req, t_tile_req, t_blk_req, t_map_req, t_pcm_req, t_spr_req;
+    logic [22:1] t_prog_addr; logic [17:0] t_snd_addr; logic [18:0] t_tile_addr; logic [15:0] t_blk_addr;
     logic [19:0] t_map_addr;  logic [21:0] t_pcm_addr; logic [19:0] t_spr_addr;
     logic        t_vram_req, t_vram_we; logic [15:0] t_vram_addr, t_vram_wdata;
     wire         prog_req_i  = test_run ? t_prog_req  : prog_req;
@@ -205,8 +209,8 @@ module gaia_mem #(
     wire [17:0]  snd_addr_i  = test_run ? t_snd_addr  : snd_addr;
     wire         tile_req_i  = test_run ? t_tile_req  : tile_req;
     wire [18:0]  tile_addr_i = test_run ? t_tile_addr : tile_addr;
-    wire         chr_req_i   = test_run ? t_chr_req   : chr_req;
-    wire [20:0]  chr_addr_i  = test_run ? t_chr_addr  : chr_addr;
+    wire         blk_req_i   = test_run ? t_blk_req   : blk_req;
+    wire [15:0]  blk_addr_i  = test_run ? t_blk_addr  : blk_addr;
     wire         map_req_i   = test_run ? t_map_req   : map_req;
     wire [19:0]  map_addr_i  = test_run ? t_map_addr  : map_addr;
     wire         pcm_req_i   = test_run ? t_pcm_req   : pcm_req;
@@ -226,7 +230,7 @@ module gaia_mem #(
         .prog_req(t_prog_req), .prog_addr(t_prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .snd_req(t_snd_req), .snd_addr(t_snd_addr), .snd_ack(snd_ack), .snd_q(snd_q),
         .tile_req(t_tile_req), .tile_addr(t_tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
-        .chr_req(t_chr_req), .chr_addr(t_chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(t_blk_req), .blk_addr(t_blk_addr), .blk_wr(blk_wr), .blk_data(blk_data), .blk_ack(blk_ack),
         .map_req(t_map_req), .map_addr(t_map_addr), .map_ack(map_ack), .map_q(map_q),
         .pcm_req(t_pcm_req), .pcm_addr(t_pcm_addr), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
         .spr_req(t_spr_req), .spr_addr(t_spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
@@ -270,35 +274,45 @@ module gaia_mem #(
         assign c_addr[gi] = '0; assign c_req[gi] = 1'b0; assign c_we[gi] = 1'b0; assign c_wdata[gi] = '0; assign c_be[gi] = 2'b00;
     end endgenerate
 
-    // burst port: tiles (2 words) first, then sprites (4 words)
+    // burst port: tiles (2 words) first, then sprites (4 words), then the ROZ
+    // character blocks (16 words, streamed to the client as they arrive)
     typedef enum logic [1:0] { B_IDLE, B_RUN, B_ACK } bst_t;
     bst_t  bst;
-    logic  bsel;                        // 0 tiles, 1 sprites
+    logic  [1:0] bsel;                  // 0 tiles, 1 sprites, 2 ROZ blocks
     logic [18:0] tile_addr_l;
     logic [19:0] spr_addr_l;
+    logic [15:0] blk_addr_l;
     logic [15:0] bw [4];
     always_ff @(posedge clk) begin
-        if (init) begin bst <= B_IDLE; b_req <= 1'b0; tile_ack <= 1'b0; spr_ack <= 1'b0; end
+        blk_wr <= 1'b0;
+        if (init) begin bst <= B_IDLE; b_req <= 1'b0; tile_ack <= 1'b0; spr_ack <= 1'b0; blk_ack <= 1'b0; end
         else begin
-            tile_ack <= 1'b0; spr_ack <= 1'b0;
+            tile_ack <= 1'b0; spr_ack <= 1'b0; blk_ack <= 1'b0;
             case (bst)
                 B_IDLE: begin                   // not a request being acked right now
                     if (tile_req_i && !tile_ack) begin
-                        bsel <= 1'b0; tile_addr_l <= tile_addr_i;
+                        bsel <= 2'd0; tile_addr_l <= tile_addr_i;
                         b_addr <= SD_TILE + {4'd0, tile_addr_i, 1'b0}; b_len <= 10'd2; b_req <= 1'b1; bst <= B_RUN;
                     end else if (spr_req_i && !spr_ack) begin
-                        bsel <= 1'b1; spr_addr_l <= spr_addr_i;
+                        bsel <= 2'd1; spr_addr_l <= spr_addr_i;
                         b_addr <= SD_SPR + {2'd0, spr_addr_i, 2'b00}; b_len <= 10'd4; b_req <= 1'b1; bst <= B_RUN;
+                    end else if (blk_req_i && !blk_ack) begin
+                        bsel <= 2'd2; blk_addr_l <= blk_addr_i;
+                        b_addr <= SD_ROZ + {4'd0, blk_addr_i, 4'd0}; b_len <= 10'd16; b_req <= 1'b1; bst <= B_RUN;
                     end
                 end
                 B_RUN: begin
-                    if (b_wr) bw[b_idx[1:0]] <= b_data;
+                    if (b_wr) begin
+                        bw[b_idx[1:0]] <= b_data;
+                        if (bsel == 2'd2) begin blk_wr <= 1'b1; blk_idx <= b_idx[3:0]; blk_data <= b_data; end
+                    end
                     if (b_done) begin b_req <= 1'b0; bst <= B_ACK; end
                 end
                 B_ACK: begin
                     // ack only the request that is still standing
-                    if (!bsel && tile_req_i && tile_addr_i == tile_addr_l) tile_ack <= 1'b1;
-                    if ( bsel && spr_req_i  && spr_addr_i  == spr_addr_l)  spr_ack  <= 1'b1;
+                    if (bsel == 2'd0 && tile_req_i && tile_addr_i == tile_addr_l) tile_ack <= 1'b1;
+                    if (bsel == 2'd1 && spr_req_i  && spr_addr_i  == spr_addr_l)  spr_ack  <= 1'b1;
+                    if (bsel == 2'd2 && blk_req_i  && blk_addr_i  == blk_addr_l)  blk_ack  <= 1'b1;
                     bst <= B_IDLE;
                 end
                 default: bst <= B_IDLE;
@@ -320,11 +334,12 @@ module gaia_mem #(
     );
 
     // --------------------------------------------------------------- PSRAM
-    // CRAM0: ROZ characters (reader 0) and map (reader 1)
+    // CRAM0: the ROZ map (reader 0; the characters moved to the SDRAM)
+    logic        cram0_r1_ack; logic [15:0] cram0_r1_q;
     psram_port u_cram0 (
         .clk(clk), .reset(init), .slow(ps_slow),
-        .r0_req(chr_req_i), .r0_addr(PS_CHR + 23'(chr_addr_i[20:1])), .r0_ack(chr_ack), .r0_q(chr_q),
-        .r1_req(map_req_i), .r1_addr(PS_MAP + 23'(map_addr_i[19:1])), .r1_ack(map_ack), .r1_q(map_q),
+        .r0_req(map_req_i), .r0_addr(PS_MAP + 23'(map_addr_i[19:1])), .r0_ack(map_ack), .r0_q(map_q),
+        .r1_req(1'b0), .r1_addr(23'd0), .r1_ack(cram0_r1_ack), .r1_q(cram0_r1_q),
         .w_req(ps0_wr_req), .w_addr(ps_wr_addr), .w_data(wd), .w_be(wbe), .w_ack(ps0_wr_ack),
         .cram_a(cram0_a), .cram_dq(cram0_dq), .cram_wait(cram0_wait), .cram_clk(cram0_clk), .cram_adv_n(cram0_adv_n),
         .cram_cre(cram0_cre), .cram_ce0_n(cram0_ce0_n), .cram_ce1_n(cram0_ce1_n), .cram_oe_n(cram0_oe_n),
@@ -353,7 +368,7 @@ module gaia_mem #(
     );
 
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused = ^{b_widx, b_idx[9:2], dram_cs_n_unused, map_addr_i[0], chr_addr_i[0], IMG_PROG, wf_head[0]};
+    wire unused = ^{b_widx, b_idx[9:4], dram_cs_n_unused, map_addr_i[0], IMG_PROG, wf_head[0], cram0_r1_ack, cram0_r1_q, PS_CHR};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule
 
@@ -587,7 +602,7 @@ module mem_test #(
     output logic        prog_req, output logic [22:1] prog_addr, input logic prog_ack, input logic [15:0] prog_q,
     output logic        snd_req,  output logic [17:0] snd_addr,  input logic snd_ack,  input logic  [7:0] snd_q,
     output logic        tile_req, output logic [18:0] tile_addr, input logic tile_ack, input logic [31:0] tile_q,
-    output logic        chr_req,  output logic [20:0] chr_addr,  input logic chr_ack,  input logic [15:0] chr_q,
+    output logic        blk_req,  output logic [15:0] blk_addr,  input logic blk_wr,   input logic [15:0] blk_data, input logic blk_ack,
     output logic        map_req,  output logic [19:0] map_addr,  input logic map_ack,  input logic [15:0] map_q,
     output logic        pcm_req,  output logic [21:0] pcm_addr,  input logic pcm_ack,  input logic  [7:0] pcm_q,
     output logic        spr_req,  output logic [19:0] spr_addr,  input logic spr_ack,  input logic [63:0] spr_q,
@@ -598,7 +613,7 @@ module mem_test #(
     localparam [24:0] IMG_CHR  = 25'h0540000, IMG_MAP  = 25'h06C0000, IMG_PCM  = 25'h0760000;
     localparam [24:0] IMG_SPR  = 25'h0B60000, IMG_EEP  = 25'h1360000;
     // accesses per region, in each port's unit
-    localparam [22:0] N_PROG = 23'h180000, N_SND = 23'h040000, N_TILE = 23'h080000, N_CHR = 23'h0C0000;
+    localparam [22:0] N_PROG = 23'h180000, N_SND = 23'h040000, N_TILE = 23'h080000, N_CHR = 23'h00C000;   // chr: 16-word blocks
     localparam [22:0] N_MAP  = 23'h050000, N_PCM = 23'h400000, N_SPR  = 23'h100000;
 
     // the sums as the image arrives (a new image restarts them), in three
@@ -644,7 +659,7 @@ module mem_test #(
             3'd0: begin ack = prog_ack; bytes = 11'(prog_q[15:8]) + 11'(prog_q[7:0]); n_end = N_PROG >> SHRINK; end
             3'd1: begin ack = snd_ack;  bytes = 11'(snd_q); n_end = N_SND >> SHRINK; end
             3'd2: begin ack = tile_ack; bytes = 11'(tile_q[31:24]) + 11'(tile_q[23:16]) + 11'(tile_q[15:8]) + 11'(tile_q[7:0]); n_end = N_TILE >> SHRINK; end
-            3'd3: begin ack = chr_ack;  bytes = 11'(chr_q[15:8]) + 11'(chr_q[7:0]); n_end = N_CHR >> SHRINK; end
+            3'd3: begin ack = blk_ack;  bytes = 11'd0; n_end = N_CHR >> SHRINK; end   // summed per streamed word below
             3'd4: begin ack = map_ack;  bytes = 11'(map_q[15:8]) + 11'(map_q[7:0]); n_end = N_MAP >> SHRINK; end
             3'd5: begin ack = pcm_ack;  bytes = 11'(pcm_q); n_end = N_PCM >> SHRINK; end
             default: begin ack = spr_ack;
@@ -656,7 +671,7 @@ module mem_test #(
     assign prog_req = run && st == T_REQ && region == 3'd0;  assign prog_addr = idx[21:0];
     assign snd_req  = run && st == T_REQ && region == 3'd1;  assign snd_addr  = idx[17:0];
     assign tile_req = run && st == T_REQ && region == 3'd2;  assign tile_addr = idx[18:0];
-    assign chr_req  = run && st == T_REQ && region == 3'd3;  assign chr_addr  = {idx[19:0], 1'b0};
+    assign blk_req  = run && st == T_REQ && region == 3'd3;  assign blk_addr  = idx[15:0];
     assign map_req  = run && st == T_REQ && region == 3'd4;  assign map_addr  = {idx[18:0], 1'b0};
     assign pcm_req  = run && st == T_REQ && region == 3'd5;  assign pcm_addr  = idx[21:0];
     assign spr_req  = run && st == T_REQ && region == 3'd6;  assign spr_addr  = idx[19:0];
@@ -674,9 +689,12 @@ module mem_test #(
             T_IDLE: if (start && !start_d && ready) begin
                 run <= 1'b1; done <= 1'b0; region <= 3'd0; pass <= 1'b0; idx <= '0; acc <= '0; st <= T_REQ;
             end
-            T_REQ: if (ack) begin
-                acc <= acc + 24'(bytes);
-                if (idx == n_end - 23'd1) st <= T_NEXT; else idx <= idx + 23'd1;
+            T_REQ: begin
+                if (region == 3'd3 && blk_wr) acc <= acc + 24'(blk_data[15:8]) + 24'(blk_data[7:0]);
+                if (ack) begin
+                    if (region != 3'd3) acc <= acc + 24'(bytes);
+                    if (idx == n_end - 23'd1) st <= T_NEXT; else idx <= idx + 23'd1;
+                end
             end
             T_NEXT: begin
                 if (!pass) begin asum[region] <= acc; ok[region] <= (acc == lsum[region]); end

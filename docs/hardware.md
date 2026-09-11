@@ -346,8 +346,8 @@ The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
 
 | Bus | Size | Contents | Used | Access |
 |---|---|---|---|---|
-| `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB | 14 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), single words (PCM) |
-| `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, 12 clocks take to ack |
+| `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB, ROZ chars 1.5 MB | 15.5 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), 16-word bursts (ROZ tile columns), single words (PCM) |
+| `cram0` PSRAM | 16 MB | ROZ map 640 KB | 640 KB | single 16-bit async reads, 12 clocks take to ack |
 | `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, 12 clocks; the Z80 has a one-word cache |
 | `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, 6 clocks (read data 42 ns after the address); byte-enabled writes |
 
@@ -373,8 +373,21 @@ Why this way round:
 * The SDRAM is the burst memory: a sprite row is four consecutive words and
   a tile group two, one row activation each. Tiles ~2,100 + sprites ~520 +
   PCM ~160 clocks of the 6,144-clock line.
-* The ROZ's map and character reads are single 16-bit words, which is what an
-  async PSRAM does natively; ~1,300 clocks per line with the tile cache.
+* The ROZ's map reads are single 16-bit words, which is what an async PSRAM
+  does natively. Its characters were there too, one word per pixel, and
+  that is what the game's transforms need: along a raster line the plane is
+  walked straight down its source Y (x step 0, y step 1.0, or 2.7 on the
+  busiest screen), a different row of the same tile every pixel, so 376
+  reads a line at 12 clocks plus the map made 7,900-9,600 clocks against
+  the 6,144 of a line -- the tearing on the board's first gameplay screen.
+  The characters now live in the SDRAM, stored column-major within each
+  tile at load time, so a tile's 4-pixel word column is one 16-word burst
+  into the renderer's 32-block cache by tile row, which also serves the
+  next three raster lines (they step one source pixel across). Lines cost
+  3,800 clocks in the play and stage scenes, 2,900 in the tower, 6,900 on
+  the busiest screen (`tools/roz_fetches.py` sizes it from the model;
+  `sim/run_frame.sh` with the Pocket latencies measures it per renderer).
+  The CPU's read-back window fetches a word's block and keeps its row.
 * The tile RAM (128 KB) is the one *RAM* too big for the FPGA: as block RAM
   it needed two copies for its two readers, 2 Mbit of the device's 3.15.
   It lives in the 10 ns SRAM instead, behind one request/ack port shared by

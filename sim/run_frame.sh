@@ -4,7 +4,7 @@
 # is run with --roz-exact: it otherwise reproduces MAME's one-line ROZ shift,
 # which the RTL deliberately does not (see rtl/k053936_roz.sv).
 #   sim/run_frame.sh <gaiapolis.rom> [state-name ...]
-# LATARGS="+LAT_VRAM=5 +LAT_TROM=12 +LAT_MROM=12 +LAT_CROM=12 +LAT_SROM=14" models
+# LATARGS="+LAT_VRAM=5 +LAT_TROM=12 +LAT_MROM=12 +LAT_SROM=14 +LAT_BLK=14" models
 # the Pocket memories' latencies (default: every memory answers the clock after).
 set -e
 cd "$(dirname "$0")"

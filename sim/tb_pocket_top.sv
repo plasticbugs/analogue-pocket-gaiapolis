@@ -44,12 +44,13 @@ module tb_pocket_top #(
     output logic        snd_valid
 );
     // gaia_mem's layout (docs/hardware.md section 11)
-    localparam [23:0] SD_TILE = 24'h000000, SD_PCM = 24'h100000, SD_SPR = 24'h300000;
-    localparam [21:0] PS_CHR = 22'h000000, PS_MAP = 22'h0C0000, PS_PROG = 22'h000000, PS_SND = 22'h180000;
+    localparam [23:0] SD_TILE = 24'h000000, SD_PCM = 24'h100000, SD_SPR = 24'h300000, SD_ROZ = 24'h700000;
+    localparam [21:0] PS_MAP = 22'h0C0000, PS_PROG = 22'h000000, PS_SND = 22'h180000;
 
-    logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, chr_req, chr_ack, spr_req, spr_ack;
-    logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [20:0] chr_addr; logic [19:0] spr_addr;
-    logic [15:0] prog_q, map_q, chr_q; logic [31:0] tile_q; logic [63:0] spr_q;
+    logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
+    logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [19:0] spr_addr;
+    logic [15:0] prog_q, map_q; logic [31:0] tile_q; logic [63:0] spr_q;
+    logic        blk_req, blk_wr, blk_ack; logic [15:0] blk_addr, blk_data; logic [3:0] blk_idx;
     logic        srom_req, srom_ack, pcmr_req, pcmr_ack;
     logic [17:0] srom_addr; logic [21:0] pcmr_addr;
     logic  [7:0] srom_q, pcmr_q;
@@ -76,7 +77,7 @@ module tb_pocket_top #(
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
-        .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
         .snd_req(srom_req), .snd_addr(srom_addr), .snd_ack(srom_ack), .snd_q(srom_q),
         .pcm_req(pcmr_req), .pcm_addr(pcmr_addr), .pcm_ack(pcmr_ack), .pcm_q(pcmr_q),
@@ -109,7 +110,8 @@ module tb_pocket_top #(
             if (srom_waddr[0]) cram1.mem[PS_SND + 22'(srom_waddr[17:1])][7:0]  <= srom_wdata;
             else               cram1.mem[PS_SND + 22'(srom_waddr[17:1])][15:8] <= srom_wdata;
         end
-        if (chr_we) cram0.mem[PS_CHR + 22'(chr_waddr)] <= chr_wdata;
+        // the ROZ characters, column-major within each tile as the loader stores them
+        if (chr_we) chip.mem[SD_ROZ + {4'd0, chr_waddr[19:6], chr_waddr[1:0], chr_waddr[5:2]}] <= chr_wdata;
         if (map_we) cram0.mem[PS_MAP + 22'(map_waddr)] <= map_wdata;
         if (tile_we) begin
             chip.mem[SD_TILE + {4'd0, tile_waddr, 1'b0}] <= tile_wdata[31:16];
@@ -134,7 +136,7 @@ module tb_pocket_top #(
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
-        .chr_req(chr_req), .chr_addr(chr_addr), .chr_ack(chr_ack), .chr_q(chr_q),
+        .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),
         .spr_req(spr_req), .spr_addr(spr_addr), .spr_ack(spr_ack), .spr_q(spr_q),
         .vram_req(vram_req), .vram_we(vram_we), .vram_addr(vram_addr), .vram_be(vram_be), .vram_wdata(vram_wdata),
         .vram_ack(vram_ack), .vram_q(vram_q),
