@@ -592,23 +592,30 @@ module mem_test #(
     localparam [22:0] N_PROG = 23'h180000, N_SND = 23'h040000, N_TILE = 23'h080000, N_CHR = 23'h0C0000;
     localparam [22:0] N_MAP  = 23'h050000, N_PCM = 23'h400000, N_SPR  = 23'h100000;
 
-    // the sums as the image arrives (a new image restarts them)
+    // the sums as the image arrives (a new image restarts them), in three
+    // stages -- the byte, its region as a one-hot, the add -- since bytes
+    // come at least eight clocks apart and the region compares plus the
+    // add missed 96 MHz as one path from the loader's registers
     logic [23:0] lsum [7];
-    logic  [2:0] lreg;
-    always_comb begin
-        if      (dl_addr < IMG_SND)  lreg = 3'd0;
-        else if (dl_addr < IMG_TILE) lreg = 3'd1;
-        else if (dl_addr < IMG_CHR)  lreg = 3'd2;
-        else if (dl_addr < IMG_MAP)  lreg = 3'd3;
-        else if (dl_addr < IMG_PCM)  lreg = 3'd4;
-        else if (dl_addr < IMG_SPR)  lreg = 3'd5;
-        else if (dl_addr < IMG_EEP)  lreg = 3'd6;
-        else                         lreg = 3'd7;
-    end
+    logic        b1_we, b1_first, b2_we, b2_first;
+    logic [24:0] b1_addr;
+    logic  [7:0] b1_data, b2_data;
+    logic  [6:0] b2_sel;
     always_ff @(posedge clk) begin
-        if (init || (dl_we && dl_addr == 25'd0)) begin
-            for (int i = 0; i < 7; i++) lsum[i] <= (i == 0 && dl_we) ? 24'(dl_data) : '0;
-        end else if (dl_we && lreg != 3'd7) lsum[lreg] <= lsum[lreg] + 24'(dl_data);
+        b1_we <= dl_we; b1_addr <= dl_addr; b1_data <= dl_data;
+        b1_first <= dl_we && (dl_addr == 25'd0);
+        b2_we <= b1_we; b2_data <= b1_data; b2_first <= b1_first;
+        b2_sel[0] <= (b1_addr < IMG_SND);
+        b2_sel[1] <= (b1_addr >= IMG_SND)  && (b1_addr < IMG_TILE);
+        b2_sel[2] <= (b1_addr >= IMG_TILE) && (b1_addr < IMG_CHR);
+        b2_sel[3] <= (b1_addr >= IMG_CHR)  && (b1_addr < IMG_MAP);
+        b2_sel[4] <= (b1_addr >= IMG_MAP)  && (b1_addr < IMG_PCM);
+        b2_sel[5] <= (b1_addr >= IMG_PCM)  && (b1_addr < IMG_SPR);
+        b2_sel[6] <= (b1_addr >= IMG_SPR)  && (b1_addr < IMG_EEP);
+        for (int i = 0; i < 7; i++) begin
+            if (init || b2_first) lsum[i] <= (i == 0 && b2_first) ? 24'(b2_data) : '0;
+            else if (b2_we && b2_sel[i]) lsum[i] <= lsum[i] + 24'(b2_data);
+        end
     end
 
     // the read-back
