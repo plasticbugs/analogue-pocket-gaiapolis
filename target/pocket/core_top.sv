@@ -1048,9 +1048,8 @@ module core_top
     //!          byte (0x00) [7:0]
     //! ------------------------------------------------------------------
     wire        ovl_en = mod_sw0[3];
-    logic [7:0] ovl_frames, ovl_resets;
-    logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd;
-    logic [7:0] ovl_z0;
+    logic [7:0] ovl_frames, ovl_resets, ovl_overruns, ovl_overruns_l;
+    logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd, ovl_unsup, ovl_shadow;
     logic       allc_s, nvl_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
     synch_3 sync_nvl(nv_loaded, nvl_s, clk_sys);
@@ -1060,22 +1059,26 @@ module core_top
         if (ga_vs && !ovl_vs_d) begin
             ovl_frames <= ovl_frames + 8'd1;
             ovl_seen_step <= 1'b0; ovl_seen_zstep <= 1'b0; ovl_seen_snd <= 1'b0;
+            ovl_overruns_l <= ovl_overruns; ovl_overruns <= 8'd0;     // lines that overran their render budget, per frame
         end
+        if (dbg_overrun && ovl_overruns != 8'hff) ovl_overruns <= ovl_overruns + 8'd1;
+        if (dbg_unsupported)   ovl_unsup  <= 1'b1;                     // sticky: a renderer met a mode it does not do
+        if (dbg_shadow_overlap) ovl_shadow <= 1'b1;
         if (dbg_step)  ovl_seen_step  <= 1'b1;
         if (dbg_zstep) ovl_seen_zstep <= 1'b1;
         if (ga_snd_valid && (ga_snd_l != 16'd0)) ovl_seen_snd <= 1'b1;
-        if (snd_ack && snd_addr == 18'd0) ovl_z0 <= snd_q;
     end
     // Row 0: frame counter | pll, sdram ready, download, all-complete, save loaded, core reset, irq5, 68000 stepped
     //        | core resets seen | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped
     // Row 1: 68000 address (24) | region read back ok: prog, snd, tile, chr, map, pcm, spr | sound heard
-    // Row 2: region read stable: prog, snd, tile, chr, map, pcm, spr, 0 | Z80 PC (16) | Z80 ROM byte 0 (F3)
+    // Row 2: region read stable: prog, snd, tile, chr, map, pcm, spr, 0 | overrun lines last frame (8)
+    //        | sprites in the list / 4 (8) | unsupported mode seen, shadow overlap seen, 0 (6)
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
         ovl_resets, test_done, test_run, vram_ok, vram_bad, ovl_seen_zstep,
         dbg_addr, test_ok[0], test_ok[1], test_ok[2], test_ok[3], test_ok[4], test_ok[5], test_ok[6], ovl_seen_snd,
         test_stable[0], test_stable[1], test_stable[2], test_stable[3], test_stable[4], test_stable[5], test_stable[6], 1'b0,
-        dbg_zpc, ovl_z0
+        ovl_overruns_l, dbg_objcount[9:2], ovl_unsup, ovl_shadow, 6'd0
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;
     dbg_overlay ovl (
