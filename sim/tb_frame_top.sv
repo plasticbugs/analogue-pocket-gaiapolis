@@ -101,6 +101,25 @@ module tb_frame_top (
     logic        ol_busy;
     assign sram_addr = ol_busy ? ol_sram_addr : dr_sram_addr;
 
+    // Each memory answers LAT_* clocks after the request (+LAT_VRAM=n
+    // +LAT_TROM=n +LAT_MROM=n +LAT_CROM=n +LAT_SROM=n; 0 = the clock after,
+    // the ideal). A request withdrawn before its ack is dropped, as the
+    // Pocket memory ports do.
+    int lat_vram, lat_trom, lat_mrom, lat_crom, lat_srom;
+    int cnt_vram, cnt_trom, cnt_mrom, cnt_crom, cnt_srom;
+    initial begin
+        if (!$value$plusargs("LAT_VRAM=%d", lat_vram)) lat_vram = 0;
+        if (!$value$plusargs("LAT_TROM=%d", lat_trom)) lat_trom = 0;
+        if (!$value$plusargs("LAT_MROM=%d", lat_mrom)) lat_mrom = 0;
+        if (!$value$plusargs("LAT_CROM=%d", lat_crom)) lat_crom = 0;
+        if (!$value$plusargs("LAT_SROM=%d", lat_srom)) lat_srom = 0;
+    end
+    `define ROM_PORT(req, ack, cnt, lat) \
+        if (!req) begin cnt <= 0; ack <= 1'b0; end \
+        else if (ack) begin ack <= 1'b0; cnt <= 0; end \
+        else if (cnt >= lat) begin ack <= 1'b1; cnt <= 0; end \
+        else begin cnt <= cnt + 1; ack <= 1'b0; end
+
     always_ff @(posedge clk) begin
         if (vram_we) vram[vram_waddr] <= vram_wdata;
         if (trom_we) trom[trom_waddr] <= trom_wdata;
@@ -111,12 +130,12 @@ module tb_frame_top (
         if (pal_we)  pal[pal_waddr]   <= pal_wdata;
         if (tab_we && !tab_sel) zoomtab[tab_waddr[9:0]] <= tab_wdata;
         if (tab_we &&  tab_sel) reciptab[tab_waddr]     <= tab_wdata;
-        vram_q  <= vram[vram_addr];      vram_ack <= vram_req & ~vram_ack;
-        trom_q  <= trom[trom_addr];      trom_ack <= trom_req & ~trom_ack;
-        mrom_q  <= mrom[mrom_addr[19:1]]; mrom_ack <= mrom_req & ~mrom_ack;
-        crom_q  <= crom[crom_addr[20:1]]; crom_ack <= crom_req & ~crom_ack;
+        vram_q  <= vram[vram_addr];      `ROM_PORT(vram_req, vram_ack, cnt_vram, lat_vram)
+        trom_q  <= trom[trom_addr];      `ROM_PORT(trom_req, trom_ack, cnt_trom, lat_trom)
+        mrom_q  <= mrom[mrom_addr[19:1]]; `ROM_PORT(mrom_req, mrom_ack, cnt_mrom, lat_mrom)
+        crom_q  <= crom[crom_addr[20:1]]; `ROM_PORT(crom_req, crom_ack, cnt_crom, lat_crom)
         sram_q  <= sram[sram_addr];
-        srom_q  <= srom[srom_addr];      srom_ack <= srom_req & ~srom_ack;
+        srom_q  <= srom[srom_addr];      `ROM_PORT(srom_req, srom_ack, cnt_srom, lat_srom)
         zoom_q  <= zoomtab[zoom_addr];
         recip_q <= reciptab[recip_addr];
         pal_q   <= pal[pal_addr];

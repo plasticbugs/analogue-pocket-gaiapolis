@@ -32,6 +32,15 @@ set_multicycle_path -setup 2 -from [get_clocks {dram_clk}] -to [get_registers {*
 set_multicycle_path -setup 3 -from [get_registers {*|sdram_ctrl:*|last[*]}] -to [get_registers {*|sdram_ctrl:*|*}]
 set_multicycle_path -hold  2 -from [get_registers {*|sdram_ctrl:*|last[*]}] -to [get_registers {*|sdram_ctrl:*|*}]
 
+# The pixel hand-over to the 8 MHz video clock: the colour and sync
+# registers are launched two system clocks before the clk_vid edge that
+# samples them (core_top.sv, clk_enables.sv), so the setup check starts
+# from that launch edge; the toggle the other way (vt -> vt_s) is a plain
+# flop-to-flop path checked at the 5.2 ns edge relationship as it stands.
+set VID_OUT [get_registers {ic|vr_q[*] ic|vg_q[*] ic|vb_q[*] ic|vhs_q ic|vvs_q ic|vde_q}]
+set_multicycle_path -setup 3 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
+set_multicycle_path -hold  2 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
+
 # PSRAM: an asynchronous interface driven by a state machine that holds every
 # pin for whole system cycles with tens of nanoseconds of margin
 # (target/pocket/psram.sv), so the pins are not timed against a clock.

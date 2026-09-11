@@ -1008,9 +1008,10 @@ module core_top
     wire [23:0] dbg_addr; wire [15:0] dbg_data; wire [1:0] dbg_busstate; wire [9:0] dbg_objcount; wire [8:0] dbg_vcount;
     wire [15:0] dbg_zpc;
     wire        dbg_step, dbg_irq5, dbg_overrun, dbg_unsupported, dbg_shadow_overlap, dbg_zstep, dbg_zwait;
+    wire  [2:0] dbg_overrun_src;
 
     gaia_core #(.HEXDIR("../rtl/data")) ga (
-        .clk(clk_sys), .reset(ga_reset), .vid_reset(~pll_locked_sys),
+        .clk(clk_sys), .reset(ga_reset), .pix_sync(pix_sync), .vid_reset(~pll_locked_sys),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
@@ -1025,7 +1026,7 @@ module core_top
         .cen_pix(ga_cen_pix), .rgb(ga_rgb), .hsync(ga_hs), .vsync(ga_vs), .de(ga_de), .vblank(ga_vb),
         .snd_l(ga_snd_l), .snd_r(ga_snd_r), .snd_valid(ga_snd_valid),
         .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
-        .dbg_overrun(dbg_overrun), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
+        .dbg_overrun(dbg_overrun), .dbg_overrun_src(dbg_overrun_src), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
         .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount), .dbg_zpc(dbg_zpc), .dbg_zstep(dbg_zstep), .dbg_zwait(dbg_zwait)
     );
 
@@ -1049,6 +1050,8 @@ module core_top
     //! ------------------------------------------------------------------
     wire        ovl_en = mod_sw0[3];
     logic [7:0] ovl_frames, ovl_resets, ovl_overruns, ovl_overruns_l;
+    logic [2:0] ovl_ovsrc, ovl_ovsrc_l;
+    logic       ovl_ovr_d;
     logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd, ovl_unsup, ovl_shadow;
     logic       allc_s, nvl_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
@@ -1060,8 +1063,11 @@ module core_top
             ovl_frames <= ovl_frames + 8'd1;
             ovl_seen_step <= 1'b0; ovl_seen_zstep <= 1'b0; ovl_seen_snd <= 1'b0;
             ovl_overruns_l <= ovl_overruns; ovl_overruns <= 8'd0;     // lines that overran their render budget, per frame
+            ovl_ovsrc_l <= ovl_ovsrc; ovl_ovsrc <= 3'd0;               // and which renderers, over the frame
         end
-        if (dbg_overrun && ovl_overruns != 8'hff) ovl_overruns <= ovl_overruns + 8'd1;
+        ovl_ovr_d <= dbg_overrun;                                      // the flag holds for the line: count its edges
+        if (dbg_overrun && !ovl_ovr_d && ovl_overruns != 8'hff) ovl_overruns <= ovl_overruns + 8'd1;
+        if (dbg_overrun && !ovl_ovr_d) ovl_ovsrc <= ovl_ovsrc | dbg_overrun_src;
         if (dbg_unsupported)   ovl_unsup  <= 1'b1;                     // sticky: a renderer met a mode it does not do
         if (dbg_shadow_overlap) ovl_shadow <= 1'b1;
         if (dbg_step)  ovl_seen_step  <= 1'b1;
@@ -1072,13 +1078,14 @@ module core_top
     //        | core resets seen | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped
     // Row 1: 68000 address (24) | region read back ok: prog, snd, tile, chr, map, pcm, spr | sound heard
     // Row 2: region read stable: prog, snd, tile, chr, map, pcm, spr, 0 | overrun lines last frame (8)
-    //        | sprites in the list / 4 (8) | unsupported mode seen, shadow overlap seen, 0 (6)
+    //        | sprites in the list / 4 (8) | unsupported mode seen, shadow overlap seen, 0, 0, 0,
+    //        overran: tilemap, ROZ, sprites (last frame)
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
         ovl_resets, test_done, test_run, vram_ok, vram_bad, ovl_seen_zstep,
         dbg_addr, test_ok[0], test_ok[1], test_ok[2], test_ok[3], test_ok[4], test_ok[5], test_ok[6], ovl_seen_snd,
         test_stable[0], test_stable[1], test_stable[2], test_stable[3], test_stable[4], test_stable[5], test_stable[6], 1'b0,
-        ovl_overruns_l, dbg_objcount[9:2], ovl_unsup, ovl_shadow, 6'd0
+        ovl_overruns_l, dbg_objcount[9:2], ovl_unsup, ovl_shadow, 3'd0, ovl_ovsrc_l
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;
     dbg_overlay ovl (
@@ -1090,10 +1097,18 @@ module core_top
     //! ------------------------------------------------------------------
     //! Video: the core emits one pixel per 8 MHz enable in the 96 MHz domain
     //! and holds it for the 12 cycles; clk_vid is 8 MHz from the same PLL,
-    //! placed half a system cycle after the system edges, so this register
-    //! takes exactly one clean sample per pixel whatever the enable's phase
-    //! (the arrangement the S.T.U.N. Runner core uses at 24 MHz).
+    //! half a system cycle after a system edge. The enable's phase is pinned
+    //! to clk_vid: its edge, seen through two system-clock flops, restarts
+    //! the core's divider (clk_enables.sv) so the colour stage updates two
+    //! system clocks before the clk_vid edge that samples it here -- 26 ns
+    //! of margin by construction, not by luck of the reset phase, and the
+    //! SDC gives the analyser that launch edge (a multicycle from the start).
     //! ------------------------------------------------------------------
+    reg       vt = 1'b0;                // toggles on clk_vid
+    reg       vt_s, vt_d;
+    always @(posedge clk_vid) vt <= ~vt;
+    always @(posedge clk_sys) begin vt_s <= vt; vt_d <= vt_s; end
+    wire      pix_sync = vt_s ^ vt_d;   // the clock after clk_vid's edge is seen
     reg [7:0] vr_q, vg_q, vb_q;
     reg       vhs_q, vvs_q, vde_q;
     always @(posedge clk_vid) begin

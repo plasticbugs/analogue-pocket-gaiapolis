@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
     std::vector<unsigned> watch; std::vector<unsigned> watch_n;
     if (getenv("WATCH")) { char *w = strdup(getenv("WATCH")); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) { watch.push_back(strtoul(t, nullptr, 16)); watch_n.push_back(0); } }
     std::map<unsigned, unsigned> fr_hist, z_hist;
-    unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0, overruns = 0, overruns_total = 0;
+    unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0, overruns = 0, overruns_total = 0, ovr_tm = 0, ovr_roz = 0, ovr_dr = 0;
     bool ovr_d = false;
     // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
     // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
         if (want_audio && dut->snd_valid) { audio.push_back((short)dut->snd_l); audio.push_back((short)dut->snd_r); }
         if (dut->dbg_zstep) { z_steps++; z_hist[dut->dbg_zpc]++; }
         if (dut->dbg_zwait) z_wait++;
-        if (dut->dbg_overrun && !ovr_d) overruns++;
+        if (dut->dbg_overrun && !ovr_d) { overruns++; if (dut->dbg_overrun_src & 4) ovr_tm++; if (dut->dbg_overrun_src & 2) ovr_roz++; if (dut->dbg_overrun_src & 1) ovr_dr++; }
         ovr_d = dut->dbg_overrun;
         if (dut->dbg_zrd && !zrd_d) { unsigned a = dut->dbg_zpc; if (a == 0xe22d) z_s1++; else if (a == 0xe62d) z_s2++; }
         if (dut->dbg_zwr && !zwr_d && zlog) {
@@ -178,12 +178,12 @@ int main(int argc, char **argv) {
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
                     unsigned zhot = 0, zhotn = 0;
                     for (auto &kv : z_hist) if (kv.second > zhotn) { zhotn = kv.second; zhot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u\n",
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u ovr_tm=%u ovr_roz=%u ovr_dr=%u\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
                             overruns, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
-                            (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2);
+                            (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2, ovr_tm, ovr_roz, ovr_dr);
                     z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
-                    overruns_total += overruns; overruns = 0;
+                    overruns_total += overruns; overruns = 0; ovr_tm = 0; ovr_roz = 0; ovr_dr = 0;
                     for (size_t i = 0; i < watch.size(); i++) { fprintf(tr, "   watch %06x: %u\n", watch[i], watch_n[i]); watch_n[i] = 0; }
                     fr_hist.clear();
                 }

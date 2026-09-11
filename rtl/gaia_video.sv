@@ -38,8 +38,9 @@ module gaia_video #(
     // to the renderers
     output logic        line_start,
     output logic  [8:0] render_line,
-    input  logic        renderers_busy,
+    input  logic  [2:0] renderers_busy, // {tilemap, ROZ, sprites}
     output logic        overrun,
+    output logic  [2:0] overrun_src,    // which of them, with the pulse
 
     // scan-out
     output logic  [8:0] px,             // visible pixel index, valid with px_valid
@@ -65,7 +66,7 @@ module gaia_video #(
         line_start  <= 1'b0;
         vblank_rise <= 1'b0;
         if (reset) begin
-            hcount <= '0; vcount <= '0; overrun <= 1'b0;
+            hcount <= '0; vcount <= '0; overrun <= 1'b0; overrun_src <= '0;
             hsync <= 1'b0; vsync <= 1'b0; de <= 1'b0; vblank <= 1'b1; vb_prev <= 1'b1;
             px <= '0; px_valid <= 1'b0; render_line <= '0;
         end else if (cen_pix) begin
@@ -82,7 +83,8 @@ module gaia_video #(
                 if (nxt >= 9'(VIS_Y0) && nxt < 9'(VIS_Y0 + VIS_H)) begin
                     line_start  <= 1'b1;
                     render_line <= nxt;
-                    overrun <= renderers_busy;      // one pulse per overrunning line
+                    overrun <= |renderers_busy;     // one pulse per overrunning line
+                    overrun_src <= renderers_busy;
                 end
             end
 

@@ -4,6 +4,8 @@
 # is run with --roz-exact: it otherwise reproduces MAME's one-line ROZ shift,
 # which the RTL deliberately does not (see rtl/k053936_roz.sv).
 #   sim/run_frame.sh <gaiapolis.rom> [state-name ...]
+# LATARGS="+LAT_VRAM=5 +LAT_TROM=12 +LAT_MROM=12 +LAT_CROM=12 +LAT_SROM=14" models
+# the Pocket memories' latencies (default: every memory answers the clock after).
 set -e
 cd "$(dirname "$0")"
 ROM="$1"; shift
@@ -25,7 +27,7 @@ fail=0
 for n in $names; do
     printf '%-16s ' "$n"
     ./obj_frame/Vtb_frame_top ../artifacts/states/$n.txt "$ROM" \
-        ../rtl/data/zoom.hex ../rtl/data/recip.hex ../artifacts/rtl/$n.rtl.frame.rgb \
+        ../rtl/data/zoom.hex ../rtl/data/recip.hex ../artifacts/rtl/$n.rtl.frame.rgb ${LATARGS:-} \
         > ../artifacts/rtl/$n.framelog 2>&1 || { echo "BENCH FAILED"; cat ../artifacts/rtl/$n.framelog; fail=1; continue; }
     python3 ../tools/render_model.py ../artifacts/states/$n.txt "$ROM" \
         --roz-exact --dump-rgb=../artifacts/rtl/$n.model.frame.rgb > /dev/null

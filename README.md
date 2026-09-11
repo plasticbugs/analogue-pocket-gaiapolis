@@ -70,6 +70,7 @@ saved to `gaiapolis.sav`.
 | `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
 | `sim/run_*.sh` | Frozen-state gates for each RTL block, and `run_frame.sh` for the whole pipeline, diffed against the model |
 | `sim/run_system.sh` | The whole machine from reset: frames as PNG, the 68000/Z80 trace, audio as WAV; `LAT=pocket` models the Pocket memories' latencies, `MEM=pocket` puts the real Pocket memory subsystem and chip models in the loop |
+| `sim/run_pixsync.sh` | The pixel hand-over to the Pocket's 8 MHz video clock: where the enable and the colour latch fall against its edge |
 | `sim/run_mem.sh` | The Pocket memory subsystem with behavioural SDRAM, PSRAM and SRAM chips: the image in through the loader port at the APF's maximum rate, back out through every core port |
 | `tools/probe_*.lua` | MAME Lua oracles: device reads, the Z80's boot timeline, EEPROM pin traffic, the 68000's pacing |
 | `tools/eeprom_replay.py` | Replays MAME's EEPROM pin traffic through the ER5911 model: a regression gate for the protocol |

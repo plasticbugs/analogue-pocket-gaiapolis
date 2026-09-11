@@ -428,8 +428,20 @@ three rows of 32 squares read left to right, green = 1):
 | 1 | 7-1 | region read back ok: prog, snd, tile, chr, map, pcm, spr |
 | 1 | 0 | sound heard |
 | 2 | 31-25 | region read stable: prog, snd, tile, chr, map, pcm, spr |
-| 2 | 23-8 | Z80 PC |
-| 2 | 7-0 | Z80 ROM byte 0 (expect F3) |
+| 2 | 23-16 | lines that overran their render budget in the last frame |
+| 2 | 15-8 | sprites in the draw list, divided by 4 |
+| 2 | 7-6 | sticky since reset: a renderer met an unsupported mode; a shadow overlapped a solid |
+| 2 | 2-0 | which renderers overran in the last frame: tilemap, ROZ, sprites |
+
+**The pixel hand-over.** The core emits one pixel per 8 MHz enable in the
+96 MHz domain; the Pocket takes it on `clk_vid`, the PLL's 8 MHz output
+half a system cycle after a system edge. The enable's phase is pinned to
+that clock (`clk_enables.sv` `pix_sync`, from a two-flop synchroniser of a
+toggle on `clk_vid`), so the colour stage updates two system clocks before
+the edge that samples it, whatever the reset phase; `sim/run_pixsync.sh`
+checks the alignment and the SDC starts the setup check from that launch
+edge. Before this the phase was whatever the reset left, and the analyser
+never checked the crossing at its 5.2 ns edge relationship.
 
 `MEM=pocket sim/run_system.sh` runs the whole machine with this module and
 behavioural chips in place of the ideal ROM ports, for the interplay the

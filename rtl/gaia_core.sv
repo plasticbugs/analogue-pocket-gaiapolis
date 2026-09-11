@@ -19,6 +19,7 @@ module gaia_core #(
 ) (
     input  logic        clk,                // 96 MHz
     input  logic        reset,              // the machine
+    input  logic        pix_sync,           // pins the pixel phase to the platform's video clock (clk_enables)
     input  logic        vid_reset,          // the raster and clock enables only: the platform
                                             // keeps video running while the machine is held
 
@@ -97,6 +98,7 @@ module gaia_core #(
     output logic        dbg_step,
     output logic        dbg_irq5,
     output logic        dbg_overrun,
+    output logic  [2:0] dbg_overrun_src,    // {tilemap, ROZ, sprites} still busy at that line start
     output logic        dbg_unsupported,
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
@@ -110,16 +112,17 @@ module gaia_core #(
 );
     // ------------------------------------------------------------ clocks
     logic cen_16m, cen_8m, cen_48k;
-    clk_enables u_cen (.clk(clk), .reset(vid_reset), .cen_16m(cen_16m), .cen_8m(cen_8m), .cen_48k(cen_48k));
+    clk_enables u_cen (.clk(clk), .reset(vid_reset), .pix_sync(pix_sync), .cen_16m(cen_16m), .cen_8m(cen_8m), .cen_48k(cen_48k));
     assign cen_pix = cen_8m;
 
     // ------------------------------------------------------------ timing
-    logic        line_start, px_valid, vblank_rise, renderers_busy;
+    logic        line_start, px_valid, vblank_rise;
+    logic  [2:0] renderers_busy;
     logic  [8:0] render_line, px, hcount, vcount;
     gaia_video u_vid (
         .clk(clk), .reset(vid_reset), .cen_pix(cen_pix),
         .line_start(line_start), .render_line(render_line),
-        .renderers_busy(renderers_busy), .overrun(dbg_overrun),
+        .renderers_busy(renderers_busy), .overrun(dbg_overrun), .overrun_src(dbg_overrun_src),
         .px(px), .px_valid(px_valid), .hcount(hcount), .vcount(vcount),
         .hsync(hsync), .vsync(vsync), .de(de), .vblank(vblank), .vblank_rise(vblank_rise)
     );
@@ -240,7 +243,7 @@ module gaia_core #(
     logic [19:0] rspr_addr;
     logic [31:0] dbg0, dbg1, dbg2, dbg3;
 
-    assign renderers_busy  = tm_busy | roz_busy | dr_busy;
+    assign renderers_busy  = {tm_busy, roz_busy, dr_busy};
     assign dbg_unsupported = tm_unsup | roz_unsup | ol_overflow;
     assign sram_raddr = ol_busy ? ol_sram_addr : dr_sram_addr;
 
