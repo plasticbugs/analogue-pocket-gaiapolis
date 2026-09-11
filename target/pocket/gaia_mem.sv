@@ -233,14 +233,31 @@ module gaia_mem #(
         .vram_ack(vram_ack), .vram_q(vram_q)
     );
 
-    // client 0: PCM byte reads. The K054539s hold their request until the ack.
-    logic pcm_lo;
-    assign c_addr[0] = SD_PCM + 24'(pcm_addr_i[21:1]);
-    assign c_req[0]  = pcm_req_i;
+    // client 0: PCM byte reads, behind a registered stage: the request comes
+    // from the K054539s through two arbiters and went straight into the
+    // SDRAM controller's arbitration (0.45 ns hot, missed cold). The stage
+    // acks only a request still standing with the same address.
+    typedef enum logic [1:0] { Q_IDLE, Q_BUSY, Q_ACK } qst_t;
+    qst_t        qst;
+    logic [21:0] pcm_addr_l;
+    logic [15:0] pcm_word;
+    always_ff @(posedge clk) begin
+        pcm_ack <= 1'b0;
+        if (init) begin qst <= Q_IDLE; c_req[0] <= 1'b0; end
+        else case (qst)
+            Q_IDLE: if (pcm_req_i && !pcm_ack) begin
+                pcm_addr_l <= pcm_addr_i; c_addr[0] <= SD_PCM + 24'(pcm_addr_i[21:1]); c_req[0] <= 1'b1; qst <= Q_BUSY;
+            end
+            Q_BUSY: if (c_ack[0]) begin pcm_word <= sd_rdata; c_req[0] <= 1'b0; qst <= Q_ACK; end
+            Q_ACK: begin
+                if (pcm_req_i && pcm_addr_i == pcm_addr_l) pcm_ack <= 1'b1;
+                qst <= Q_IDLE;
+            end
+            default: qst <= Q_IDLE;
+        endcase
+    end
     assign c_we[0]   = 1'b0; assign c_wdata[0] = '0; assign c_be[0] = 2'b11;
-    assign pcm_ack   = c_ack[0];
-    always_ff @(posedge clk) pcm_lo <= pcm_addr_i[0];
-    assign pcm_q     = pcm_lo ? sd_rdata[7:0] : sd_rdata[15:8];
+    assign pcm_q     = pcm_addr_l[0] ? pcm_word[7:0] : pcm_word[15:8];
     // client 1: the loader
     assign c_addr[1] = sd_wr_addr;
     assign c_req[1]  = sd_wr_req;

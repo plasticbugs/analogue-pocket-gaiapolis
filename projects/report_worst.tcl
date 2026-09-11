@@ -22,5 +22,16 @@ report_sdc    -file output_files/sdc_applied.txt
 set nh [report_timing -hold -npaths 10 -detail full_path \
         -file output_files/worst_hold.txt]
 puts "hold returned: $nh"
+# the cold slow corner has its own critical paths (a 0.4 ns hot-corner path
+# has missed by 0.1 there); report it too
+foreach_in_collection op [get_available_operating_conditions] {
+    if {[string match "*0C*" [get_operating_conditions_info $op -display_name]]} {
+        set_operating_conditions $op
+        update_timing_netlist
+        set nc [report_timing -setup -npaths 40 -detail full_path \
+                -file output_files/worst_paths_cold.txt]
+        puts "cold-corner paths returned: $nc"
+    }
+}
 delete_timing_netlist
 project_close
