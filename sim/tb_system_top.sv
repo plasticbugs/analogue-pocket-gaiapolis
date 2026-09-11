@@ -111,7 +111,7 @@ module tb_system_top #(
     end
 
     gaia_core #(.HEXDIR("../rtl/data"), .STEP_COST_BUS(STEP_COST_BUS), .STEP_COST_INT(STEP_COST_INT)) u_core (
-        .clk(clk), .reset(reset),
+        .clk(clk), .reset(reset), .vid_reset(reset),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),

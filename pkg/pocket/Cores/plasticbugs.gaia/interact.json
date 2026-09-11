@@ -98,6 +98,17 @@
         "value": "0x00008000"
       },
       {
+        "name": "Diagnostic overlay",
+        "id": 64,
+        "type": "check",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF2000000",
+        "defaultval": 8,
+        "mask": "0xFFFFFFF7",
+        "value": "0x00000008"
+      },
+      {
         "name": "SDRAM read capture (alt)",
         "id": 65,
         "type": "check",

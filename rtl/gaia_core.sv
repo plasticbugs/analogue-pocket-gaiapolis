@@ -18,7 +18,9 @@ module gaia_core #(
     parameter int    STEP_COST_INT = 8
 ) (
     input  logic        clk,                // 96 MHz
-    input  logic        reset,
+    input  logic        reset,              // the machine
+    input  logic        vid_reset,          // the raster and clock enables only: the platform
+                                            // keeps video running while the machine is held
 
     // program ROM, 3 MB as 1.5M x 16
     output logic        prog_req,
@@ -108,14 +110,14 @@ module gaia_core #(
 );
     // ------------------------------------------------------------ clocks
     logic cen_16m, cen_8m, cen_48k;
-    clk_enables u_cen (.clk(clk), .reset(reset), .cen_16m(cen_16m), .cen_8m(cen_8m), .cen_48k(cen_48k));
+    clk_enables u_cen (.clk(clk), .reset(vid_reset), .cen_16m(cen_16m), .cen_8m(cen_8m), .cen_48k(cen_48k));
     assign cen_pix = cen_8m;
 
     // ------------------------------------------------------------ timing
     logic        line_start, px_valid, vblank_rise, renderers_busy;
     logic  [8:0] render_line, px, hcount, vcount;
     gaia_video u_vid (
-        .clk(clk), .reset(reset), .cen_pix(cen_pix),
+        .clk(clk), .reset(vid_reset), .cen_pix(cen_pix),
         .line_start(line_start), .render_line(render_line),
         .renderers_busy(renderers_busy), .overrun(dbg_overrun),
         .px(px), .px_valid(px_valid), .hcount(hcount), .vcount(vcount),

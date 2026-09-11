@@ -987,7 +987,7 @@ module core_top
     wire        dbg_step, dbg_irq5, dbg_overrun, dbg_unsupported, dbg_shadow_overlap, dbg_zstep, dbg_zwait;
 
     gaia_core #(.HEXDIR("../rtl/data")) ga (
-        .clk(clk_sys), .reset(ga_reset),
+        .clk(clk_sys), .reset(ga_reset), .vid_reset(~pll_locked_sys),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
         .tile_req(tile_req), .tile_addr(tile_addr), .tile_ack(tile_ack), .tile_q(tile_q),
         .map_req(map_req), .map_addr(map_addr), .map_ack(map_ack), .map_q(map_q),
@@ -1011,6 +1011,50 @@ module core_top
     assign video_preset = (aspect_sel == 2'd1) ? 3'd1 : 3'd0;
 
     //! ------------------------------------------------------------------
+    //! Diagnostic overlay (METHODOLOGY section 4), on the modifier word's bit
+    //! 3 (the "Diagnostic overlay" menu check): the bottom twelve lines show
+    //! three rows of 32 bit-squares, green = 1. The raster runs even while
+    //! the machine is held in reset, so a black Pocket can still be read:
+    //!   row 0  frame count[7:0] | pll locked, sdram ready, download, all-complete,
+    //!          nv loaded, machine reset, IRQ5 pending, 68000 step seen |
+    //!          Z80 step seen, snd_valid seen, in0_p1[13:8] | in1[7:0]
+    //!   row 1  68000 bus address[23:0] | busstate[1:0] | step count[5:0]
+    //!   row 2  Z80 address[15:0] | tile RAM: last word read[15:8] | read/write acks[7:0]
+    //! ------------------------------------------------------------------
+    wire        ovl_en = mod_sw0[3];
+    logic [7:0] ovl_frames;
+    logic       ovl_vs_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd;
+    logic [5:0] ovl_steps;
+    logic [7:0] ovl_zsteps, ovl_vacks;
+    logic [15:0] ovl_vq;
+    logic       allc_s, nvl_s;
+    synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
+    synch_3 sync_nvl(nv_loaded, nvl_s, clk_sys);
+    always_ff @(posedge clk_sys) begin
+        ovl_vs_d <= ga_vs;
+        if (ga_vs && !ovl_vs_d) begin
+            ovl_frames <= ovl_frames + 8'd1;
+            ovl_seen_step <= 1'b0; ovl_seen_zstep <= 1'b0; ovl_seen_snd <= 1'b0;
+        end
+        if (dbg_step)  begin ovl_seen_step  <= 1'b1; ovl_steps  <= ovl_steps + 6'd1; end
+        if (dbg_zstep) begin ovl_seen_zstep <= 1'b1; ovl_zsteps <= ovl_zsteps + 8'd1; end
+        if (ga_snd_valid && (ga_snd_l != 16'd0)) ovl_seen_snd <= 1'b1;
+        if (vram_ack) begin ovl_vacks <= ovl_vacks + 8'd1; if (!vram_we) ovl_vq <= vram_q; end
+    end
+    wire [95:0] ovl_status = {
+        ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
+        ovl_seen_zstep, ovl_seen_snd, in0_p1[13:8], in1,
+        dbg_addr, dbg_busstate, ovl_steps,
+        dbg_zpc, ovl_vq[15:8], ovl_vacks
+    };
+    wire [7:0] ovl_r, ovl_g, ovl_b;
+    dbg_overlay ovl (
+        .clk(clk_sys), .cen_pix(ga_cen_pix), .enable(ovl_en), .de(ga_de), .vsync(ga_vs),
+        .r_in(ga_rgb[23:16]), .g_in(ga_rgb[15:8]), .b_in(ga_rgb[7:0]),
+        .status(ovl_status), .r_out(ovl_r), .g_out(ovl_g), .b_out(ovl_b)
+    );
+
+    //! ------------------------------------------------------------------
     //! Video: the core emits one pixel per 8 MHz enable in the 96 MHz domain
     //! and holds it for the 12 cycles; clk_vid is 8 MHz from the same PLL,
     //! placed half a system cycle after the system edges, so this register
@@ -1020,7 +1064,7 @@ module core_top
     reg [7:0] vr_q, vg_q, vb_q;
     reg       vhs_q, vvs_q, vde_q;
     always @(posedge clk_vid) begin
-        vr_q  <= ga_rgb[23:16]; vg_q <= ga_rgb[15:8]; vb_q <= ga_rgb[7:0];
+        vr_q  <= ovl_r; vg_q <= ovl_g; vb_q <= ovl_b;
         vhs_q <= ga_hs; vvs_q <= ga_vs; vde_q <= ga_de;
     end
     assign core_r  = vr_q;
