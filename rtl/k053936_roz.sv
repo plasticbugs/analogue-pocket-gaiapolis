@@ -126,7 +126,11 @@ module k053936_roz #(
     // at every tile boundary.
     wire [13:0] tileno_next = cache_miss ? {d2[5:0], d3} : tileno;
     wire [20:0] chr_byte = {tileno_next, srcy[3:0], srcx[3:1]};   // tile*128 + row*8 + col/2
-    wire [8:0] vline = line - 9'(VIS_Y0);
+    // the line's offset into the visible area, registered every clock so the
+    // subtract does not sit in front of the line-start multiply (that path
+    // missed by 0.08 ns on the Pocket)
+    logic [8:0] vline;
+    always_ff @(posedge clk) vline <= line - 9'(VIS_Y0);
 
     always_ff @(posedge clk) begin
         if (reset) begin
