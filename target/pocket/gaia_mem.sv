@@ -118,12 +118,16 @@ module gaia_mem #(
     logic  [6:0] wf_wp, wf_rp;
     wire         wf_empty = (wf_wp == wf_rp);
     wire [41:0]  wf_head  = wfifo[wf_rp[5:0]];
-    wire [24:1]  wa       = wf_head[41:18];
+    // the head is taken into a register before it is decoded: read straight
+    // from the RAM, the region compares reached back into the read pointer
+    // (a 0.4 ns miss at the cold corner)
+    logic [41:0] hd;
+    wire [24:1]  wa       = hd[41:18];
     wire [19:0]  wchr     = 20'(wa - IMG_CHR[24:1]);   // word within the character region
-    wire  [1:0]  wbe      = wf_head[17:16];
-    wire [15:0]  wd       = wf_head[15:0];
+    wire  [1:0]  wbe      = hd[17:16];
+    wire [15:0]  wd       = hd[15:0];
 
-    typedef enum logic [2:0] { W_IDLE, W_SDRAM, W_PS0, W_PS1, W_EEP, W_EEP2 } wst_t;
+    typedef enum logic [2:0] { W_IDLE, W_DEC, W_SDRAM, W_PS0, W_PS1, W_EEP, W_EEP2 } wst_t;
     wst_t wst;
 
     // SDRAM write client (client 1) and PSRAM writer ports
@@ -151,7 +155,8 @@ module gaia_mem #(
                 wf_wp <= wf_wp + 7'd1;
             end
             case (wst)
-                W_IDLE: if (!wf_empty) begin
+                W_IDLE: if (!wf_empty) begin hd <= wf_head; wst <= W_DEC; end
+                W_DEC: begin
                     if (wa < IMG_SND[24:1]) begin                 // 68000 program -> CRAM1
                         ps_wr_addr <= PS_PROG + 23'(wa); ps1_wr_req <= 1'b1; wst <= W_PS1;
                     end else if (wa < IMG_TILE[24:1]) begin       // Z80 program -> CRAM1
@@ -368,7 +373,7 @@ module gaia_mem #(
     );
 
     /* verilator lint_off UNUSEDSIGNAL */
-    wire unused = ^{b_widx, b_idx[9:4], dram_cs_n_unused, map_addr_i[0], IMG_PROG, wf_head[0], cram0_r1_ack, cram0_r1_q, PS_CHR};
+    wire unused = ^{b_widx, b_idx[9:4], dram_cs_n_unused, map_addr_i[0], IMG_PROG, hd[0], cram0_r1_ack, cram0_r1_q, PS_CHR};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule
 
