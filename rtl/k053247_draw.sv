@@ -126,7 +126,7 @@ module k053247_draw #(
         D_IDLE, D_CLR, D_OBJ, D_OBJW,
         D_R0, D_R1, D_R2, D_R3, D_R4, D_R5, D_R6, D_LAT,
         D_ZY, D_ZYW, D_ZY2, D_ZXW, D_ZX2, D_GEOM, D_GEOM2,
-        D_TY, D_TYC, D_SY1, D_SY2, D_SY3,
+        D_TY, D_TYC, D_SY1, D_SY2, D_SY3, D_SY4,
         D_TX, D_TXC, D_SX1, D_SX2, D_SX2B, D_SX3, D_ROWW, D_PIX,
         D_NEXTTX, D_NEXTOBJ
     } state_t;
@@ -209,9 +209,12 @@ module k053247_draw #(
     wire fy_c = mirrory ? ymir_alt : flipy;
 
     // this line's source row, and the clipped destination span for this tile
+    // the source row: line - sy, times the row's reciprocal stride, in three
+    // registered steps (as one clock the multiply missed the cold corner)
     wire signed [17:0] lsy = $signed({9'd0, line}) - sy;
-    wire [32:0] ymul = {24'd0, lsy[8:0]} * {9'd0, stride_y};
-    wire  [3:0] yoff = ymul[22:19];
+    logic  [8:0] lsy_r;
+    logic [32:0] ymul_r;
+    wire  [3:0] yoff = ymul_r[22:19];
 
     wire signed [17:0] sxz    = sx + $signed({5'd0, zw}) - 18'sd1;
     wire signed [17:0] pxl_c  = (sx  > CLS) ? sx  : CLS;
@@ -386,9 +389,10 @@ module k053247_draw #(
                         ty <= ty + 3'd1; yacc <= yacc + zoomy; st <= D_TY;
                     end
                 end
-                D_SY1: st <= D_SY2;
+                D_SY1: begin lsy_r <= lsy[8:0]; st <= D_SY2; end
                 D_SY2: begin stride_y <= recip_q; st <= D_SY3; end
-                D_SY3: begin
+                D_SY3: begin ymul_r <= {24'd0, lsy_r} * {9'd0, stride_y}; st <= D_SY4; end
+                D_SY4: begin
                     src_row <= fy ? (~yoff) : yoff;
                     tx <= 3'd0; xacc <= '0;
                     st <= D_TX;
