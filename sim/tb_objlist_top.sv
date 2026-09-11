@@ -37,9 +37,14 @@ module tb_objlist_top (
         ram_q <= ram[ram_addr];
     end
 
+    logic  [9:0] ol_zoom_addr; logic [21:0] ol_yr_q;
+    /* verilator lint_off UNUSEDSIGNAL */
+    wire unused_ol = ^{ol_zoom_addr, ol_yr_q};
+    /* verilator lint_on UNUSEDSIGNAL */
     k053247_objlist u_ol (
         .clk(clk), .reset(reset), .start(start), .done(done), .busy(busy),
-        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri),
+        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri), .k46_offy(16'd0),
+        .zoom_addr(ol_zoom_addr), .zoom_q(24'h10000), .yr_addr(8'd0), .yr_q(ol_yr_q),
         .ram_addr(ram_addr), .ram_q(ram_q),
         .list_idx(list_idx), .list_q(list_q), .count(count), .overflow(overflow)
     );

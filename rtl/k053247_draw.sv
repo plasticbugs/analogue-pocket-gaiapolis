@@ -41,6 +41,8 @@ module k053247_draw #(
     input  logic  [7:0] colorbase,      // sprite colour base, pre-masked
 
     output logic  [9:0] list_idx,
+    output logic  [7:0] yr_addr,        // the entry's line range from the list builder
+    input  logic [21:0] yr_q,
     /* verilator lint_off UNUSEDSIGNAL */
     input  logic [31:0] list_q,
     /* verilator lint_on UNUSEDSIGNAL */
@@ -304,6 +306,7 @@ module k053247_draw #(
 
                 D_R0: begin
                     ent      <= list_q[15:8];
+                    yr_addr  <= list_q[15:8];
                     zcode    <= list_q[23:16];
                     opri     <= list_q[31:24];
                     drawmode <= list_q[7:4];
@@ -315,7 +318,14 @@ module k053247_draw #(
                 // The address register and the RAM read are both registered, so
                 // ram_q lags the address by two states: word 0 arrives in D_R2.
                 D_R1:  begin ram_addr <= {ent, 3'd1};                st <= D_R2;  end
-                D_R2:  begin ram_addr <= {ent, 3'd2}; w0 <= ram_q;   st <= D_R3;  end
+                // the builder's line range for this entry (asked for in D_R0) is
+                // here now: an object that misses the line costs five clocks
+                D_R2:  begin
+                    ram_addr <= {ent, 3'd2}; w0 <= ram_q;
+                    if ($signed({9'd0, line}) < $signed({{7{yr_q[21]}}, yr_q[21:11]}) ||
+                        $signed({9'd0, line}) > $signed({{7{yr_q[10]}}, yr_q[10:0]})) st <= D_NEXTOBJ;
+                    else st <= D_R3;
+                end
                 D_R3:  begin ram_addr <= {ent, 3'd3}; w1 <= ram_q;   st <= D_R4;  end
                 D_R4:  begin ram_addr <= {ent, 3'd4}; w2 <= ram_q;   st <= D_R5;  end
                 D_R5:  begin ram_addr <= {ent, 3'd5}; w3 <= ram_q;   st <= D_R6;  end

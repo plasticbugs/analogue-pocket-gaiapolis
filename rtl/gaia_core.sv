@@ -13,7 +13,7 @@
 
 module gaia_core #(
     parameter string HEXDIR = "rtl/data",
-    parameter int    OBJ_BUILD_LINE = 12,  // raster line at which the sprite list is built
+    parameter int    OBJ_BUILD_LINE = 240, // raster line at which the sprite list is built: the first of vblank
     parameter int    STEP_COST_BUS = 16,   // 68000 pacing (gaia_main)
     parameter int    STEP_COST_INT = 8
 ) (
@@ -99,6 +99,7 @@ module gaia_core #(
     output logic        dbg_irq5,
     output logic        dbg_overrun,
     output logic  [2:0] dbg_overrun_src,    // {tilemap, ROZ, sprites} still busy at that line start
+    output logic [31:0] dbg_draw_objs, dbg_draw_rows, dbg_draw_cols, dbg_draw_pxw,   // the sprite renderer's running work counts
     output logic        dbg_unsupported,
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
@@ -157,7 +158,7 @@ module gaia_core #(
         .chr_req(cchr_req), .chr_addr(cchr_addr), .chr_ack(cchr_ack), .chr_q(chr_q),
         .trom_req(ctrom_req), .trom_addr(ctrom_addr), .trom_ack(ctrom_ack), .trom_q(tile_q),
         .srom_req(csrom_req), .srom_addr(csrom_addr), .srom_ack(csrom_ack), .srom_q(spr_q),
-        .vblank_rise(vblank_rise),
+        .vblank_rise(ol_done),          // the vblank interrupt, once the sprite list is built (~1 line in)
         .in0_p1(in0_p1), .in1(in1), .p2(p2),
         .eep_di(eep_di), .eep_cs(eep_cs), .eep_clk(eep_clk), .eep_do(eep_do), .eep_ready(eep_ready),
         .snd_wr(snd_wr), .snd_rd(snd_rd), .snd_off(snd_off), .snd_wdata(snd_wdata), .snd_rdata(snd_rdata),
@@ -241,14 +242,18 @@ module gaia_core #(
     logic [20:0] rchr_addr;
     logic [18:0] rtile_addr;
     logic [19:0] rspr_addr;
-    logic [31:0] dbg0, dbg1, dbg2, dbg3;
 
     assign renderers_busy  = {tm_busy, roz_busy, dr_busy};
     assign dbg_unsupported = tm_unsup | roz_unsup | ol_overflow;
     assign sram_raddr = ol_busy ? ol_sram_addr : dr_sram_addr;
 
-    // build the sprite list late in vblank, after the game's IRQ handler has
-    // had most of the blanking period to write the new table
+    // Build the sprite list at the start of vblank, from the table as the
+    // game left it during the frame, and only then raise the vblank interrupt
+    // (below): MAME takes its list at the same instant, before the handler
+    // runs. Built late in vblank instead, the list caught the handler's
+    // rewrite half done -- 113 entries where MAME's has about twenty, and
+    // the sprite renderer, paying for every one, overran its lines on the
+    // Pocket's memories and dropped the sprites it draws last.
     logic obj_build, build_armed;
     always_ff @(posedge clk) begin
         obj_build <= 1'b0;
@@ -299,9 +304,13 @@ module gaia_core #(
         .c1_req(cchr_req), .c1_addr(cchr_addr), .c1_ack(cchr_ack),
         .m_req(chr_req), .m_addr(chr_addr), .m_ack(chr_ack), .m_q(chr_q), .q()
     );
+    logic  [9:0] ol_zoom_addr, dr_zoom_addr;
+    logic  [7:0] yr_addr; logic [21:0] yr_q;
+    assign zoom_addr = ol_busy ? ol_zoom_addr : dr_zoom_addr;
     k053247_objlist u_ol (
         .clk(clk), .reset(reset), .start(obj_build), .done(ol_done), .busy(ol_busy),
-        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri),
+        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri), .k46_offy(k46offy),
+        .zoom_addr(ol_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q),
         .ram_addr(ol_sram_addr), .ram_q(sram_q),
         .list_idx(list_idx), .list_q(list_q), .count(list_count), .overflow(ol_overflow)
     );
@@ -312,14 +321,14 @@ module gaia_core #(
     k053247_draw u_dr (
         .clk(clk), .reset(reset), .line_start(line_start), .line(render_line), .busy(dr_busy),
         .k46r5(objset1), .k46_offx(k46offx), .k46_offy(k46offy), .opset(opset), .colorbase(spr_colorbase),
-        .list_idx(list_idx), .list_q(list_q), .list_count(list_count),
+        .list_idx(list_idx), .list_q(list_q), .list_count(list_count), .yr_addr(yr_addr), .yr_q(yr_q),
         .ram_addr(dr_sram_addr), .ram_q(sram_q),
         .rom_req(rspr_req), .rom_addr(rspr_addr), .rom_ack(rspr_ack), .rom_q(spr_q),
-        .zoom_addr(zoom_addr), .zoom_q(zoom_q), .recip_addr(recip_addr), .recip_q(recip_q),
+        .zoom_addr(dr_zoom_addr), .zoom_q(zoom_q), .recip_addr(recip_addr), .recip_q(recip_q),
         .px(px), .out_opaque(spr_opq), .out_pen(spr_pen), .out_pri(spr_pri),
         .out_shadow(spr_shadow), .out_shtab(spr_shtab), .out_shpri(spr_shpri),
         .shadow_overlap(dbg_shadow_overlap),
-        .dbg_objs(dbg0), .dbg_rows(dbg1), .dbg_cols(dbg2), .dbg_pxw(dbg3)
+        .dbg_objs(dbg_draw_objs), .dbg_rows(dbg_draw_rows), .dbg_cols(dbg_draw_cols), .dbg_pxw(dbg_draw_pxw)
     );
     rom_arb2 #(.AW(20), .DW(64)) u_spr_arb (
         .clk(clk), .reset(reset),
@@ -367,6 +376,6 @@ module gaia_core #(
 
     /* verilator lint_off UNUSEDSIGNAL */
     wire unused = ^{k56regsb[0], k56regsb[1], k56regsb[2], k56regsb[3], roz_rombank, col_rd,
-                    ol_done, dbg0, dbg1, dbg2, dbg3, px_valid};
+                    ol_done, px_valid, vblank_rise};
     /* verilator lint_on UNUSEDSIGNAL */
 endmodule

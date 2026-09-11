@@ -7,6 +7,13 @@
 // The sound board's output is written next to the RGB dump as a 48 kHz
 // stereo 16-bit WAV (<out>.wav) when AUDIO=1.
 #include "Vtb_system_top.h"
+#include "Vtb_system_top___024root.h"
+// the sprite RAM inside the core, by the wrapper's scope name (MEM=pocket builds tb_pocket_top under the same class name)
+#ifdef POCKET_TOP
+#define SPRRAM dut->rootp->tb_pocket_top__DOT__u_core__DOT__u_main__DOT__sram
+#else
+#define SPRRAM dut->rootp->tb_system_top__DOT__u_core__DOT__u_main__DOT__sram
+#endif
 #include "verilated.h"
 #include <cstdio>
 #include <cstdlib>
@@ -119,6 +126,9 @@ int main(int argc, char **argv) {
     if (getenv("WATCH")) { char *w = strdup(getenv("WATCH")); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) { watch.push_back(strtoul(t, nullptr, 16)); watch_n.push_back(0); } }
     std::map<unsigned, unsigned> fr_hist, z_hist;
     unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0, overruns = 0, overruns_total = 0, ovr_tm = 0, ovr_roz = 0, ovr_dr = 0;
+    unsigned vc_last = 0xffff;
+    unsigned dr_objs0 = 0, dr_rows0 = 0, dr_cols0 = 0, dr_pxw0 = 0;   // the sprite renderer's counters at the last frame print
+    int sprdump = -1; { const char *e = getenv("SPRDUMP"); if (e) sprdump = atoi(e); }   // dump sprite RAM after this frame
     bool ovr_d = false;
     // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
     // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
@@ -132,7 +142,11 @@ int main(int argc, char **argv) {
         if (want_audio && dut->snd_valid) { audio.push_back((short)dut->snd_l); audio.push_back((short)dut->snd_r); }
         if (dut->dbg_zstep) { z_steps++; z_hist[dut->dbg_zpc]++; }
         if (dut->dbg_zwait) z_wait++;
-        if (dut->dbg_overrun && !ovr_d) { overruns++; if (dut->dbg_overrun_src & 4) ovr_tm++; if (dut->dbg_overrun_src & 2) ovr_roz++; if (dut->dbg_overrun_src & 1) ovr_dr++; }
+        // the overrun flag holds for the whole line: count lines, on the line counter's change
+        if (dut->dbg_vcount != vc_last) {
+            vc_last = dut->dbg_vcount;
+            if (dut->dbg_overrun) { overruns++; if (dut->dbg_overrun_src & 4) ovr_tm++; if (dut->dbg_overrun_src & 2) ovr_roz++; if (dut->dbg_overrun_src & 1) ovr_dr++; }
+        }
         ovr_d = dut->dbg_overrun;
         if (dut->dbg_zrd && !zrd_d) { unsigned a = dut->dbg_zpc; if (a == 0xe22d) z_s1++; else if (a == 0xe62d) z_s2++; }
         if (dut->dbg_zwr && !zwr_d && zlog) {
@@ -178,12 +192,19 @@ int main(int argc, char **argv) {
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
                     unsigned zhot = 0, zhotn = 0;
                     for (auto &kv : z_hist) if (kv.second > zhotn) { zhotn = kv.second; zhot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u ovr_tm=%u ovr_roz=%u ovr_dr=%u\n",
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u ovr_tm=%u ovr_roz=%u ovr_dr=%u draw_objs=%u draw_rows=%u draw_cols=%u draw_pxw=%u\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
                             overruns, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
-                            (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2, ovr_tm, ovr_roz, ovr_dr);
+                            (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2, ovr_tm, ovr_roz, ovr_dr,
+                            dut->dbg_draw_objs - dr_objs0, dut->dbg_draw_rows - dr_rows0, dut->dbg_draw_cols - dr_cols0, dut->dbg_draw_pxw - dr_pxw0);
+                    dr_objs0 = dut->dbg_draw_objs; dr_rows0 = dut->dbg_draw_rows; dr_cols0 = dut->dbg_draw_cols; dr_pxw0 = dut->dbg_draw_pxw;
                     z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
                     overruns_total += overruns; overruns = 0; ovr_tm = 0; ovr_roz = 0; ovr_dr = 0;
+                    if (frame == sprdump) {     // the 256 entries x 8 words, as the renderer sees them
+                        std::string sp = argv[3]; size_t dot = sp.rfind('.'); if (dot != std::string::npos) sp.resize(dot); sp += ".sprram.txt";
+                        FILE *sf = fopen(sp.c_str(), "w");
+                        if (sf) { for (int e = 0; e < 256; e++) { fprintf(sf, "%02x:", e); for (int w = 0; w < 8; w++) fprintf(sf, " %04x", SPRRAM[e * 8 + w]); fprintf(sf, "\n"); } fclose(sf); }
+                    }
                     for (size_t i = 0; i < watch.size(); i++) { fprintf(tr, "   watch %06x: %u\n", watch[i], watch_n[i]); watch_n[i] = 0; }
                     fr_hist.clear();
                 }

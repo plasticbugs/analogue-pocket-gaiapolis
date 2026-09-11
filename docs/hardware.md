@@ -433,6 +433,21 @@ three rows of 32 squares read left to right, green = 1):
 | 2 | 7-6 | sticky since reset: a renderer met an unsupported mode; a shadow overlapped a solid |
 | 2 | 2-0 | which renderers overran in the last frame: tilemap, ROZ, sprites |
 
+**The sprite list and the line range.** MAME takes its sprite list from
+the live sprite RAM at the start of vblank, before the vblank interrupt
+runs; the RTL builds its list there too (`OBJ_BUILD_LINE`, the first
+blanking line) and raises the interrupt when the build is done, a line
+later. The game keeps about 113 entries live in the title scene, most of
+them large sprites parked off-screen (x = 511, negative y), and MAME
+draws them all at no cost; the renderer walking every entry per line at
+20-40 clocks each overran 150 of the 224 lines a frame on the Pocket's
+memories and lost the sprites it draws last (the bird). The list builder
+now works out each live entry's first and last screen line once per
+frame, with the renderer's own vertical geometry, and the renderer reads
+that range with the list and drops an object that misses its line in
+five clocks. `sim/run_objlist.sh`, `sim/run_sprite.sh` and
+`sim/run_frame.sh` hold the result pixel-exact.
+
 **The pixel hand-over.** The core emits one pixel per 8 MHz enable in the
 96 MHz domain; the Pocket takes it on `clk_vid`, the PLL's 8 MHz output
 half a system cycle after a system edge. The enable's phase is pinned to

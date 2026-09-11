@@ -92,9 +92,13 @@ module tb_sprite_top (
     logic  [9:0] list_idx;
     logic [31:0] list_q;
 
+    logic  [9:0] ol_zoom_addr, dr_zoom_addr;
+    logic  [7:0] yr_addr; logic [21:0] yr_q;
+    assign zoom_addr = ol_busy ? ol_zoom_addr : dr_zoom_addr;
     k053247_objlist u_ol (
         .clk(clk), .reset(reset), .start(build), .done(build_done), .busy(ol_busy),
-        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri),
+        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri), .k46_offy(k46offy),
+        .zoom_addr(ol_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q),
         .ram_addr(ol_ram_addr), .ram_q(ram_q),
         .list_idx(list_idx), .list_q(list_q), .count(count), .overflow(overflow)
     );
@@ -107,7 +111,7 @@ module tb_sprite_top (
         .list_idx(list_idx), .list_q(list_q), .list_count(count),
         .ram_addr(dr_ram_addr), .ram_q(ram_q),
         .rom_req(rom_req), .rom_addr(rom_addr), .rom_ack(rom_ack), .rom_q(rom_q),
-        .zoom_addr(zoom_addr), .zoom_q(zoom_q),
+        .zoom_addr(dr_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q),
         .recip_addr(recip_addr), .recip_q(recip_q),
         .px(px), .out_opaque(out_opaque), .out_pen(out_pen), .out_pri(out_pri),
         .out_shadow(out_shadow), .out_shtab(out_shtab), .out_shpri(out_shpri),

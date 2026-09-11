@@ -20,7 +20,8 @@
 `default_nettype none
 
 module k053247_objlist #(
-    parameter int MAXOBJ = 512          // 256 entries x (solid + shadow)
+    parameter int MAXOBJ = 512,         // 256 entries x (solid + shadow)
+    parameter int DY = -22               // the renderer's vertical offset (k053247_draw DY)
 ) (
     input  logic        clk,
     input  logic        reset,
@@ -38,6 +39,14 @@ module k053247_objlist #(
     /* verilator lint_on UNUSEDSIGNAL */
     input  logic  [2:0] shadowon,       // K054338-derived, one bit per table
     input  logic  [7:0] shdpri [3],     // K055555 SHAD1/2/3 priority
+    input  logic [15:0] k46_offy,       // k053246 (regs[2] << 8) | regs[3]
+    // the zoom table, shared with the renderer (the caller muxes on busy)
+    output logic  [9:0] zoom_addr,
+    input  logic [23:0] zoom_q,
+    // each live entry's first and last screen line, by entry, for the
+    // renderer to skip an object that misses its line without reading it
+    input  logic  [7:0] yr_addr,
+    output logic [21:0] yr_q,           // {top[10:0], bot[10:0]}, signed, a line of slack each side
 
     // sprite RAM, 2048 words, synchronous read
     output logic [10:0] ram_addr,
@@ -78,7 +87,7 @@ module k053247_objlist #(
     assign cnt_rd = (st == O_PRE) ? cnt_idx : sort_key;
 
     typedef enum logic [4:0] {
-        O_IDLE, O_B0, O_B1, O_B2, O_EMIT, O_NEXTENT,
+        O_IDLE, O_B0, O_B1, O_B2, O_B3, O_B4, O_B5, O_B6, O_B7, O_B8, O_B9, O_EMIT, O_NEXTENT,
         O_CLR, O_CNT, O_CNTW, O_CNT2, O_CNT3, O_PRE, O_PRE2, O_SCAT, O_SCATW, O_SCAT2, O_SCAT3,
         O_NEXTPASS, O_DONE
     } state_t;
@@ -88,7 +97,37 @@ module k053247_objlist #(
     /* verilator lint_off UNUSEDSIGNAL */
     logic [15:0] w0, w6;    // only the active flag, z code, priority
                             // and shadow field are used here
+    logic [15:0] w2, w4;    // y and the y zoom, for the line range
     /* verilator lint_on UNUSEDSIGNAL */
+
+    // ---- the line range (k053247_draw's vertical geometry, once per frame)
+    logic [21:0] yr [256];
+    always_ff @(posedge clk) yr_q <= yr[yr_addr];
+    localparam logic signed [17:0] DYS = 18'(DY);
+    wire  [3:0] szc = w0[11:8];
+    wire  [3:0] height = 4'd1 << szc[3:2];
+    wire  [4:0] ghsh = 5'd13 - {3'd0, szc[3:2]};
+    wire [17:0] wrapsz  = opset[6] ? 18'd512 : 18'd1024;
+    wire [17:0] wrapmsk = wrapsz - 18'd1;
+    wire [17:0] ywlim   = opset[6] ? 18'd384 : 18'd512;
+    wire signed [17:0] oyr = $signed({8'd0, w2[9:0]});
+    wire signed [17:0] oy1 = (objset1[1] ? -oyr : oyr) - DYS;
+    wire signed [17:0] oy2 = ((-oy1) - $signed({2'd0, k46_offy})) & $signed(wrapmsk);
+    logic signed [17:0] oy2_r, goy_r;
+    logic [23:0] zoomy;
+    wire signed [17:0] oy3 = (oy2_r >= $signed(ywlim)) ? oy2_r - $signed(wrapsz) : oy2_r;
+    wire [23:0] ghshift = zoomy >> ghsh;
+    wire signed [17:0] goy = oy3 - $signed({4'd0, ghshift[13:0]});
+    // the rows span goy .. goy + ((height * zoomy + 2048) >> 12) - 1
+    wire [27:0] hz = {4'd0, zoomy} * {24'd0, height};
+    wire [27:0] hzr = hz + 28'd2048;
+    wire signed [17:0] bot = goy_r + $signed({2'd0, hzr[27:12]}) - 18'sd1;
+    /* verilator lint_off UNUSEDSIGNAL */
+    wire unused_yr = ^{szc[1:0], ghshift[23:14], hzr[11:0]};
+    /* verilator lint_on UNUSEDSIGNAL */
+    function automatic logic [10:0] clip11(input logic signed [17:0] v);
+        return (v > 18'sd1023) ? 11'h3ff : (v < -18'sd1024) ? 11'h400 : v[10:0];
+    endfunction
     logic  [9:0] nobj;
     logic        pass;                  // 0: sort by zcode, 1: sort by priority
     logic  [9:0] scan;
@@ -138,10 +177,24 @@ module k053247_objlist #(
                     end
                 end
 
-                // read word 0 (active + zcode) and word 6 (colour/attributes)
+                // read word 0 (active + zcode), word 6 (colour/attributes), and
+                // for a live entry words 2 and 4 (y, y zoom) for its line range
                 O_B0: begin ram_addr <= {ent, 3'd0};       st <= O_B1; end
                 O_B1: begin ram_addr <= {ent, 3'd6};       st <= O_B2; end
-                O_B2: begin w0 <= ram_q; emit_step <= 2'd0; st <= O_EMIT; end
+                O_B2: begin w0 <= ram_q; ram_addr <= {ent, 3'd2}; st <= O_B3; end
+                O_B3: begin
+                    w6 <= ram_q; ram_addr <= {ent, 3'd4};
+                    st <= active ? O_B4 : O_NEXTENT;
+                end
+                O_B4: begin w2 <= ram_q; st <= O_B5; end
+                O_B5: begin w4 <= ram_q; zoom_addr <= ram_q[9:0]; st <= O_B6; end
+                O_B6: st <= O_B7;
+                O_B7: begin zoomy <= zoom_q; oy2_r <= oy2; st <= O_B8; end
+                O_B8: begin goy_r <= goy; st <= O_B9; end
+                O_B9: begin
+                    yr[ent] <= {clip11(goy_r - 18'sd1), clip11(bot + 18'sd1)};
+                    emit_step <= 2'd1; st <= O_EMIT;
+                end
 
                 O_EMIT: begin
                     if (emit_step == 2'd0) begin

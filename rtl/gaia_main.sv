@@ -247,7 +247,7 @@ module gaia_main #(
     // sprite RAM 0x800 words behind the scattered window, plus the plain
     // 32K x 16 the rest of the 64 KB window lands in (the board has it, and
     // the self-test writes and reads all of it)
-    logic [15:0] sram [2048];
+    logic [15:0] sram [2048] /*verilator public_flat_rd*/;
     logic [15:0] sram_cpu_q;
     logic [15:0] sshadow [32768];
     logic [15:0] sshadow_q;

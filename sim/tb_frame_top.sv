@@ -166,9 +166,13 @@ module tb_frame_top (
         .chr_req(crom_req), .chr_addr(crom_addr), .chr_ack(crom_ack), .chr_q(crom_q),
         .px(px), .pix(roz_pen), .opaque(roz_opq), .unsupported(roz_unsup)
     );
+    logic  [9:0] ol_zoom_addr, dr_zoom_addr;
+    logic  [7:0] yr_addr; logic [21:0] yr_q;
+    assign zoom_addr = ol_busy ? ol_zoom_addr : dr_zoom_addr;
     k053247_objlist u_ol (
         .clk(clk), .reset(reset), .start(build), .done(build_done), .busy(ol_busy),
-        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri),
+        .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri), .k46_offy(k46offy),
+        .zoom_addr(ol_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q),
         .ram_addr(ol_sram_addr), .ram_q(sram_q),
         .list_idx(list_idx), .list_q(list_q), .count(list_count), .overflow(overflow)
     );
@@ -178,7 +182,7 @@ module tb_frame_top (
         .list_idx(list_idx), .list_q(list_q), .list_count(list_count),
         .ram_addr(dr_sram_addr), .ram_q(sram_q),
         .rom_req(srom_req), .rom_addr(srom_addr), .rom_ack(srom_ack), .rom_q(srom_q),
-        .zoom_addr(zoom_addr), .zoom_q(zoom_q), .recip_addr(recip_addr), .recip_q(recip_q),
+        .zoom_addr(dr_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q), .recip_addr(recip_addr), .recip_q(recip_q),
         .px(px), .out_opaque(spr_opq), .out_pen(spr_pen), .out_pri(spr_pri),
         .out_shadow(spr_shadow), .out_shtab(spr_shtab), .out_shpri(spr_shpri),
         .shadow_overlap(shadow_overlap),

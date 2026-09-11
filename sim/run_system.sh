@@ -17,7 +17,7 @@ case "$ROM" in /*) ;; *) ROM="$PWD/$ROM" ;; esac
 case "${MEM:-}" in
     pocket) TOP="--top-module tb_pocket_top --prefix Vtb_system_top"; OBJ="${OBJ:-obj_pocket}"
             SRC="../target/pocket/gaia_mem.sv ../target/pocket/sdram_ctrl.sv ../target/pocket/psram.sv sdram_model.sv psram_model.sv sram_model.sv tb_pocket_top.sv"
-            EXTRA="waivers_platform.vlt waivers_models.vlt" ;;
+            EXTRA="waivers_platform.vlt waivers_models.vlt -CFLAGS -DPOCKET_TOP" ;;
     *)      TOP="--top-module tb_system_top"; SRC="tb_system_top.sv"; EXTRA="" ;;
 esac
 verilator --cc --exe --build -j 8 -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY \

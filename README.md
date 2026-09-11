@@ -105,12 +105,13 @@ should appear after five seconds, and the settings survive a power cycle).
 ## Open items
 
 * The attract intro runs about four times longer in the RTL than in MAME
-  before the music starts (140 frames against 31 from the self-test's end),
-  and the sprite list keeps ~90 entries MAME's does not have at the same
-  scene. Every device read the 68000 makes in that phase matches MAME
+  before the music starts (140 frames against 31 from the self-test's end).
+  Every device read the 68000 makes in that phase matches MAME
   (`tools/diff_reads.py`); the wait is a loop at `200e2a` on a work-RAM flag
   the vblank handler clears, so the difference is in what the handler
   computes from RAM, not in a device. Cosmetic, and next after hardware.
+  (The "~90 stale sprite entries" once listed here were real: MAME's list
+  holds the same 113, most parked off-screen -- `tools/probe_objcount.lua`.)
 * One or two scanlines a frame overrun the render budget while the tower
   scrolls in, with ideal memory; the frozen frames of that scene render at
   under 2,400 clocks a line in isolation, so it is an interaction the
