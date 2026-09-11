@@ -908,10 +908,16 @@ module core_top
     synch_3 sync_lck2(pll_core_locked, pll_locked_sys, clk_sys);
 
     //! The memories initialise on the hardware reset; the machine is held
-    //! while the image loads and until the SDRAM is ready, and by the menu.
+    //! until the SDRAM is ready and the host's first "all complete" has been
+    //! seen (nv_loaded, sticky), and by the menu. Not on ioctl_download: the
+    //! bridge clears all-complete on any later slot request -- the core's own
+    //! save-back makes one five seconds in -- and the loader's download flag
+    //! then stays up, which held the first Pocket build in reset for good.
     wire        mem_init  = ~pll_locked_sys;
     wire        mem_ready;
-    wire        ga_reset  = reset_sw_s | ioctl_download | ~mem_ready;
+    wire        loaded_s;
+    synch_3 sync_loaded(nv_loaded, loaded_s, clk_sys);
+    wire        ga_reset  = reset_sw_s | ~loaded_s | ~mem_ready;
 
     //! ROM: one slot with the flat 20,316,288-byte image from tools/mra_build.py.
     wire        ioctl_isROM = ioctl_download && ioctl_index == 16'h0;
@@ -1019,14 +1025,17 @@ module core_top
     //!          nv loaded, machine reset, IRQ5 pending, 68000 step seen |
     //!          Z80 step seen, snd_valid seen, in0_p1[13:8] | in1[7:0]
     //!   row 1  68000 bus address[23:0] | busstate[1:0] | step count[5:0]
-    //!   row 2  Z80 address[15:0] | tile RAM: last word read[15:8] | read/write acks[7:0]
+    //!   row 2  the first words the memories returned: the 68000's reset PC
+    //!          vector word (prog word 2, 0x0020 in the image) [31:16] |
+    //!          the Z80's first ROM byte (0xF3) [15:8] | the tile ROM's first
+    //!          byte (0x00) [7:0]
     //! ------------------------------------------------------------------
     wire        ovl_en = mod_sw0[3];
     logic [7:0] ovl_frames;
     logic       ovl_vs_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd;
     logic [5:0] ovl_steps;
-    logic [7:0] ovl_zsteps, ovl_vacks;
-    logic [15:0] ovl_vq;
+    logic [7:0] ovl_zsteps, ovl_vacks, ovl_z0, ovl_t0;
+    logic [15:0] ovl_vq, ovl_pvec;
     logic       allc_s, nvl_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
     synch_3 sync_nvl(nv_loaded, nvl_s, clk_sys);
@@ -1040,12 +1049,15 @@ module core_top
         if (dbg_zstep) begin ovl_seen_zstep <= 1'b1; ovl_zsteps <= ovl_zsteps + 8'd1; end
         if (ga_snd_valid && (ga_snd_l != 16'd0)) ovl_seen_snd <= 1'b1;
         if (vram_ack) begin ovl_vacks <= ovl_vacks + 8'd1; if (!vram_we) ovl_vq <= vram_q; end
+        if (prog_ack && prog_addr == 22'd2) ovl_pvec <= prog_q;
+        if (snd_ack  && snd_addr  == 18'd0) ovl_z0   <= snd_q;
+        if (tile_ack && tile_addr == 19'd0) ovl_t0   <= tile_q[31:24];
     end
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
         ovl_seen_zstep, ovl_seen_snd, in0_p1[13:8], in1,
         dbg_addr, dbg_busstate, ovl_steps,
-        dbg_zpc, ovl_vq[15:8], ovl_vacks
+        ovl_pvec, ovl_z0, ovl_t0
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;
     dbg_overlay ovl (

@@ -291,11 +291,7 @@ module k053247_draw #(
 
                 D_CLR: begin
                     // clear the bank we are about to render into, not the one
-                    // being scanned out
-                    solid[bank][clr_i] <= '0;
-                    shade[bank][clr_i] <= '0;
-                    zbuf[clr_i]  <= 8'hff;
-                    szbuf[clr_i] <= 16'hffff;
+                    // being scanned out (the writes are in the chain below)
                     if (clr_i == LB_AW'(VIS_W - 1)) begin
                         obj_i <= '0;
                         if (list_count == 10'd0) begin st <= D_IDLE; busy <= 1'b0; end
@@ -451,18 +447,24 @@ module k053247_draw #(
                 default: st <= D_IDLE;
             endcase
 
-            // ---- the pixel decided last cycle goes into the line buffers ----
-            if (px_valid_a) begin
-                if (solid_a) begin
-                    dbg_pxw <= dbg_pxw + 1'd1;
-                    zbuf[lbi_a]         <= zcode;
-                    solid[bank][lbi_a]  <= {1'b1, color, pen_a, opri};
-                    shade[bank][lbi_a]  <= 11'd0;  // a later solid clears the shadow
-                end else if (shade_a) begin
-                    szbuf[lbi_a]        <= {zcode, opri};
-                    shade[bank][lbi_a]  <= {1'b1, shtab, opri};
-                    if (ovl_a) shadow_overlap <= 1'b1;
-                end
+            // ---- one write per buffer per cycle: the pixel decided last
+            // cycle, else the line clear. One statement chain per RAM, so
+            // Quartus sees one write port (two, and every buffer became
+            // registers: 25K ALUTs)
+            if (px_valid_a && solid_a) begin
+                dbg_pxw <= dbg_pxw + 1'd1;
+                zbuf[lbi_a]         <= zcode;
+                solid[bank][lbi_a]  <= {1'b1, color, pen_a, opri};
+                shade[bank][lbi_a]  <= 11'd0;  // a later solid clears the shadow
+            end else if (px_valid_a && shade_a) begin
+                szbuf[lbi_a]        <= {zcode, opri};
+                shade[bank][lbi_a]  <= {1'b1, shtab, opri};
+                if (ovl_a) shadow_overlap <= 1'b1;
+            end else if (st == D_CLR) begin
+                solid[bank][clr_i] <= '0;
+                shade[bank][clr_i] <= '0;
+                zbuf[clr_i]  <= 8'hff;
+                szbuf[clr_i] <= 16'hffff;
             end
         end
     end
