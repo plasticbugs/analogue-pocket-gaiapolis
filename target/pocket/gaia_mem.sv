@@ -111,7 +111,7 @@ module gaia_mem #(
         end
     end
 
-    logic [41:0] wfifo [64];
+    (* ramstyle = "no_rw_check" *) logic [41:0] wfifo [64];   // the head is never the entry being written
     logic  [6:0] wf_wp, wf_rp;
     wire         wf_empty = (wf_wp == wf_rp);
     wire [41:0]  wf_head  = wfifo[wf_rp[5:0]];
@@ -400,13 +400,22 @@ module psram_port (
     logic [22:0] c1_addr, c2_addr, pf_addr;
     logic [15:0] c1_q, c2_q;
 
+    // Reader 1's request and address are taken through a register first: the
+    // cache compares below then start from registers instead of the platform's
+    // request mux (0.28 ns of slack at 96 MHz otherwise). The client sees its
+    // ack a clock later, and drops its request a clock later still, so a
+    // request being acked stays masked for two clocks.
+    logic        r1_req_r, r1_ack_d;
+    logic [22:0] r1_addr_r;
+    always_ff @(posedge clk) begin r1_req_r <= r1_req; r1_addr_r <= r1_addr; r1_ack_d <= r1_ack; end
     // A request is still standing in the clock its ack is visible (the client
     // drops it on seeing the ack), so a request being acked is not a new one.
-    wire hit1a = r1_req && !r1_ack && c1_valid && (r1_addr == c1_addr);
-    wire hit1b = r1_req && !r1_ack && c2_valid && (r1_addr == c2_addr);
+    wire r1_pend = r1_req_r && !r1_ack && !r1_ack_d;
+    wire hit1a = r1_pend && c1_valid && (r1_addr_r == c1_addr);
+    wire hit1b = r1_pend && c2_valid && (r1_addr_r == c2_addr);
     wire hit1  = hit1a || hit1b;
     wire pend0 = r0_req && !r0_ack;
-    wire pend1 = r1_req && !r1_ack && !hit1;
+    wire pend1 = r1_pend && !hit1;
     wire pick0 = pend0 && (!pend1 || last);
     wire pick1 = pend1 && !pick0;
 
@@ -434,7 +443,7 @@ module psram_port (
                     end else if (pick0) begin
                         who <= 2'd0; addr_l <= r0_addr; rd_en <= 1'b1; last <= 1'b0; pst <= P_READ;
                     end else if (pick1) begin
-                        who <= 2'd1; addr_l <= r1_addr; rd_en <= 1'b1; last <= 1'b1; pst <= P_READ;
+                        who <= 2'd1; addr_l <= r1_addr_r; rd_en <= 1'b1; last <= 1'b1; pst <= P_READ;
                     end else if (pf_want) begin
                         who <= 2'd2; addr_l <= pf_addr; rd_en <= 1'b1; pf_want <= 1'b0; pst <= P_READ;
                     end
@@ -443,7 +452,7 @@ module psram_port (
                     case (who)
                         2'd0: if (r0_req && r0_addr == addr_l) begin r0_ack <= 1'b1; r0_q <= dout; end
                         2'd1: begin
-                            if (r1_req && r1_addr == addr_l) begin r1_ack <= 1'b1; r1_q <= dout; end
+                            if (r1_req_r && r1_addr_r == addr_l) begin r1_ack <= 1'b1; r1_q <= dout; end
                             c1_valid <= 1'b1; c1_addr <= addr_l; c1_q <= dout;
                             pf_want <= 1'b1; pf_addr <= addr_l + 23'd1;
                         end

@@ -80,6 +80,9 @@ jobs:
               quartus_sta -t projects/report_worst.tcl >/dev/null 2>&1 || true
             grep -E '^; (From|To) Node|^; Slack ' \
               projects/output_files/worst_paths.txt 2>/dev/null | head -30 || true
+            echo "--- worst paths, cold corner ---"
+            grep -E '^; (From|To) Node|^; Slack ' \
+              projects/output_files/worst_paths_cold.txt 2>/dev/null | head -30 || true
             exit 1
           fi
           echo "all corners positive"
