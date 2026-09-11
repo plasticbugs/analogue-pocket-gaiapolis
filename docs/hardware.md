@@ -347,16 +347,25 @@ The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
 | Bus | Size | Contents | Used | Access |
 |---|---|---|---|---|
 | `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB | 14 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), single words (PCM) |
-| `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, ~12 clocks |
-| `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, ~12 clocks |
+| `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, 12 clocks take to ack |
+| `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, 12 clocks; the Z80 has a one-word cache |
 | `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, ~5 clocks; byte-enabled writes |
 
 Why this way round:
 
 * The 68000 is the one client that wants a *random* access every bus cycle
-  (24 clocks at 16 MHz). A PSRAM of its own answers each in ~12 clocks with
+  (24 clocks at 16 MHz). A PSRAM of its own answers each in 12 clocks with
   no other traffic to queue behind; on the SDRAM it would have taken ~40% of
-  the bus by itself. The Z80's fetches share that chip and fit in the gaps.
+  the bus by itself. The Z80's fetches share that chip: the two readers
+  alternate when both are waiting, so neither waits more than one access of
+  the other (12 + 12 = 24, both CPUs' bus cycle), and the Z80 -- a byte of
+  a word at a time -- keeps the last word it fetched, so sequential code
+  costs the chip one access per two bytes. With fixed 68000 priority and a
+  14-clock access the Z80 ran at 74% of its rate in the self-test's sound
+  check (`MEM=pocket sim/run_system.sh`: 16.1K steps a frame against 21.8K,
+  with six times the wait clocks) and the check took five seconds longer.
+  The read captures 8 clocks (83 ns) after the address strobe: the part's
+  70 ns plus the margin the SNES core proves at 85.9 MHz (7 clocks, 81.5 ns).
 * The SDRAM is the burst memory: a sprite row is four consecutive words and
   a tile group two, one row activation each. Tiles ~2,100 + sprites ~520 +
   PCM ~160 clocks of the 6,144-clock line.
@@ -384,6 +393,35 @@ not completion, so the next word queues while one writes. The core is held
 in reset until the first `dataslot_allcomplete`, and the renderers hold
 their requests low in reset, so the load has every bus to itself.
 
+**The built-in memory test** (`mem_test` in `gaia_mem.sv`). Every byte of
+the image is summed per region as it streams in. When the load completes
+with the diagnostic overlay on, the core is held in reset while each region
+is read back through the core's own port and summed again, twice: a region
+is *ok* if the first pass matched the load, *stable* if the second pass
+matched the first, which separates a wrong write from a marginal read. The
+tile RAM is then written with a pattern and read back, counting bad words.
+About 2.5 s. The results are the overlay's rows (below); `sim/run_mem.sh`
+runs it on 1/64 of each region and checks it catches a corrupted word.
+
+**The overlay** (interact menu "Diagnostic overlay", the bottom 12 lines,
+three rows of 32 squares read left to right, green = 1):
+
+| Row | Bits | Meaning |
+|---|---|---|
+| 0 | 31-24 | frame counter |
+| 0 | 23-16 | PLL locked, SDRAM ready, download in progress, all-complete, save loaded, core in reset, IRQ5 this frame, 68000 stepped this frame |
+| 0 | 15-8 | core resets seen (counter) |
+| 0 | 7-0 | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped this frame |
+| 1 | 31-8 | 68000 address |
+| 1 | 7-1 | region read back ok: prog, snd, tile, chr, map, pcm, spr |
+| 1 | 0 | sound heard |
+| 2 | 31-25 | region read stable: prog, snd, tile, chr, map, pcm, spr |
+| 2 | 23-8 | Z80 PC |
+| 2 | 7-0 | Z80 ROM byte 0 (expect F3) |
+
+`MEM=pocket sim/run_system.sh` runs the whole machine with this module and
+behavioural chips in place of the ideal ROM ports, for the interplay the
+unit gate cannot see (withdrawn requests, the two CPUs contending).
 `sim/run_mem.sh <gaiapolis.rom> [gap]` is the gate for this module: the
 memory subsystem with behavioural SDRAM, PSRAM and SRAM chips behind it,
 2 KB from each end of every region loaded through the download port at

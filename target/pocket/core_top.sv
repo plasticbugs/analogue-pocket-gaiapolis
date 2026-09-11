@@ -917,7 +917,19 @@ module core_top
     wire        mem_ready;
     wire        loaded_s;
     synch_3 sync_loaded(nv_loaded, loaded_s, clk_sys);
-    wire        ga_reset  = reset_sw_s | ~loaded_s | ~mem_ready;
+    // the built-in memory test runs once, at the end of the load, when the
+    // diagnostic overlay is on; the core stays in reset until it is done
+    wire        test_run, test_done, vram_ok;
+    wire  [6:0] test_ok, test_stable;
+    wire  [3:0] vram_bad;
+    logic       loaded_d, test_start, test_hold;
+    always_ff @(posedge clk_sys) begin
+        loaded_d   <= loaded_s;
+        test_start <= loaded_s && !loaded_d && mod_sw0[3];
+        if (test_start) test_hold <= 1'b1;
+        else if (test_done) test_hold <= 1'b0;
+    end
+    wire        ga_reset  = reset_sw_s | ~loaded_s | ~mem_ready | test_hold | test_run;
 
     //! ROM: one slot with the flat 20,316,288-byte image from tools/mra_build.py.
     wire        ioctl_isROM = ioctl_download && ioctl_index == 16'h0;
@@ -962,6 +974,8 @@ module core_top
     gaia_mem u_mem (
         .clk(clk_sys), .clk_sdram(clk_sdram), .init(mem_init), .ready(mem_ready),
         .rd_late(ga_rd_late), .burst_slow(ga_burst_slow),
+        .test_start(test_start), .test_run(test_run), .test_done(test_done), .test_ok(test_ok), .test_stable(test_stable),
+        .vram_ok(vram_ok), .vram_bad(vram_bad),
         .dl_we(dl_we), .dl_addr(dl_addr), .dl_data(dl_data),
         .eep_we(img_eep_we), .eep_addr(img_eep_addr), .eep_data(img_eep_data),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
@@ -1031,33 +1045,34 @@ module core_top
     //!          byte (0x00) [7:0]
     //! ------------------------------------------------------------------
     wire        ovl_en = mod_sw0[3];
-    logic [7:0] ovl_frames;
-    logic       ovl_vs_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd;
-    logic [5:0] ovl_steps;
-    logic [7:0] ovl_zsteps, ovl_vacks, ovl_z0, ovl_t0;
-    logic [15:0] ovl_vq, ovl_pvec;
+    logic [7:0] ovl_frames, ovl_resets;
+    logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd;
+    logic [7:0] ovl_z0;
     logic       allc_s, nvl_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
     synch_3 sync_nvl(nv_loaded, nvl_s, clk_sys);
     always_ff @(posedge clk_sys) begin
-        ovl_vs_d <= ga_vs;
+        ovl_vs_d <= ga_vs; ovl_rst_d <= ga_reset;
+        if (ga_reset && !ovl_rst_d) ovl_resets <= ovl_resets + 8'd1;
         if (ga_vs && !ovl_vs_d) begin
             ovl_frames <= ovl_frames + 8'd1;
             ovl_seen_step <= 1'b0; ovl_seen_zstep <= 1'b0; ovl_seen_snd <= 1'b0;
         end
-        if (dbg_step)  begin ovl_seen_step  <= 1'b1; ovl_steps  <= ovl_steps + 6'd1; end
-        if (dbg_zstep) begin ovl_seen_zstep <= 1'b1; ovl_zsteps <= ovl_zsteps + 8'd1; end
+        if (dbg_step)  ovl_seen_step  <= 1'b1;
+        if (dbg_zstep) ovl_seen_zstep <= 1'b1;
         if (ga_snd_valid && (ga_snd_l != 16'd0)) ovl_seen_snd <= 1'b1;
-        if (vram_ack) begin ovl_vacks <= ovl_vacks + 8'd1; if (!vram_we) ovl_vq <= vram_q; end
-        if (prog_ack && prog_addr == 22'd2) ovl_pvec <= prog_q;
-        if (snd_ack  && snd_addr  == 18'd0) ovl_z0   <= snd_q;
-        if (tile_ack && tile_addr == 19'd0) ovl_t0   <= tile_q[31:24];
+        if (snd_ack && snd_addr == 18'd0) ovl_z0 <= snd_q;
     end
+    // Row 0: frame counter | pll, sdram ready, download, all-complete, save loaded, core reset, irq5, 68000 stepped
+    //        | core resets seen | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped
+    // Row 1: 68000 address (24) | region read back ok: prog, snd, tile, chr, map, pcm, spr | sound heard
+    // Row 2: region read stable: prog, snd, tile, chr, map, pcm, spr, 0 | Z80 PC (16) | Z80 ROM byte 0 (F3)
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
-        ovl_seen_zstep, ovl_seen_snd, in0_p1[13:8], in1,
-        dbg_addr, dbg_busstate, ovl_steps,
-        ovl_pvec, ovl_z0, ovl_t0
+        ovl_resets, test_done, test_run, vram_ok, vram_bad, ovl_seen_zstep,
+        dbg_addr, test_ok[0], test_ok[1], test_ok[2], test_ok[3], test_ok[4], test_ok[5], test_ok[6], ovl_seen_snd,
+        test_stable[0], test_stable[1], test_stable[2], test_stable[3], test_stable[4], test_stable[5], test_stable[6], 1'b0,
+        dbg_zpc, ovl_z0
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;
     dbg_overlay ovl (

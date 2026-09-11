@@ -2,6 +2,7 @@
 // and come back through every core port; the tile RAM is written and read.
 //   tb_mem <gaiapolis.rom> [load gap in clocks, default 8]
 #include "Vtb_mem_top.h"
+#include "Vtb_mem_top___024root.h"
 #include "verilated.h"
 #include <cstdio>
 #include <cstdlib>
@@ -112,6 +113,22 @@ int main(int argc, char **argv) {
     vram_wr(0x1234, 0xaa55, 3); vram_wr(0x1234, 0x11ff, 2); { unsigned g = vram_rd(0x1234); if (g != 0x1155) { printf("  vram byte lane: got %04x expected 1155\n", g); vbad++; } }
     vram_wr(0x1234, 0x22cc, 1); { unsigned g = vram_rd(0x1234); if (g != 0x11cc) { printf("  vram byte lane: got %04x expected 11cc\n", g); vbad++; } }
     printf("vram  %u bad\n", vbad); errors += vbad;
+
+    // the built-in memory test (1/64 of each region): reload the heads of
+    // the regions so the load-time sums restart at image byte 0, run it,
+    // then corrupt one word in a PSRAM and one in the SDRAM and run it again
+    auto run_test = [&](const char *what, unsigned exp_ok) {
+        dut->test_start = 1; tick(4); dut->test_start = 0;
+        long n = 0; while (!dut->test_done && n++ < 60000000) tick();
+        printf("memtest %s: done=%d ok=%02x stable=%02x vram_ok=%d vram_bad=%d (%ld clocks)\n", what, dut->test_done,
+               dut->test_ok, dut->test_stable, dut->vram_ok, dut->vram_bad, n);
+        if (!dut->test_done || dut->test_ok != exp_ok || dut->test_stable != 0x7f || !dut->vram_ok) errors++;
+    };
+    for (auto &r : regs) load(r.base, S);
+    run_test("clean", 0x7f);
+    dut->rootp->tb_mem_top__DOT__cram1__DOT__mem[5] ^= 0x0100;         // prog word 5
+    dut->rootp->tb_mem_top__DOT__chip__DOT__mem[7] ^= 0x0001;          // tile word 7
+    run_test("corrupted prog+tile", 0x7f & ~0x01 & ~0x04);         // bit 0 prog, bit 2 tile
     printf("%s: %u errors, %llu clocks\n", errors ? "FAIL" : "PASS", errors, cycles);
     delete dut; return errors ? 1 : 0;
 }

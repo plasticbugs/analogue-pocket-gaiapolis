@@ -3,10 +3,12 @@
 // bytes through the download port and reads them back through every core
 // port (sim/tb_mem.cpp).
 `default_nettype none
-module tb_mem_top (
+module tb_mem_top #(parameter int TEST_SHRINK = 6) (
     input  logic        clk,
     input  logic        init,
     output logic        ready,
+    input  logic        test_start, output logic test_run, test_done,
+    output logic  [6:0] test_ok, test_stable, output logic vram_ok, output logic [3:0] vram_bad,
     input  logic        dl_we, input logic [24:0] dl_addr, input logic [7:0] dl_data,
     output logic        eep_we, output logic [6:0] eep_addr, output logic [7:0] eep_data,
     input  logic        prog_req, input  logic [22:1] prog_addr, output logic prog_ack, output logic [15:0] prog_q,
@@ -26,8 +28,10 @@ module tb_mem_top (
     wire         cram1_clk, cram1_adv_n, cram1_cre, cram1_ce0_n, cram1_ce1_n, cram1_oe_n, cram1_we_n, cram1_ub_n, cram1_lb_n;
     wire  [16:0] sram_a; wire [15:0] sram_dq; wire sram_oe_n, sram_we_n, sram_ub_n, sram_lb_n;
 
-    gaia_mem dut (
+    gaia_mem #(.TEST_SHRINK(TEST_SHRINK)) dut (
         .clk(clk), .clk_sdram(clk), .init(init), .ready(ready), .rd_late(1'b1), .burst_slow(1'b0),
+        .test_start(test_start), .test_run(test_run), .test_done(test_done), .test_ok(test_ok), .test_stable(test_stable),
+        .vram_ok(vram_ok), .vram_bad(vram_bad),
         .dl_we(dl_we), .dl_addr(dl_addr), .dl_data(dl_data),
         .eep_we(eep_we), .eep_addr(eep_addr), .eep_data(eep_data),
         .prog_req(prog_req), .prog_addr(prog_addr), .prog_ack(prog_ack), .prog_q(prog_q),
