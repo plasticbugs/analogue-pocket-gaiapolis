@@ -17,7 +17,7 @@ set_clock_groups -asynchronous \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
 # SDRAM: the chip is clocked by the phase-shifted PLL output (the S.T.U.N.
-# Runner core's proven arrangement, same controller); the shift is 6.77 ns (52 eighths of the 960 MHz VCO period)
+# Runner core's proven arrangement, same controller); the shift is 6.90 ns (53 eighths of the 960 MHz VCO period)
 # here, 0.64 ns later than there, for the address pins' setup with this
 # design's placement (the data inputs had more than 2 ns to give)
 create_generated_clock -name dram_clk -source \

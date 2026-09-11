@@ -261,11 +261,16 @@ module k053247_draw #(
     end
     wire [7:0] szb_z = szb_q[15:8];
     wire [7:0] szb_p = szb_q[7:0];
+    // the decided pixel, one cycle ahead of its write
+    logic            px_valid_a, solid_a, shade_a, ovl_a;
+    logic [LB_AW-1:0] lbi_a;
+    logic      [3:0] pen_a;
 
     /* verilator lint_on UNUSEDSIGNAL */
 
     // -------------------------------------------------------------------- FSM
     always_ff @(posedge clk) begin
+        px_valid_a <= 1'b0;
         if (reset) begin
             st <= D_IDLE; busy <= 1'b0; bank <= 1'b0;
             rom_req <= 1'b0; shadow_overlap <= 1'b0;
@@ -415,24 +420,19 @@ module k053247_draw #(
                     rowdata <= rom_q; rom_req <= 1'b0; st <= D_PIX;
                 end
 
+                // The pixel loop is two stages: this state decides pixel n
+                // (its pen, the Z and shadow compares) into registers while
+                // the block below writes pixel n-1 -- the decision straight
+                // into the line-buffer write enables was the design's tightest
+                // path. A row's last write lands in the D_NEXTTX cycle.
                 D_PIX: begin
-                    if (tile_solid) begin
-                        // drawmode 1 also rejects the shadow pen
-                        if (pen != 4'd0
+                    px_valid_a <= 1'b1;
+                    lbi_a <= lbi; pen_a <= pen; ovl_a <= sh_q[10];
+                    // drawmode 1 also rejects the shadow pen
+                    solid_a <= tile_solid && (pen != 4'd0)
                             && !(drawmode[1:0] != 2'd0 && pen >= shdpen)
-                            && zb_q >= zcode) begin
-                            dbg_pxw <= dbg_pxw + 1'd1;
-                            zbuf[lbi]         <= zcode;
-                            solid[bank][lbi]  <= {1'b1, color, pen, opri};
-                            shade[bank][lbi]  <= 11'd0;  // a later solid clears the shadow
-                        end
-                    end else begin
-                        if (pen >= shdpen && szb_z >= zcode && szb_p > opri) begin
-                            szbuf[lbi]       <= {zcode, opri};
-                            shade[bank][lbi] <= {1'b1, shtab, opri};
-                            if (sh_q[10]) shadow_overlap <= 1'b1;
-                        end
-                    end
+                            && (zb_q >= zcode);
+                    shade_a <= !tile_solid && (pen >= shdpen) && (szb_z >= zcode) && (szb_p > opri);
                     ddax <= ddax + {8'd0, stride_x};
                     if (cur_px >= pxr) st <= D_NEXTTX;
                     else cur_px <= cur_px + 18'sd1;
@@ -450,6 +450,20 @@ module k053247_draw #(
 
                 default: st <= D_IDLE;
             endcase
+
+            // ---- the pixel decided last cycle goes into the line buffers ----
+            if (px_valid_a) begin
+                if (solid_a) begin
+                    dbg_pxw <= dbg_pxw + 1'd1;
+                    zbuf[lbi_a]         <= zcode;
+                    solid[bank][lbi_a]  <= {1'b1, color, pen_a, opri};
+                    shade[bank][lbi_a]  <= 11'd0;  // a later solid clears the shadow
+                end else if (shade_a) begin
+                    szbuf[lbi_a]        <= {zcode, opri};
+                    shade[bank][lbi_a]  <= {1'b1, shtab, opri};
+                    if (ovl_a) shadow_overlap <= 1'b1;
+                end
+            end
         end
     end
 endmodule
