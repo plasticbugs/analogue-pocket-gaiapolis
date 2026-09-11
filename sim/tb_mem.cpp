@@ -117,16 +117,29 @@ int main(int argc, char **argv) {
     // the built-in memory test (1/64 of each region): reload the heads of
     // the regions so the load-time sums restart at image byte 0, run it,
     // then corrupt one word in a PSRAM and one in the SDRAM and run it again
+    bool poke_vram = false;             // corrupt two tile RAM words once the read-back pass has begun
     auto run_test = [&](const char *what, unsigned exp_ok) {
         dut->test_start = 1; tick(4); dut->test_start = 0;
-        long n = 0; while (!dut->test_done && n++ < 60000000) tick();
+        long n = 0; bool poked = false;
+        while (!dut->test_done && n++ < 60000000) {
+            tick();
+            if (poke_vram && !poked && dut->rootp->tb_mem_top__DOT__dut__DOT__u_test__DOT__st == 4) {   // T_VR
+                dut->rootp->tb_mem_top__DOT__sram__DOT__mem[0x8234] ^= 0x0001;
+                dut->rootp->tb_mem_top__DOT__sram__DOT__mem[0x8235] ^= 0x8000; poked = true;
+            }
+        }
         printf("memtest %s: done=%d ok=%02x stable=%02x vram_ok=%d vram_bad=%d (%ld clocks)\n", what, dut->test_done,
                dut->test_ok, dut->test_stable, dut->vram_ok, dut->vram_bad, n);
         if (!dut->test_done || dut->test_ok != exp_ok || dut->test_stable != 0x7f || !dut->vram_ok) errors++;
     };
     for (auto &r : regs) load(r.base, S);
     run_test("clean", 0x7f);
-    dut->ps_slow = 1; dut->sram_slow = 1; run_test("clean, slow captures", 0x7f); dut->ps_slow = 0; dut->sram_slow = 0;
+    dut->ps_slow = 1; dut->sram_slow = 1; dut->sram_slow_wr = 1; run_test("clean, slow captures and writes", 0x7f);
+    dut->ps_slow = 0; dut->sram_slow = 0; dut->sram_slow_wr = 0;
+    // two bad tile RAM words show as 2 on the log scale
+    poke_vram = true; run_test("corrupted tile RAM (2 words, expect vram_bad 2)", 0x7f); poke_vram = false;
+    if (dut->vram_bad == 2 && !dut->vram_ok) errors--;                  // run_test counted the expected failure
+    else printf("  tile RAM corruption not reported as 2\n");
     dut->rootp->tb_mem_top__DOT__cram1__DOT__mem[5] ^= 0x0100;         // prog word 5
     dut->rootp->tb_mem_top__DOT__chip__DOT__mem[7] ^= 0x0001;          // tile word 7
     run_test("corrupted prog+tile", 0x7f & ~0x01 & ~0x04);         // bit 0 prog, bit 2 tile

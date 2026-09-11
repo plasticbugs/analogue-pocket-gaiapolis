@@ -956,6 +956,7 @@ module core_top
     wire        ga_burst_slow = mod_sw0[5];
     wire        ga_ps_slow    = mod_sw0[6];   // PSRAM reads captured two clocks later
     wire        ga_sram_slow  = mod_sw0[7];   // SRAM reads captured one clock later
+    wire        ga_sram_slow_wr = mod_sw1[7]; // SRAM writes stretched
 
     // the core's memory ports
     wire        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, chr_req, chr_ack, spr_req, spr_ack;
@@ -975,7 +976,7 @@ module core_top
 
     gaia_mem u_mem (
         .clk(clk_sys), .clk_sdram(clk_sdram), .init(mem_init), .ready(mem_ready),
-        .rd_late(ga_rd_late), .burst_slow(ga_burst_slow), .ps_slow(ga_ps_slow), .sram_slow(ga_sram_slow),
+        .rd_late(ga_rd_late), .burst_slow(ga_burst_slow), .ps_slow(ga_ps_slow), .sram_slow(ga_sram_slow), .sram_slow_wr(ga_sram_slow_wr),
         .test_start(test_start), .test_run(test_run), .test_done(test_done), .test_ok(test_ok), .test_stable(test_stable),
         .vram_ok(vram_ok), .vram_bad(vram_bad),
         .dl_we(dl_we), .dl_addr(dl_addr), .dl_data(dl_data),

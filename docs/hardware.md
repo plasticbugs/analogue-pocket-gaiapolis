@@ -349,7 +349,7 @@ The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
 | `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB | 14 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), single words (PCM) |
 | `cram0` PSRAM | 16 MB | ROZ chars 1.5 MB + ROZ map 640 KB | 2.1 MB | single 16-bit async reads, 12 clocks take to ack |
 | `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, 12 clocks; the Z80 has a one-word cache |
-| `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, ~5 clocks; byte-enabled writes |
+| `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, 6 clocks (read data 42 ns after the address); byte-enabled writes |
 
 Why this way round:
 
@@ -406,10 +406,14 @@ pass matched the first, which separates a wrong write from a marginal
 read. The tile RAM is then written with a pattern, read back counting bad
 words, and cleared. About 2.5 s. The results are the overlay's rows
 (below); `sim/run_mem.sh` runs it on 1/64 of each region and checks it
-catches a corrupted word. Two menu switches bracket the read timing
-without a rebuild: "PSRAM slow reads" captures two clocks (21 ns) later
-than the 94 ns, "SRAM slow reads" one clock later than the 31 ns; set one,
-"Reset Core", and read the verdicts again.
+catches a corrupted word. Three menu switches bracket the timing without
+a rebuild: "PSRAM slow reads" captures two clocks (21 ns) later than the
+94 ns, "SRAM slow reads" one clock later than the 42 ns, "SRAM slow
+writes" holds WE low three clocks instead of two and the data a clock
+longer; set one, "Reset Core", and read the verdicts again. The first
+board run said every ROM region ok and stable but the tile RAM bad, so
+the SRAM pins' registers were moved into the IO cells
+(`projects/gaia_pocket.qsf`) and the read capture given a fourth clock.
 
 **The overlay** (interact menu "Diagnostic overlay", the bottom 12 lines,
 three rows of 32 squares read left to right, green = 1):
@@ -419,7 +423,7 @@ three rows of 32 squares read left to right, green = 1):
 | 0 | 31-24 | frame counter |
 | 0 | 23-16 | PLL locked, SDRAM ready, download in progress, all-complete, save loaded, core in reset, IRQ5 this frame, 68000 stepped this frame |
 | 0 | 15-8 | core resets seen (counter) |
-| 0 | 7-0 | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped this frame |
+| 0 | 7-0 | test done, test running, tile RAM ok, tile RAM bad words on a log scale (4: 0 none, n = 2^(n-1) to 2^n - 1, 15 = 16384 or more), Z80 stepped this frame |
 | 1 | 31-8 | 68000 address |
 | 1 | 7-1 | region read back ok: prog, snd, tile, chr, map, pcm, spr |
 | 1 | 0 | sound heard |

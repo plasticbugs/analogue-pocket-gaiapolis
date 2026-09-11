@@ -67,7 +67,7 @@ module tb_pocket_top #(
 
     gaia_mem u_mem (
         .clk(clk), .clk_sdram(clk), .init(reset), .ready(mem_ready), .rd_late(1'b1), .burst_slow(1'b0),
-        .ps_slow(1'b0), .sram_slow(1'b0),
+        .ps_slow(1'b0), .sram_slow(1'b0), .sram_slow_wr(1'b0),
         .test_start(1'b0), .test_run(), .test_done(), .test_ok(), .test_stable(), .vram_ok(), .vram_bad(),
         .dl_we(1'b0), .dl_addr(25'd0), .dl_data(8'd0),
         .eep_we(eep_we_unused), .eep_addr(eep_addr_unused), .eep_data(eep_data_unused),
