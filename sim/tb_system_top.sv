@@ -59,27 +59,27 @@ module tb_system_top #(
     logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
     logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [19:0] spr_addr;
     logic [15:0] prog_q, map_q; logic [31:0] tile_q; logic [63:0] spr_q;
-    // the ROZ character blocks: LAT_BLK clocks after the request the 16 words
-    // of the tile's word column follow, one a clock, out of the image-layout
+    // the ROZ character blocks: LAT_BLK clocks after the request the tile's 64
+    // words follow, one a clock, in {column, row} order out of the image-layout
     // array (word tile*64 + row*4 + column); a withdrawn request is dropped
     logic        blk_req, blk_wr, blk_ack;
     logic [15:0] blk_addr, blk_data;
-    logic  [3:0] blk_idx;
+    logic  [5:0] blk_idx;
     int lat_blk, cnt_blk;
-    logic  [4:0] blk_n;
+    logic  [6:0] blk_n;
     logic        blk_run;
     logic [15:0] blk_addr_l;
     initial if (!$value$plusargs("LAT_BLK=%d", lat_blk)) lat_blk = 0;
     always_ff @(posedge clk) begin
         blk_wr <= 1'b0; blk_ack <= 1'b0;
         if (!blk_run) begin
-            cnt_blk <= 0; blk_n <= 5'd0;
+            cnt_blk <= 0; blk_n <= 7'd0;
             if (blk_req && !blk_ack) begin blk_run <= 1'b1; blk_addr_l <= blk_addr; end
         end else if (cnt_blk < lat_blk) cnt_blk <= cnt_blk + 1;
-        else if (blk_n != 5'd16) begin
-            blk_wr <= 1'b1; blk_idx <= blk_n[3:0];
-            blk_data <= chr[{blk_addr_l[15:2], blk_n[3:0], blk_addr_l[1:0]}];
-            blk_n <= blk_n + 5'd1;
+        else if (blk_n != 7'd64) begin
+            blk_wr <= 1'b1; blk_idx <= blk_n[5:0];
+            blk_data <= chr[{blk_addr_l[13:0], blk_n[3:0], blk_n[5:4]}];
+            blk_n <= blk_n + 7'd1;
         end else begin
             blk_run <= 1'b0;
             if (blk_req && blk_addr == blk_addr_l) blk_ack <= 1'b1;

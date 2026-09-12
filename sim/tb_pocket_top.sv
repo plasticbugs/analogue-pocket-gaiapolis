@@ -55,7 +55,7 @@ module tb_pocket_top #(
     logic        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
     logic [22:1] prog_addr; logic [18:0] tile_addr; logic [19:0] map_addr; logic [19:0] spr_addr;
     logic [15:0] prog_q, map_q; logic [31:0] tile_q; logic [63:0] spr_q;
-    logic        blk_req, blk_wr, blk_ack; logic [15:0] blk_addr, blk_data; logic [3:0] blk_idx;
+    logic        blk_req, blk_wr, blk_ack; logic [15:0] blk_addr, blk_data; logic [5:0] blk_idx;
     logic        srom_req, srom_ack, pcmr_req, pcmr_ack;
     logic [17:0] srom_addr; logic [21:0] pcmr_addr;
     logic  [7:0] srom_q, pcmr_q;

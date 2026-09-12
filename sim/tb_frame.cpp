@@ -141,6 +141,7 @@ int main(int argc, char **argv) {
 
     std::vector<unsigned> out(VIS_H * VIS_W, 0);
     long worst = 0, worst_tm = 0, worst_roz = 0, worst_dr = 0;
+    int min_lead = 99;
     auto render_line = [&](int raster_y) -> long {
         dut->line_start = 1; dut->line = raster_y; tick(); dut->line_start = 0;
         long n = 0;
@@ -152,10 +153,14 @@ int main(int argc, char **argv) {
         if (n_tm > worst_tm) worst_tm = n_tm; if (n_roz > worst_roz) worst_roz = n_roz; if (n_dr > worst_dr) worst_dr = n_dr;
         return n;
     };
+    // the frame's pre-start, as gaia_video gives it a few raster lines early
+    dut->prestart = 1; tick(); dut->prestart = 0;
+    for (int k = 0; k < 5 * 512 * 12; k++) tick();     // five raster lines before the first pulse
     render_line(VIS_Y0);
     for (int y = 0; y < VIS_H; y++) {
         long n = render_line(VIS_Y0 + y + 1);
         if (n > worst) worst = n;
+        if (y < VIS_H - 1 && dut->roz_lead < min_lead) min_lead = dut->roz_lead;    // after the wait: lines in hand beyond the one due (1 = just in time)
         for (int x = 0; x < VIS_W; x++) {
             // a 12-clock pixel as gaia_video paces it: px changes on the tick,
             // the encoder and colour stages latch at fixed phases after it
@@ -163,6 +168,7 @@ int main(int argc, char **argv) {
             for (int k = 0; k < 11; k++) tick();
             out[y * VIS_W + x] = dut->rgb;
         }
+        for (int k = 0; k < (512 - VIS_W) * 12; k++) tick();    // the line's blanking: 6144 clocks a line in all
     }
     if (dut->unsupported) { fprintf(stderr, "RTL raised `unsupported` (or the object list overflowed)\n"); return 1; }
     if (dut->shadow_overlap) fprintf(stderr, "warning: a pixel was shadowed twice\n");
@@ -170,7 +176,7 @@ int main(int argc, char **argv) {
     FILE *of = fopen(argv[5], "wb");
     if (!of) { fprintf(stderr, "cannot write %s\n", argv[5]); return 1; }
     fwrite(out.data(), 4, out.size(), of); fclose(of);
-    printf("worst line %ld clocks (budget 6144; tilemap %ld, ROZ %ld, sprites %ld)\n", worst, worst_tm, worst_roz, worst_dr);
+    printf("worst line %ld clocks (budget 6144; tilemap %ld, ROZ %ld late, sprites %ld); ROZ lead min %d\n", worst, worst_tm, worst_roz, worst_dr, min_lead);
     delete dut;
     return 0;
 }

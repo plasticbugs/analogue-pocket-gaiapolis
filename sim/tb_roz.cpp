@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     dut->chr_we = 0;
 
     std::vector<unsigned short> out(VIS_H * VIS_W, 0xffff);
-    long worst = 0;
+    long worst = 0; int min_lead = 99;
     auto render_line = [&](int raster_y) -> long {
         dut->line_start = 1; dut->line = raster_y; tick();
         dut->line_start = 0;
@@ -84,14 +84,19 @@ int main(int argc, char **argv) {
         while (dut->busy) { tick(); if (++c > 500000) { fprintf(stderr, "line %d hung\n", raster_y); exit(1); } }
         return c;
     };
+    dut->prestart = 1; tick(); dut->prestart = 0;
+    for (int k = 0; k < 5 * 512 * 12; k++) tick();     // five raster lines before the first pulse
     render_line(VIS_Y0);
     for (int y = 0; y < VIS_H; y++) {
         long c = render_line(VIS_Y0 + y + 1);
         if (c > worst) worst = c;
+        if (y < VIS_H - 1 && dut->lead < min_lead) min_lead = dut->lead;
         for (int x = 0; x < VIS_W; x++) {
-            dut->px = x; tick(); tick();
+            // a 12-clock pixel as the display paces it (the run-ahead uses this time)
+            dut->px = x; for (int k = 0; k < 12; k++) tick();
             out[y * VIS_W + x] = dut->opaque ? dut->pix : 0xffff;
         }
+        for (int k = 0; k < (512 - VIS_W) * 12; k++) tick();    // the line's blanking
     }
     if (dut->unsupported) { fprintf(stderr, "RTL raised `unsupported`\n"); return 1; }
 
@@ -99,7 +104,7 @@ int main(int argc, char **argv) {
     if (!of) { fprintf(stderr, "cannot write %s\n", argv[3]); return 1; }
     fwrite(out.data(), sizeof(unsigned short), out.size(), of);
     fclose(of);
-    printf("rendered %d lines, worst line %ld clocks (budget 6144)", VIS_H, worst);
+    printf("rendered %d lines, worst wait %ld clocks past the pulse, lead min %d lines", VIS_H, worst, min_lead);
     printf("\n");
     delete dut;
     return 0;

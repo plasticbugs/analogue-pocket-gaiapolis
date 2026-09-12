@@ -31,10 +31,10 @@ static unsigned prog_rd(long w) { dut->prog_req = 1; dut->prog_addr = w; bool ok
 static unsigned snd_rd(long b)  { dut->snd_req = 1;  dut->snd_addr = b;  bool ok = wait_ack(dut->snd_ack, "snd");   unsigned q = dut->snd_q;  dut->snd_req = 0;  tick(2); return ok ? q : 0xdd; }
 static unsigned pcm_rd(long b)  { dut->pcm_req = 1;  dut->pcm_addr = b;  bool ok = wait_ack(dut->pcm_ack, "pcm");   unsigned q = dut->pcm_q;  dut->pcm_req = 0;  tick(2); return ok ? q : 0xdd; }
 static unsigned map_rd(long b)  { dut->map_req = 1;  dut->map_addr = b;  bool ok = wait_ack(dut->map_ack, "map");   unsigned q = dut->map_q;  dut->map_req = 0;  tick(2); return ok ? q : 0xdead; }
-// a character block: 16 words streamed, checked against the image's tile*64 + row*4 + column
-static unsigned blk_rd(long blk, unsigned short *w) {
-    dut->blk_req = 1; dut->blk_addr = blk; unsigned got = 0;
-    for (int i = 0; i < 4000; i++) { tick(); if (dut->blk_wr) { w[dut->blk_idx] = dut->blk_data; got |= 1u << dut->blk_idx; } if (dut->blk_ack) break; }
+// a character tile: 64 words streamed in {column, row} order, checked against the image's tile*64 + row*4 + column
+static unsigned long long blk_rd(long tile, unsigned short *w) {
+    dut->blk_req = 1; dut->blk_addr = tile; unsigned long long got = 0;
+    for (int i = 0; i < 4000; i++) { tick(); if (dut->blk_wr) { w[dut->blk_idx] = dut->blk_data; got |= 1ull << dut->blk_idx; } if (dut->blk_ack) break; }
     bool ok = dut->blk_ack; dut->blk_req = 0; tick(2); return ok ? got : 0;
 }
 static unsigned tile_rd(long w) { dut->tile_req = 1; dut->tile_addr = w; bool ok = wait_ack(dut->tile_ack, "tile"); unsigned q = dut->tile_q; dut->tile_req = 0; tick(2); return ok ? q : 0xdeadbeef; }
@@ -109,19 +109,18 @@ int main(int argc, char **argv) {
         unsigned bad = 0, cnt = 0; long len = IMG_MAP - IMG_CHR;
         for (int win = 0; win < 2; win++) {
             long off0 = win ? len - S : 0;
-            for (long off = off0; off < off0 + S; off += 128) {            // one tile = 128 bytes = 4 blocks
+            for (long off = off0; off < off0 + S; off += 128) {            // one tile = 128 bytes = 64 words
                 long tile = off / 128;
-                for (int wc = 0; wc < 4; wc++) {
-                    unsigned short w[16]; unsigned got = blk_rd(tile * 4 + wc, w); cnt++;
-                    if (got != 0xffff) { if (bad < 4) printf("  chr block %ld: only %04x words arrived\n", tile * 4 + wc, got); bad++; continue; }
+                unsigned short w[64]; unsigned long long got = blk_rd(tile, w); cnt++;
+                if (got != ~0ull) { if (bad < 4) printf("  chr tile %ld: only %016llx words arrived\n", tile, got); bad++; continue; }
+                for (int wc = 0; wc < 4; wc++)
                     for (int row = 0; row < 16; row++) {
                         unsigned exp = be16(IMG_CHR + tile * 128 + row * 8 + wc * 2);
-                        if (w[row] != exp) { if (bad < 4) printf("  chr block %ld row %d: got %04x expected %04x\n", tile * 4 + wc, row, w[row], exp); bad++; }
+                        if (w[wc * 16 + row] != exp) { if (bad < 4) printf("  chr tile %ld column %d row %d: got %04x expected %04x\n", tile, wc, row, w[wc * 16 + row], exp); bad++; }
                     }
-                }
             }
         }
-        printf("chr   %u blocks checked, %u bad\n", cnt, bad); errors += bad;
+        printf("chr   %u tiles checked, %u bad\n", cnt, bad); errors += bad;
     }
     check("map",  IMG_MAP, IMG_PCM - IMG_MAP,   [](long, long off){ return (unsigned long long)map_rd(off); }, 2, [](long a){ return (unsigned long long)be16(a); });
     check("pcm",  IMG_PCM, IMG_SPR - IMG_PCM,   [](long, long off){ return (unsigned long long)pcm_rd(off); }, 1, [](long a){ return (unsigned long long)img[a]; });

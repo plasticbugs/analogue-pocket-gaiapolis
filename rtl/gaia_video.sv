@@ -38,6 +38,7 @@ module gaia_video #(
     // to the renderers
     output logic        line_start,
     output logic  [8:0] render_line,
+    output logic        prestart,       // one pulse a few raster lines before the visible area (the ROZ plane pre-renders)
     input  logic  [2:0] renderers_busy, // {tilemap, ROZ, sprites}
     output logic        overrun,
     output logic  [2:0] overrun_src,    // which of them, with the pulse
@@ -64,6 +65,7 @@ module gaia_video #(
 
     always_ff @(posedge clk) begin
         line_start  <= 1'b0;
+        prestart    <= 1'b0;
         vblank_rise <= 1'b0;
         if (reset) begin
             hcount <= '0; vcount <= '0; overrun <= 1'b0; overrun_src <= '0;
@@ -80,12 +82,15 @@ module gaia_video #(
             if (hcount == 9'd0) begin
                 logic [8:0] nxt;
                 nxt = (vcount == 9'(VTOTAL - 1)) ? 9'd0 : vcount + 9'd1;
-                if (nxt >= 9'(VIS_Y0) && nxt < 9'(VIS_Y0 + VIS_H)) begin
+                // ... including the pulse after the last visible line, so the
+                // renderers hand over their last buffer as they do every other
+                if (nxt >= 9'(VIS_Y0) && nxt <= 9'(VIS_Y0 + VIS_H)) begin
                     line_start  <= 1'b1;
                     render_line <= nxt;
                     overrun <= |renderers_busy;     // one pulse per overrunning line
                     overrun_src <= renderers_busy;
                 end
+                if (vcount == 9'(VIS_Y0 - 6)) prestart <= 1'b1;
             end
 
             // scan-out address for this pixel

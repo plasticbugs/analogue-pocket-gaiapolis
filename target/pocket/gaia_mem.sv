@@ -57,7 +57,7 @@ module gaia_mem #(
     input  logic        prog_req,  input  logic [22:1] prog_addr, output logic prog_ack, output logic [15:0] prog_q,
     input  logic        tile_req,  input  logic [18:0] tile_addr, output logic tile_ack, output logic [31:0] tile_q,
     input  logic        map_req,   input  logic [19:0] map_addr,  output logic map_ack,  output logic [15:0] map_q,
-    input  logic        blk_req,   input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [3:0] blk_idx,
+    input  logic        blk_req,   input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [5:0] blk_idx,
     output logic [15:0] blk_data,  output logic        blk_ack,
     input  logic        spr_req,   input  logic [19:0] spr_addr,  output logic spr_ack,  output logic [63:0] spr_q,
     input  logic        snd_req,   input  logic [17:0] snd_addr,  output logic snd_ack,  output logic  [7:0] snd_q,
@@ -303,13 +303,13 @@ module gaia_mem #(
                         b_addr <= SD_SPR + {2'd0, spr_addr_i, 2'b00}; b_len <= 10'd4; b_req <= 1'b1; bst <= B_RUN;
                     end else if (blk_req_i && !blk_ack) begin
                         bsel <= 2'd2; blk_addr_l <= blk_addr_i;
-                        b_addr <= SD_ROZ + {4'd0, blk_addr_i, 4'd0}; b_len <= 10'd16; b_req <= 1'b1; bst <= B_RUN;
+                        b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'd64; b_req <= 1'b1; bst <= B_RUN;
                     end
                 end
                 B_RUN: begin
                     if (b_wr) begin
                         bw[b_idx[1:0]] <= b_data;
-                        if (bsel == 2'd2) begin blk_wr <= 1'b1; blk_idx <= b_idx[3:0]; blk_data <= b_data; end
+                        if (bsel == 2'd2) begin blk_wr <= 1'b1; blk_idx <= b_idx[5:0]; blk_data <= b_data; end
                     end
                     if (b_done) begin b_req <= 1'b0; bst <= B_ACK; end
                 end
@@ -618,7 +618,7 @@ module mem_test #(
     localparam [24:0] IMG_CHR  = 25'h0540000, IMG_MAP  = 25'h06C0000, IMG_PCM  = 25'h0760000;
     localparam [24:0] IMG_SPR  = 25'h0B60000, IMG_EEP  = 25'h1360000;
     // accesses per region, in each port's unit
-    localparam [22:0] N_PROG = 23'h180000, N_SND = 23'h040000, N_TILE = 23'h080000, N_CHR = 23'h00C000;   // chr: 16-word blocks
+    localparam [22:0] N_PROG = 23'h180000, N_SND = 23'h040000, N_TILE = 23'h080000, N_CHR = 23'h003000;   // chr: 64-word tiles
     localparam [22:0] N_MAP  = 23'h050000, N_PCM = 23'h400000, N_SPR  = 23'h100000;
 
     // the sums as the image arrives (a new image restarts them), in three

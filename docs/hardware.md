@@ -132,6 +132,9 @@ Z-code order (ascending or descending per OPSET bit 4 of register 0x0c).
 * Clip window from `484000`: `minx = clip_x << 7`, size 1/2/4 × 128 px.
 * Enable + a 2-bit ROM bank at `6C0000`.
 * Global offset for gaiapolis: `K053936GP_set_offset(0, -10, 0)`.
+* The core's renderer (`rtl/k053936_roz.sv`): a 128-tile fully associative
+  cache fed by 64-word bursts, up to 7 lines ahead of the display -- see
+  the memory partition section below.
 
 ## 6. Tile layers (K056832)
 
@@ -335,7 +338,7 @@ One line is 512 pixel clocks at 8 MHz = **64.0 us**.
 |---|---|---|
 | Sprites | ~348 | 4 words per 16 px, measured worst case |
 | Tilemaps | 376 | 4 layers x 376 px, 4bpp chunky, 2 words per 8 px — deterministic |
-| ROZ plane | ~560 | 1 px/clk; map lookup + char byte, worst case with a 1-tile cache |
+| ROZ plane | ~1,000-4,000 | 64-word tile bursts on cache misses: 8-15 new tiles a line in steady state, up to 64 on the line where the walk enters a new tile row (the 7-line run-ahead absorbs it) |
 | 68000 | ~150 | 16 MHz, 4 clk/bus cycle, most cycles hit work RAM in BRAM |
 | PCM | ~25 | 16 voices, negligible |
 
@@ -346,7 +349,7 @@ The Pocket exposes **four independent memories** (`dram`, `cram0`, `cram1`,
 
 | Bus | Size | Contents | Used | Access |
 |---|---|---|---|---|
-| `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB, ROZ chars 1.5 MB | 15.5 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), 16-word bursts (ROZ tile columns), single words (PCM) |
+| `dram` SDRAM | 32 MB | tiles 2 MB, PCM 4 MB, sprites 8 MB, ROZ chars 1.5 MB | 15.5 MB | 2-word bursts (tiles), 4-word bursts (sprite rows), 64-word bursts (ROZ tiles), single words (PCM) |
 | `cram0` PSRAM | 16 MB | ROZ map 640 KB | 640 KB | single 16-bit async reads, 12 clocks take to ack |
 | `cram1` PSRAM | 16 MB | 68000 program 3 MB + Z80 program 256 KB | 3.25 MB | single 16-bit async reads, 12 clocks; the Z80 has a one-word cache |
 | `sram` | 256 KB | K056832 tile RAM, 64K x 16 | 128 KB | single 16-bit async, 6 clocks (read data 42 ns after the address); byte-enabled writes |
@@ -381,13 +384,22 @@ Why this way round:
   reads a line at 12 clocks plus the map made 7,900-9,600 clocks against
   the 6,144 of a line -- the tearing on the board's first gameplay screen.
   The characters now live in the SDRAM, stored column-major within each
-  tile at load time, so a tile's 4-pixel word column is one 16-word burst
-  into the renderer's 32-block cache by tile row, which also serves the
-  next three raster lines (they step one source pixel across). Lines cost
-  3,800 clocks in the play and stage scenes, 2,900 in the tower, 6,900 on
-  the busiest screen (`tools/roz_fetches.py` sizes it from the model;
-  `sim/run_frame.sh` with the Pocket latencies measures it per renderer).
-  The CPU's read-back window fetches a word's block and keeps its row.
+  tile at load time, and a tile is one 64-word burst into the renderer's
+  128-entry fully associative cache (round-robin replacement; an entry also
+  keeps the tile's colour bits, so a hit needs no map read). That shape
+  follows from the walk: the character-select water rotates through every
+  angle, and any set-indexed cache has angles where a line's 60-90 tiles
+  collide (a 32-block cache by tile row cost 10,300 clocks a line at 30
+  degrees -- the noise on the board's select screen). The bursty part is
+  the line on which the walk enters a new tile row and every tile changes
+  at once (9,000+ clocks at zoom 1.9, 12,000 at 2.7), so the renderer keeps
+  8 line buffers and runs up to 7 lines ahead of the display, beginning
+  six raster lines before the visible area on `prestart` from gaia_video;
+  the average is 1,400-3,200 clocks a line and no line is late at any
+  angle (`tools/roz_fetches.py` models the walk and the cache and reports
+  the lead a scene needs; `sim/run_frame.sh` with the Pocket latencies
+  measures the lead actually in hand). The CPU's read-back window fetches a
+  word's tile and keeps the word.
 * The tile RAM (128 KB) is the one *RAM* too big for the FPGA: as block RAM
   it needed two copies for its two readers, 2 Mbit of the device's 3.15.
   It lives in the 10 ns SRAM instead, behind one request/ack port shared by
@@ -532,8 +544,9 @@ byte, so every word loaded into a PSRAM held its neighbour's data.
 | ROZ line RAM | 4 KB |
 | Z80 RAM | 9 KB |
 | Sprite zoom/reciprocal tables | 9 KB |
-| Line buffers (4 tilemap + ROZ + sprite), sprite list | ~14 KB |
-| **Subtotal** | **~252 KB** |
+| ROZ tile cache (128 tiles x 128 bytes) | 16 KB |
+| Line buffers (4 tilemap + 8 ROZ + sprite), sprite list | ~18 KB |
+| **Subtotal** | **~272 KB** |
 
 The K056832 tile RAM (128 KB) is in the Pocket's SRAM, not here: as block
 RAM Quartus needed two copies of it for its two readers, and the whole design

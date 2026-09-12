@@ -967,7 +967,7 @@ module core_top
 
     // the core's memory ports
     wire        prog_req, prog_ack, tile_req, tile_ack, map_req, map_ack, spr_req, spr_ack;
-    wire        blk_req, blk_wr, blk_ack; wire [15:0] blk_addr, blk_data; wire [3:0] blk_idx;
+    wire        blk_req, blk_wr, blk_ack; wire [15:0] blk_addr, blk_data; wire [5:0] blk_idx;
     wire        snd_req, snd_ack, pcm_req, pcm_ack;
     wire [22:1] prog_addr; wire [18:0] tile_addr; wire [19:0] map_addr; wire [19:0] spr_addr;
     wire [17:0] snd_addr; wire [21:0] pcm_addr;

@@ -31,10 +31,12 @@ module tb_frame_top (
     // ---- control ----
     input  logic        build,
     output logic        build_done,
+    input  logic        prestart,
     input  logic        line_start,
     input  logic  [8:0] line,
     output logic        busy,
     output logic  [2:0] busy_src,       // {tilemap, ROZ, sprites}
+    output logic  [3:0] roz_lead,       // the ROZ plane's lines in hand, after a pulse
     input  logic  [8:0] px,
     output logic [23:0] rgb,
     output logic        unsupported,
@@ -92,26 +94,26 @@ module tb_frame_top (
     logic [15:0] crom [786432];
 
     // the character blocks, as the platform streams them: LAT_BLK clocks after
-    // the request the 16 words of the tile's word column follow, one a clock,
+    // the request the tile's 64 words follow, one a clock, in {column, row} order
     // out of the image-layout ROM (word tile*64 + row*4 + column)
     logic        blk_req, blk_wr, blk_ack;
     logic [15:0] blk_addr, blk_data;
-    logic  [3:0] blk_idx;
+    logic  [5:0] blk_idx;
     int lat_blk, cnt_blk;
-    logic  [4:0] blk_n;                 // 0..15 streaming, 16 done
+    logic  [6:0] blk_n;                 // 0..63 streaming, 64 done
     logic        blk_run;
     logic [15:0] blk_addr_l;
     initial if (!$value$plusargs("LAT_BLK=%d", lat_blk)) lat_blk = 0;
     always_ff @(posedge clk) begin
         blk_wr <= 1'b0; blk_ack <= 1'b0;
         if (!blk_run) begin
-            cnt_blk <= 0; blk_n <= 5'd0;
+            cnt_blk <= 0; blk_n <= 7'd0;
             if (blk_req && !blk_ack) begin blk_run <= 1'b1; blk_addr_l <= blk_addr; end
         end else if (cnt_blk < lat_blk) cnt_blk <= cnt_blk + 1;
-        else if (blk_n != 5'd16) begin
-            blk_wr <= 1'b1; blk_idx <= blk_n[3:0];
-            blk_data <= crom[{blk_addr_l[15:2], blk_n[3:0], blk_addr_l[1:0]}];
-            blk_n <= blk_n + 5'd1;
+        else if (blk_n != 7'd64) begin
+            blk_wr <= 1'b1; blk_idx <= blk_n[5:0];
+            blk_data <= crom[{blk_addr_l[13:0], blk_n[3:0], blk_n[5:4]}];
+            blk_n <= blk_n + 7'd1;
         end else begin
             blk_run <= 1'b0;
             if (blk_req && blk_addr == blk_addr_l) blk_ack <= 1'b1;
@@ -187,7 +189,7 @@ module tb_frame_top (
         .px(px), .pix(tm_pen), .opaque(tm_opq), .unsupported(tm_unsup)
     );
     k053936_roz u_roz (
-        .clk(clk), .reset(reset), .line_start(line_start), .line(line), .busy(roz_busy),
+        .clk(clk), .reset(reset), .prestart(prestart), .line_start(line_start), .line(line), .busy(roz_busy), .lead(roz_lead),
         .ctrl(rozctrl), .clip(rozclip), .roz_enable(roz_enable), .palbase(roz_palbase),
         .map_req(mrom_req), .map_addr(mrom_addr), .map_ack(mrom_ack), .map_q(mrom_q),
         .blk_req(blk_req), .blk_addr(blk_addr), .blk_wr(blk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(blk_ack),

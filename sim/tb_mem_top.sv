@@ -15,7 +15,7 @@ module tb_mem_top #(parameter int TEST_SHRINK = 6) (
     input  logic        prog_req, input  logic [22:1] prog_addr, output logic prog_ack, output logic [15:0] prog_q,
     input  logic        tile_req, input  logic [18:0] tile_addr, output logic tile_ack, output logic [31:0] tile_q,
     input  logic        map_req,  input  logic [19:0] map_addr,  output logic map_ack,  output logic [15:0] map_q,
-    input  logic        blk_req,  input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [3:0] blk_idx,
+    input  logic        blk_req,  input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [5:0] blk_idx,
     output logic [15:0] blk_data, output logic        blk_ack,
     input  logic        spr_req,  input  logic [19:0] spr_addr,  output logic spr_ack,  output logic [63:0] spr_q,
     input  logic        snd_req,  input  logic [17:0] snd_addr,  output logic snd_ack,  output logic  [7:0] snd_q,

@@ -9,17 +9,19 @@
 // Only "simple" mode is implemented (ctrl[7] bit 6 clear), which is all the
 // frozen-state corpus uses; "super" (per-line) mode raises `unsupported`.
 //
-// Locality note: at the transforms this game uses, consecutive pixels along a
-// raster line step one source pixel in Y (x step 0, y step 1.0, or 2.7 on
-// the busiest screen), so a tile-map cache pays for itself (376 pixels need
-// only 25-65 map fetches) while every pixel lands on a different row of the
-// tile. The characters therefore come in as 16-word blocks: a tile's
-// 4-pixel word column, one word per row, one burst from the platform's
-// memory (stored column-major within the tile at load time), into a
-// 32-block direct-mapped cache by tile row that also serves the next three
-// raster lines, which step one source pixel across. On the Pocket's memories
-// the one-word-per-pixel reads cost 7,900-9,600 clocks a line against the
-// 6,144 available (tools/roz_fetches.py sizes the blocks: 25-65 a line).
+// Memory strategy. A raster line walks a straight path across the plane; at
+// this game's transforms (zoom 0.5-2.7, any angle: the character-select water
+// rotates) it crosses 25-90 tiles, and the next line, one source pixel over,
+// crosses nearly the same ones. So the unit of fetch is a whole tile -- its
+// 64 words in one burst from the platform's memory, stored column-major at
+// load time -- into a 128-entry fully associative cache with round-robin
+// replacement. Hits need no map read either: the entry keeps the tile's
+// colour bits. What remains bursty is the line on which the walk moves to a
+// new tile row and every tile changes at once (9,000+ clocks at zoom 1.9);
+// the renderer therefore keeps 8 line buffers and runs up to 7 lines ahead
+// of the display, so such a line borrows from its cheap neighbours (the
+// average is 1,400-3,200 clocks a line). tools/roz_fetches.py models the
+// walk; the frame bench measures the lead actually used.
 //
 // Deliberate divergence from MAME: K053936GP_copyroz32clip advances its
 // destination row before the loop body, so MAME paints raster row N with the
@@ -32,19 +34,30 @@
 
 module k053936_roz #(
     parameter int VIS_W  = 376,
+    parameter int VIS_H  = 224,
     parameter int VIS_X0 = 40,
     parameter int VIS_Y0 = 16,
     parameter int LB_AW  = 9,
     // K053936GP_set_offset(0, -10, 0) for gaiapolis
     parameter int OFFS_X = -10,
-    parameter int OFFS_Y = 0
+    parameter int OFFS_Y = 0,
+    parameter int NENT   = 128          // cached tiles
 ) (
     input  logic        clk,
     input  logic        reset,
 
+    // Pacing from gaia_video. prestart pulses a few raster lines before the
+    // visible area and begins the frame's rendering; line_start pulses at the
+    // start of raster line r with line = r+1, the line the display shows
+    // next. busy: that line is not rendered yet (sampled at the next pulse
+    // for the overrun count). The renderer runs ahead of the display by up
+    // to NBANK-1 lines and never writes the buffer being displayed; if it is
+    // ever behind at a pulse, the line in progress is abandoned, as before.
+    input  logic        prestart,
     input  logic        line_start,
     input  logic  [8:0] line,
     output logic        busy,
+    output logic  [3:0] lead,           // lines rendered beyond the one due, saturating (benches)
 
     input  logic [15:0] ctrl [16],      // 0x460000 control block (only 0-7 used)
     input  logic [15:0] clip [2],       // 0x484000 clip window
@@ -61,14 +74,14 @@ module k053936_roz #(
     input  logic        map_ack,
     input  logic [15:0] map_q,
 
-    // character ROM (gfx3), same convention
-    // the character blocks: a level request for block blk_addr (tile*4 + word
-    // column), its 16 words streamed back with blk_wr/blk_idx/blk_data, then
-    // blk_ack for a request still standing with the same address
+    // character ROM (gfx3): a level request for tile blk_addr, its 64 words
+    // streamed back with blk_wr/blk_idx/blk_data (idx = {word column, row},
+    // the load-time layout), then blk_ack for a request still standing with
+    // the same address
     output logic        blk_req,
     output logic [15:0] blk_addr,
     input  logic        blk_wr,
-    input  logic  [3:0] blk_idx,
+    input  logic  [5:0] blk_idx,
     input  logic [15:0] blk_data,
     input  logic        blk_ack,
 
@@ -86,13 +99,29 @@ module k053936_roz #(
     logic signed [31:0] incxx, incxy, incyx, incyy;
     logic        [31:0] startx, starty;      // 16.16, wraps as uint32 like MAME
 
-    // ---------------------------------------------------------- line buffer
-    logic bank;
-    logic [12:0] lbuf [2][VIS_W];
-    logic [12:0] rd;
-    always_ff @(posedge clk) rd <= lbuf[~bank][px];
-    assign pix    = rd[11:0];
-    assign opaque = rd[12];
+    // --------------------------------------------------------- line buffers
+    // 8 banks of 384 (a bank's base is bank*384: two shifted adds); a pixel
+    // is {colour, pen}, and pen 0 is transparent, so no opaque bit is kept
+    localparam int NBANK = 8, LB_STRIDE = 384;
+    function automatic logic [11:0] bank_base(input logic [2:0] b);
+        return {1'b0, b, 8'd0} + {2'b0, b, 7'd0};
+    endfunction
+    logic [11:0] lbuf [NBANK*LB_STRIDE];
+    logic [11:0] rd, rd_base, wa;
+    always_ff @(posedge clk) rd <= lbuf[rd_base + 12'(px)];
+    assign pix    = rd;
+    assign opaque = |rd[3:0];
+
+    // ------------------------------------------------------- frame pacing
+    logic signed [9:0] disp;            // the line the display shows now (-1 before the first)
+    logic        [8:0] need, rline;     // the line due at the next pulse; the next line to render
+    logic              need_v;
+    wire signed  [9:0] disp_new = $signed({1'b0, line}) - $signed(10'(VIS_Y0 + 1));
+    wire               behind   = line_start && ($signed({1'b0, rline}) <= disp_new);
+    wire               abandon  = prestart || behind;
+    assign busy = need_v && (need < 9'(VIS_H)) && (rline <= need);
+    wire [9:0] lead_w = {1'b0, rline} - {1'b0, need};
+    assign lead = lead_w[9] ? 4'd0 : (lead_w > 10'd15) ? 4'd15 : lead_w[3:0];
 
     // ------------------------------------------------------------- clipping
     wire        clip_en = clip[1][8];
@@ -110,83 +139,92 @@ module k053936_roz #(
     wire  [5:0] clip_ey = clip_y + {3'd0, clipsize(csy)};
     wire [12:0] maxy = {clip_ey, 7'd0} - 13'd1;
 
-    // ------------------------------------------------------------------ FSM
+    // ------------------------------------------------------------ tile cache
+    // tags and valid bits are registers (every entry is compared each clock);
+    // the tile data and the colour bits are RAMs addressed by the hit entry
+    logic [31:0] cx, cy;
+    logic [12:0] srcx, srcy;
+    wire  [17:0] ti_now = {cy[28:20], cx[28:20]};     // {row, column} of the tile on the plane
+
+    logic [17:0]     tag   [NENT];
+    logic [NENT-1:0] valid, match;
+    logic  [4:0]     attr  [NENT];      // {attribute bit 7, colour nibble}
+    logic [15:0]     tmem  [NENT*64];
+    logic  [6:0]     fifo_ptr, fill_ent;
+    logic [15:0]     tmem_rd;
+    logic  [4:0]     attr_rd;
+    logic  [7:0]     d1, d2, d3;
+    logic [17:0]     ti;
+
+    function automatic logic [6:0] enc(input logic [NENT-1:0] m);
+        logic [6:0] r;
+        r = '0;
+        for (int i = 0; i < NENT; i++) if (m[i]) r = r | 7'(i);
+        return r;
+    endfunction
+    wire [6:0] ent_now = enc(match);
+    wire [3:0] nib_now = ti[0] ? d1[3:0] : d1[7:4];
+
+    always_ff @(posedge clk)
+        for (int i = 0; i < NENT; i++) match[i] <= valid[i] && (tag[i] == ti_now);
+
     typedef enum logic [3:0] {
-        R_IDLE, R_SETUP, R_SETUP2, R_PIX, R_M1, R_M1W, R_M2, R_M2W, R_M3, R_M3W,
-        R_CHR, R_CHRW, R_CHRP, R_EMIT
+        R_IDLE, R_SETUP, R_SETUP2, R_PIX, R_LOOK, R_CHK,
+        R_M1W, R_M2, R_M2W, R_M3, R_M3W, R_FILL, R_FILLW
     } state_t;
     state_t st;
 
-    logic [31:0] cx, cy;
-    logic [LB_AW-1:0] cur_x;
-    logic [12:0] srcx, srcy;
-    logic [17:0] ti, cache_ti;
-    logic        cache_valid, cache_miss;
-    logic [13:0] tileno;
-    logic  [7:0] colour;
-    /* verilator lint_off UNUSEDSIGNAL */
-    logic  [7:0] d1, d2, d3;   // d2[6] is not part of the tile number
-    /* verilator lint_on UNUSEDSIGNAL */
-    logic  [3:0] pen;
-    logic        clipped;
-
-    wire [17:0] ti_now = {srcy[12:4], srcx[12:4]};
-    // On a cache miss the tile number is only latched at the end of this
-    // cycle, so the character address has to use the value being decoded,
-    // not the register. Using `tileno` here mis-fetches exactly one pixel
-    // at every tile boundary.
-    wire [13:0] tileno_next = cache_miss ? {d2[5:0], d3} : tileno;
-    // the block cache: 32 entries by the tile's row on the plane, each a
-    // tile's word column (16 words); tags hold the block id
-    wire [15:0] blk_now = {tileno_next, srcx[3:2]};
-    wire  [4:0] blk_set = srcy[8:4];
-    logic [15:0] blk_tag [32];
-    logic [31:0] blk_valid;
-    logic [15:0] blk_mem [512];         // {set, row}
-    logic [15:0] blk_word;
-    logic  [8:0] blk_raddr;
-    logic  [4:0] fill_set;
-    logic  [1:0] pix_sel;               // srcx[1:0] of the pixel being read
     always_ff @(posedge clk) begin
-        if (blk_wr) blk_mem[{fill_set, blk_idx}] <= blk_data;
-        blk_word <= blk_mem[blk_raddr];
+        if (blk_wr) tmem[{fill_ent, blk_idx}] <= blk_data;
+        tmem_rd <= tmem[{ent_now, srcx[3:2], srcy[3:0]}];
+        if (st == R_FILLW && blk_ack) attr[fill_ent] <= {d2[7], nib_now};
+        attr_rd <= attr[ent_now];
     end
-    // the line's offset into the visible area, registered every clock so the
-    // subtract does not sit in front of the line-start multiply (that path
-    // missed by 0.08 ns on the Pocket)
-    logic [8:0] vline;
-    always_ff @(posedge clk) vline <= line - 9'(VIS_Y0);
+
+    // ------------------------------------------------------------------ FSM
+    logic [LB_AW-1:0] cur_x;
+    logic        hit, clipped;
+    logic  [1:0] pix_sel;
+    logic [31:0] pyx, pyy;
+
+    wire [3:0] pen = (pix_sel == 2'd0) ? tmem_rd[15:12] : (pix_sel == 2'd1) ? tmem_rd[11:8]
+                   : (pix_sel == 2'd2) ? tmem_rd[7:4]   : tmem_rd[3:0];
+    // palbase occupies bits 7:4 and the attribute's bit 7 adds bit 4; they
+    // never collide for this game's base
+    wire [7:0] colour = {palbase[3:0], 4'd0} | {3'd0, attr_rd[4], 4'd0} | {4'd0, attr_rd[3:0]};
 
     always_ff @(posedge clk) begin
         if (reset) begin
-            st <= R_IDLE; busy <= 1'b0; bank <= 1'b0;
-            map_req <= 1'b0; blk_req <= 1'b0; unsupported <= 1'b0;
-            cache_valid <= 1'b0; cache_miss <= 1'b0; blk_valid <= '0;
-        end else if (line_start && st != R_IDLE) begin
-            // the previous line overran its budget: abandon it and start this
-            // one, as the hardware would -- whatever was drawn is what shows
-            bank <= ~bank; busy <= 1'b1;
-            map_req <= 1'b0; blk_req <= 1'b0; st <= R_SETUP;
+            st <= R_IDLE; map_req <= 1'b0; blk_req <= 1'b0; unsupported <= 1'b0;
+            valid <= '0; fifo_ptr <= '0;
+            rline <= 9'(VIS_H); need <= '0; need_v <= 1'b0; disp <= -10'sd1; rd_base <= '0;
         end else begin
-            case (st)
+            if (prestart) begin
+                rline <= '0; disp <= -10'sd1; need_v <= 1'b0;
+            end else if (line_start) begin
+                need <= line - 9'(VIS_Y0); need_v <= 1'b1;
+                disp <= disp_new; rd_base <= bank_base(disp_new[2:0]);
+                if (behind) rline <= line - 9'(VIS_Y0);
+            end
+
+            if (abandon) begin
+                st <= R_IDLE; map_req <= 1'b0; blk_req <= 1'b0;
+            end else case (st)
                 R_IDLE: begin
-                    busy <= 1'b0;
-                    if (line_start) begin
-                        bank <= ~bank;
-                        busy <= 1'b1;
-                        st   <= R_SETUP;
+                    if (rline < 9'(VIS_H) && $signed({1'b0, rline}) <= disp + 10'(NBANK - 1)) begin
+                        st <= R_SETUP;
                         if (ctrl[7][6]) unsupported <= 1'b1;    // "super" mode
                     end
                 end
 
                 R_SETUP: begin
                     cur_x <= '0;
-                    cache_valid <= 1'b0;
+                    wa    <= bank_base(rline[2:0]);
                     // startx/starty already fold in the visible-area origin, so
                     // the per-line advance counts visible lines, not raster ones;
                     // the multiply and the add are two cycles (one path was -6.6 ns)
-                    pyx <= $unsigned(incyx) * {23'd0, vline};
-                    pyy <= $unsigned(incyy) * {23'd0, vline};
+                    pyx <= $unsigned(incyx) * {23'd0, rline};
+                    pyy <= $unsigned(incyy) * {23'd0, rline};
                     st <= R_SETUP2;
                 end
                 R_SETUP2: begin
@@ -195,30 +233,43 @@ module k053936_roz #(
                     st <= R_PIX;
                 end
 
+                // three clocks a pixel on a hit: the source position, then the
+                // tag compare (registered above from cx/cy), then the data
                 R_PIX: begin
                     srcx <= cx[28:16];
                     srcy <= cy[28:16];
-                    st   <= R_M1;
+                    ti   <= ti_now;
+                    st   <= R_LOOK;
                 end
-
-                R_M1: begin
+                R_LOOK: begin
+                    hit     <= |match;
                     clipped <= clip_en & ((srcx < minx) | (srcx > maxx)
                                         | (srcy < miny) | (srcy > maxy));
-                    ti <= ti_now;
-                    blk_raddr <= {blk_set, srcy[3:0]};     // the row's word is read from here on
-                    if (!roz_enable) begin
-                        pen <= 4'd0; st <= R_EMIT;
-                    end else if (cache_valid && ti_now == cache_ti) begin
-                        cache_miss <= 1'b0;
-                        st <= R_CHR;                       // tile attributes still valid
-                    end else begin
-                        cache_miss <= 1'b1;
+                    pix_sel <= srcx[1:0];
+                    st <= R_CHK;
+                end
+                R_CHK: begin
+                    if (roz_enable && !hit) begin
                         // colour nibbles are packed two tiles per byte
-                        map_addr <= {3'd0, ti_now[17:1]};
+                        map_addr <= {3'd0, ti[17:1]};
                         map_req  <= 1'b1;
                         st <= R_M1W;
+                    end else begin
+                        lbuf[wa] <= (roz_enable && |pen && !clipped) ? {colour, pen} : 12'd0;
+                        wa <= wa + 12'd1;
+                        cx <= cx + $unsigned(incxx);
+                        cy <= cy + $unsigned(incxy);
+                        if (cur_x == VIS_W[LB_AW-1:0] - 1) begin
+                            st <= R_IDLE; rline <= rline + 9'd1;
+                        end else begin
+                            cur_x <= cur_x + 1'd1;
+                            st <= R_PIX;
+                        end
                     end
                 end
+
+                // a miss: the tile's three map bytes, then its 64 words into
+                // the round-robin victim
                 R_M1W: if (map_ack) begin
                     d1 <= map_addr[0] ? map_q[7:0] : map_q[15:8];
                     map_req <= 1'b0;
@@ -242,51 +293,21 @@ module k053936_roz #(
                 R_M3W: if (map_ack) begin
                     d3 <= map_addr[0] ? map_q[7:0] : map_q[15:8];
                     map_req <= 1'b0;
-                    st <= R_CHR;
+                    st <= R_FILL;
                 end
-
-                R_CHR: begin
-                    if (cache_miss) begin
-                        tileno   <= {d2[5:0], d3};
-                        // palbase occupies bits 7:4 and the attribute's bit 7
-                        // adds bit 4; they never collide for this game's base
-                        colour   <= {palbase[3:0], 4'd0} | {3'd0, d2[7], 4'd0}
-                                  | {4'd0, (ti[0] ? d1[3:0] : d1[7:4])};
-                        cache_ti <= ti;
-                        cache_valid <= 1'b1;
-                    end
-                    pix_sel   <= srcx[1:0];
-                    if (blk_valid[blk_set] && blk_tag[blk_set] == blk_now) begin
-                        st <= R_CHRP;                      // the block is cached
-                    end else begin
-                        blk_addr <= blk_now; blk_req <= 1'b1; fill_set <= blk_set;
-                        blk_valid[blk_set] <= 1'b0;
-                        st <= R_CHRW;
-                    end
+                R_FILL: begin
+                    fill_ent <= fifo_ptr;
+                    valid[fifo_ptr] <= 1'b0;
+                    blk_addr <= {2'd0, d2[5:0], d3};
+                    blk_req  <= 1'b1;
+                    st <= R_FILLW;
                 end
-                R_CHRW: if (blk_ack) begin
+                R_FILLW: if (blk_ack) begin
                     blk_req <= 1'b0;
-                    blk_tag[fill_set] <= blk_addr; blk_valid[fill_set] <= 1'b1;
-                    st <= R_CHRP;
-                end
-                R_CHRP: begin
-                    // the word for this row is in blk_word; x's low bits pick the nibble
-                    pen <= (pix_sel == 2'd0) ? blk_word[15:12] : (pix_sel == 2'd1) ? blk_word[11:8]
-                         : (pix_sel == 2'd2) ? blk_word[7:4] : blk_word[3:0];
-                    st <= R_EMIT;
-                end
-
-                R_EMIT: begin
-                    lbuf[bank][cur_x] <= (|pen && !clipped) ? {1'b1, colour, pen}
-                                                            : 13'd0;
-                    cx <= cx + $unsigned(incxx);
-                    cy <= cy + $unsigned(incxy);
-                    if (cur_x == VIS_W[LB_AW-1:0] - 1) begin
-                        st <= R_IDLE; busy <= 1'b0;
-                    end else begin
-                        cur_x <= cur_x + 1'd1;
-                        st <= R_PIX;
-                    end
+                    tag[fill_ent]   <= ti;
+                    valid[fill_ent] <= 1'b1;
+                    fifo_ptr <= fifo_ptr + 7'd1;
+                    st <= R_PIX;                       // now a hit
                 end
                 default: st <= R_IDLE;
             endcase
@@ -294,11 +315,11 @@ module k053936_roz #(
     end
 
     // control-register decode, registered in three short stages every cycle
-    // so a mid-frame write still takes effect on the next line as it does on
-    // the chip (a few clocks after the write, well inside a line), without
-    // the shifts, constant multiplies and adds forming one long path
+    // so a mid-frame write still takes effect on the next line rendered (up
+    // to NBANK-1 lines before it shows), without the shifts, constant
+    // multiplies and adds forming one long path
     logic signed [31:0] ixx, ixy, iyx, iyy, sx0, sy0, sx, sy;
-    logic        [31:0] pxx, pxy, pyx, pyy;
+    logic        [31:0] pxx, pxy;
     always_ff @(posedge clk) begin
         // stage 1: sign extension and the x256 modes
         ixx <= ctrl[6][6]  ? (sx16(ctrl[4]) <<< 8) : sx16(ctrl[4]);
@@ -317,4 +338,9 @@ module k053936_roz #(
         startx <= $unsigned(sx <<< 5) + pxx + $unsigned(incyx) * VIS_Y0;
         starty <= $unsigned(sy <<< 5) + pxy + $unsigned(incyy) * VIS_Y0;
     end
+
+    /* verilator lint_off UNUSEDSIGNAL */
+    wire unused = ^{d2[6], ctrl[8], ctrl[9], ctrl[10], ctrl[11], ctrl[12], ctrl[13], ctrl[14], ctrl[15],
+                    clip[1][15:9], clip[1][7:0], cx[31:29], cx[15:0], cy[31:29], cy[15:0]};
+    /* verilator lint_on UNUSEDSIGNAL */
 endmodule

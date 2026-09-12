@@ -45,7 +45,7 @@ renderer's worst line with the Pocket memories' latencies:
 | block | gate | worst line, Pocket latencies |
 |---|---|---|
 | `rtl/k056832_tilemap.sv` -- four tilemap layers | `sim/run_tilemap.sh` | 3,354 clocks |
-| `rtl/k053936_roz.sv` -- rotate/zoom plane, characters as tile-column bursts | `sim/run_roz.sh` | 3,806 (play), 6,886 (busiest screen) |
+| `rtl/k053936_roz.sv` -- rotate/zoom plane: 128-tile cache, runs up to 7 lines ahead | `sim/run_roz.sh` | no line late at any rotation angle; 1,400-3,200 average |
 | `rtl/k053247_objlist.sv` -- sprite list and per-object line range | `sim/run_objlist.sh` | ~3,200 per frame, in vblank |
 | `rtl/k053247_draw.sv` -- sprite rasterizer with column prefetch | `sim/run_sprite.sh` | 4,310 (busiest screen) |
 | `rtl/k055555_mixer.sv` -- priority encoder + colour stage | `sim/run_frame.sh` | -- |
@@ -87,11 +87,10 @@ removed for the release and are kept in `docs/hardware.md` section 11.
 
 ## Open items
 
-* The busiest gameplay screen (the ROZ plane at 2.7x) costs the ROZ
-  renderer 6,886 clocks a line against 6,144 with the Pocket latencies:
-  65 tile changes at three map reads each, and five states a pixel. Fewer
-  map reads (two bytes of the three in one word) and fewer states per pixel
-  would bring it under.
+* The ROZ plane renders up to 7 lines ahead of the display, starting six
+  raster lines before the visible area; a write to its registers later than
+  that in vblank reaches those first lines a frame late. Not observed: the
+  game writes them in its vblank handler.
 * In the first frames of the intro after a new game, while its clouds
   load, the tilemap renderer drops 2-16 lines a frame for a dozen frames
   waiting behind the sprite and ROZ bursts on the SDRAM; clean after.
