@@ -99,7 +99,7 @@ module gaia_main #(
     output logic [15:0] k56regsb [4],
     output logic  [7:0] k55regs  [48],
     output logic [15:0] k38regs  [16],
-    output logic [15:0] rozctrl  [8],
+    output logic [15:0] rozctrl  [16],
     output logic [15:0] rozclip  [2],
     output logic        roz_enable,
     output logic  [1:0] roz_rombank,
@@ -322,7 +322,7 @@ module gaia_main #(
         else if (sel_pal)    rd_mux = A[1] ? pal_cpu_q[1] : pal_cpu_q[0];
         else if (sel_sprwin) rd_mux = spr_hit ? sram_cpu_q : sshadow_q;
         else if (sel_rozli)  rd_mux = rozli_q;
-        else if (sel_rozct)  rd_mux = rozctrl[A[3:1]];
+        else if (sel_rozct)  rd_mux = rozctrl[A[4:1]];
         else if (sel_k252)   rd_mux = {8'h00, k252[A[4:1]]};
         else if (sel_in0)    rd_mux = in0_p1;
         else if (sel_in1)    rd_mux = in1_word;
@@ -347,7 +347,8 @@ module gaia_main #(
             for (int i = 0; i < 4;  i++) k56regsb[i] <= '0;
             for (int i = 0; i < 48; i++) k55regs[i] <= '0;
             for (int i = 0; i < 16; i++) begin k38regs[i] <= '0; k252[i] <= '0; end
-            for (int i = 0; i < 8;  i++) begin rozctrl[i] <= '0; k46regs[i] <= '0; k47regs[i] <= '0; end
+            for (int i = 0; i < 16; i++) rozctrl[i] <= '0;
+            for (int i = 0; i < 8;  i++) begin k46regs[i] <= '0; k47regs[i] <= '0; end
             rozclip[0] <= '0; rozclip[1] <= '0;
         end else begin
             if (cen_16m && tok < 6'd48) tok <= tok + 6'(STEP_GAIN);
@@ -401,8 +402,11 @@ module gaia_main #(
                                 k47regs[A[3:1]] <= {uds ? data_write[15:8] : k47regs[A[3:1]][15:8],
                                                     lds ? data_write[7:0]  : k47regs[A[3:1]][7:0]};
                             end else if (sel_rozct) begin
-                                rozctrl[A[3:1]] <= {uds ? data_write[15:8] : rozctrl[A[3:1]][15:8],
-                                                    lds ? data_write[7:0]  : rozctrl[A[3:1]][7:0]};
+                                // 16 words: 0-7 zoom coefficients, 8-15 the chip's own
+                                // clip window (unused by the renderer, but they must not
+                                // alias onto the coefficients).
+                                rozctrl[A[4:1]] <= {uds ? data_write[15:8] : rozctrl[A[4:1]][15:8],
+                                                    lds ? data_write[7:0]  : rozctrl[A[4:1]][7:0]};
                             end else if (sel_rozli) begin
                                 rozli[A[11:1]] <= {uds ? data_write[15:8] : rozli_q[15:8],
                                                    lds ? data_write[7:0]  : rozli_q[7:0]};

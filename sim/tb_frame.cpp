@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 16; i++) { dut->k38_we = 1; dut->k38_addr = i; dut->k38_data = k38[i]; tick(); }
     dut->k38_we = 0;
     auto &ct = st.f["ROZCT16"];
-    for (int i = 0; i < 8; i++) { dut->rozc_we = 1; dut->rozc_addr = i; dut->rozc_data = ct[i]; tick(); }
+    for (int i = 0; i < 16; i++) { dut->rozc_we = 1; dut->rozc_addr = i; dut->rozc_data = ct[i]; tick(); }
     dut->rozc_we = 0;
     auto &cl = st.f["ROZCLIP"];
     for (int i = 0; i < 2; i++) { dut->clip_we = 1; dut->clip_addr = i; dut->clip_data = cl[i]; tick(); }

@@ -12,7 +12,7 @@ module tb_frame_top (
     input  logic        k56_we,  input logic [4:0] k56_addr,  input logic [15:0] k56_data,
     input  logic        k55_we,  input logic [5:0] k55_addr,  input logic  [7:0] k55_data,
     input  logic        k38_we,  input logic [3:0] k38_addr,  input logic [15:0] k38_data,
-    input  logic        rozc_we, input logic [2:0] rozc_addr, input logic [15:0] rozc_data,
+    input  logic        rozc_we, input logic [3:0] rozc_addr, input logic [15:0] rozc_data,
     input  logic        clip_we, input logic       clip_addr, input logic [15:0] clip_data,
     input  logic        cfg_we,
     input  logic        roz_enable_i,
@@ -44,7 +44,7 @@ module tb_frame_top (
     logic [15:0] k56regs [32];
     logic  [7:0] k55regs [48];
     logic [15:0] k38regs [16];
-    logic [15:0] rozctrl [8];
+    logic [15:0] rozctrl [16];
     logic [15:0] rozclip [2];
     logic        roz_enable;
     logic [15:0] opset, k46offx, k46offy;

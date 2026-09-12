@@ -105,6 +105,10 @@ module gaia_core #(
     output logic  [2:0] dbg_overrun_src,    // {tilemap, ROZ, sprites} still busy at that line start
     output logic [31:0] dbg_draw_objs, dbg_draw_rows, dbg_draw_cols, dbg_draw_pxw,   // the sprite renderer's running work counts
     output logic        dbg_spr_we,             // a CPU write into the sprite RAM
+    output logic          dbg_roz_en,           // the ROZ plane's registers as the CPU left them (benches)
+    output logic [127:0]  dbg_rozctrl,
+    output logic  [31:0]  dbg_rozclip,
+    output logic [383:0]  dbg_k55,
     output logic        dbg_unsupported,
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
@@ -135,7 +139,7 @@ module gaia_core #(
     assign dbg_vcount = vcount;
 
     // ------------------------------------------------------- main board
-    logic [15:0] k56regs [32], k56regsb [4], k38regs [16], rozctrl [8], rozclip [2], k47regs [8];
+    logic [15:0] k56regs [32], k56regsb [4], k38regs [16], rozctrl [16], rozclip [2], k47regs [8];
     logic  [7:0] k55regs [48], k46regs [8];
     logic        roz_enable;
     logic  [1:0] roz_rombank;
@@ -250,6 +254,12 @@ module gaia_core #(
     logic [19:0] rspr_addr;
 
     assign renderers_busy  = {tm_busy, roz_busy, dr_busy};
+    assign dbg_roz_en = roz_enable;
+    always_comb begin
+        for (int i = 0; i < 8; i++)  dbg_rozctrl[i*16 +: 16] = rozctrl[i];
+        for (int i = 0; i < 2; i++)  dbg_rozclip[i*16 +: 16] = rozclip[i];
+        for (int i = 0; i < 48; i++) dbg_k55[i*8 +: 8] = k55regs[i];
+    end
     assign dbg_unsupported = tm_unsup | roz_unsup | ol_overflow;
 
     // The sprite table the renderers work from is a copy of the sprite RAM

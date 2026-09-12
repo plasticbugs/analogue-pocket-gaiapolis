@@ -46,7 +46,7 @@ module k053936_roz #(
     input  logic  [8:0] line,
     output logic        busy,
 
-    input  logic [15:0] ctrl [8],       // 0x460000 control block
+    input  logic [15:0] ctrl [16],      // 0x460000 control block (only 0-7 used)
     input  logic [15:0] clip [2],       // 0x484000 clip window
     input  logic        roz_enable,     // 0x6c0000 bit 8
     // K055555 SUB1 palette base. Only the low nibble reaches the colour --

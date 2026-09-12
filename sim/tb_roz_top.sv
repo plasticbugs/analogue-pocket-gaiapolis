@@ -6,7 +6,7 @@ module tb_roz_top (
     input  logic        reset,
 
     input  logic        ctrl_we,
-    input  logic  [2:0] ctrl_addr,
+    input  logic  [3:0] ctrl_addr,
     input  logic [15:0] ctrl_data,
     input  logic        clip_we,
     input  logic        clip_addr,
@@ -30,7 +30,7 @@ module tb_roz_top (
     output logic        opaque,
     output logic        unsupported
 );
-    logic [15:0] ctrl [8];
+    logic [15:0] ctrl [16];
     logic [15:0] clip [2];
     logic        roz_enable;
     logic  [7:0] palbase;

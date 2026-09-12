@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     dut->reset = 0;
 
     auto &ct = st["ROZCT16"];
-    for (int i = 0; i < 8; i++) { dut->ctrl_we = 1; dut->ctrl_addr = i; dut->ctrl_data = ct[i]; tick(); }
+    for (int i = 0; i < 16; i++) { dut->ctrl_we = 1; dut->ctrl_addr = i; dut->ctrl_data = ct[i]; tick(); }
     dut->ctrl_we = 0;
     auto &cl = st["ROZCLIP"];
     for (int i = 0; i < 2; i++) { dut->clip_we = 1; dut->clip_addr = i; dut->clip_data = cl[i]; tick(); }

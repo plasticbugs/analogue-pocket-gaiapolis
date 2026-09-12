@@ -211,6 +211,15 @@ int main(int argc, char **argv) {
                     dr_objs0 = dut->dbg_draw_objs; dr_rows0 = dut->dbg_draw_rows; dr_cols0 = dut->dbg_draw_cols; dr_pxw0 = dut->dbg_draw_pxw;
                     z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
                     overruns_total += overruns; overruns = 0; ovr_tm = 0; ovr_roz = 0; ovr_dr = 0;
+                    {   // the ROZ plane's registers and the mixer's, when they change
+                        static std::string last_regs;
+                        char rb[1400]; int n = 0;
+                        n += snprintf(rb + n, sizeof rb - n, "   rozregs: en=%d ctrl=", (int)dut->dbg_roz_en);
+                        for (int i = 0; i < 8; i++) n += snprintf(rb + n, sizeof rb - n, "%04x ", (dut->dbg_rozctrl[i / 2] >> ((i & 1) * 16)) & 0xffff);
+                        n += snprintf(rb + n, sizeof rb - n, "clip=%04x %04x k55=", dut->dbg_rozclip & 0xffff, (dut->dbg_rozclip >> 16) & 0xffff);
+                        for (int i = 0; i < 48; i++) n += snprintf(rb + n, sizeof rb - n, "%02x", (dut->dbg_k55[i / 4] >> ((i & 3) * 8)) & 0xff);
+                        if (last_regs != rb) { fprintf(tr, "%s\n", rb); last_regs = rb; }
+                    }
                     if (frame == sprdump) {     // the 256 entries x 8 words, as the renderer sees them
                         std::string sp = argv[3]; size_t dot = sp.rfind('.'); if (dot != std::string::npos) sp.resize(dot); sp += ".sprram.txt";
                         FILE *sf = fopen(sp.c_str(), "w");
