@@ -59,6 +59,7 @@ module gaia_mem #(
     input  logic        map_req,   input  logic [19:0] map_addr,  output logic map_ack,  output logic [15:0] map_q,
     input  logic        blk_req,   input  logic [15:0] blk_addr,  output logic blk_wr,   output logic  [5:0] blk_idx,
     output logic [15:0] blk_data,  output logic        blk_ack,
+    input  logic  [3:0] roz_lead,       // lines the ROZ plane has in hand (its renderer's `lead`)
     input  logic        spr_req,   input  logic [19:0] spr_addr,  output logic spr_ack,  output logic [63:0] spr_q,
     input  logic        snd_req,   input  logic [17:0] snd_addr,  output logic snd_ack,  output logic  [7:0] snd_q,
     input  logic        pcm_req,   input  logic [21:0] pcm_addr,  output logic pcm_ack,  output logic  [7:0] pcm_q,
@@ -294,13 +295,19 @@ module gaia_mem #(
     // within a few clocks, and the fetch resumes from the word it reached
     // once the port has been quiet for QUIET clocks -- so it never thrashes
     // against the tilemap's back-to-back requests, whose gaps are shorter.
-    // It cannot starve either: after STARVE clocks without progress it takes
-    // a FORCED-word chunk that is not aborted (~45 clocks, once per STARVE at
-    // worst, for the others). A cut fetch is resumed only for a request that
+    // It cannot starve either, but how hard it pushes depends on how many
+    // lines its renderer has in hand: with 4 or more it only takes the port
+    // when free; with 2-3, after STARVE clocks without progress it takes a
+    // FORCED-word chunk that is not aborted (~45 clocks, once per STARVE at
+    // worst, for the others); down to one line or late, a 2xFORCED chunk
+    // after STARVE/1.5 (the emblem zooming in at 3.5x needs 18 tiles a line
+    // against the tilemap's four layers). A cut fetch is resumed only for a request that
     // has stood since the cut: a withdrawn one (a renderer abandoning its
     // line, the CPU's read-back moving on) starts over, so no later requester
     // of the same tile gets only its tail.
     localparam int QUIET = 24, STARVE = 192, FORCED = 16;
+    wire         urgent   = roz_lead <= 4'd1;
+    wire   [6:0] flen     = urgent ? 7'(2 * FORCED) : 7'(FORCED);
     logic  [6:0] blk_n;                 // words of the tile fetch delivered so far (0..64)
     logic  [5:0] blk_base;              // their index offset for the burst in progress
     logic        blk_part;              // the fetch was cut short: blk_n words are in
@@ -317,7 +324,7 @@ module gaia_mem #(
         quiet    <= others ? 5'd0 : (quiet == 5'd31 ? 5'd31 : quiet + 5'd1);
         blk_wait <= (!blk_req_i || blk_ack || roz_running) ? 8'd0 : (blk_wait == 8'd255 ? 8'd255 : blk_wait + 8'd1);
     end
-    wire         starved = blk_wait >= 8'(STARVE);
+    wire         starved = (roz_lead <= 4'd3) && (blk_wait >= (urgent ? 8'(STARVE * 2 / 3) : 8'(STARVE)));
     wire   [6:0] blk_n_now = blk_n + 7'((b_wr && bsel == 2'd2) ? 1 : 0);   // with this clock's word
     always_ff @(posedge clk) begin
         blk_wr <= 1'b0;
@@ -332,10 +339,10 @@ module gaia_mem #(
                         if (blk_part && blk_addr_i == blk_addr_l) begin
                             blk_base <= blk_n[5:0];
                             b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0} + 24'(blk_n);
-                            b_len <= (blk_n < 7'(64 - FORCED)) ? 10'(FORCED) : 10'd64 - 10'(blk_n);
+                            b_len <= (blk_n < 7'd64 - flen) ? 10'(flen) : 10'd64 - 10'(blk_n);
                         end else begin
                             blk_addr_l <= blk_addr_i; blk_base <= '0; blk_n <= '0;
-                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'(FORCED);
+                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'(flen);
                         end
                         blk_part <= 1'b0; b_req <= 1'b1; bst <= B_RUN;
                     end else if (tile_req_i && !tile_ack) begin

@@ -46,6 +46,7 @@ module gaia_core #(
     input  logic  [5:0] blk_idx,
     input  logic [15:0] blk_data,
     input  logic        blk_ack,
+    output logic  [3:0] roz_lead,       // lines the ROZ plane has in hand: the platform's arbiter yields the port by it
     // sprite ROM, 8 MB as 1M x 64
     output logic        spr_req,
     output logic [19:0] spr_addr,
@@ -319,7 +320,7 @@ module gaia_core #(
         .m_req(tile_req), .m_addr(tile_addr), .m_ack(tile_ack), .m_q(tile_q), .q()
     );
     k053936_roz u_roz (
-        .clk(clk), .reset(reset), .prestart(prestart), .line_start(line_start), .line(render_line), .busy(roz_busy), .lead(),
+        .clk(clk), .reset(reset), .prestart(prestart), .line_start(line_start), .line(render_line), .busy(roz_busy), .lead(roz_lead),
         .ctrl(rozctrl), .clip(rozclip), .roz_enable(roz_enable), .palbase(roz_palbase),
         .map_req(rmap_req), .map_addr(rmap_addr), .map_ack(rmap_ack), .map_q(map_q),
         .blk_req(rblk_req), .blk_addr(rblk_addr), .blk_wr(rblk_wr), .blk_idx(blk_idx), .blk_data(blk_data), .blk_ack(rblk_ack),

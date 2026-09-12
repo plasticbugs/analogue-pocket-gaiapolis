@@ -407,9 +407,14 @@ Why this way round:
   `sdram_ctrl`), and the fetch resumes from the word it reached once the
   port has been quiet for 24 clocks -- longer than the gaps between the
   tilemap's back-to-back requests, so it never thrashes against them. It
-  cannot starve either: after 192 clocks without progress it takes a
+  cannot starve either, and how hard it pushes follows the lead its
+  renderer reports: with 4 or more lines in hand it only takes the port
+  when free; with 2-3, after 192 clocks without progress it takes a
   16-word chunk that is not aborted (about 45 clocks, once per 192 at
-  worst, for the others). Before this, 64 tiles refilled on one line held
+  worst, for the others); down to one line or late, a 32-word chunk after
+  128 -- the attract emblem zooming in from 3.5x needs 18 tiles a line
+  against the tilemap's four layers, and tore under a fixed 16-per-192.
+  Before this, 64 tiles refilled on one line held
   the port for 9,000 clocks and the tilemap dropped 13 lines a frame on the
   title screen (`sim/run_system.sh` with `MEM=pocket` counts them per
   renderer; `sim/run_mem.sh` runs the port under a saturating load).
