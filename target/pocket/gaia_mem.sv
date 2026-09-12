@@ -199,7 +199,7 @@ module gaia_mem #(
     logic [15:0] sd_rdata;
     logic [24:1] b_addr;
     logic  [9:0] b_len, b_idx;
-    logic        b_req, b_wr, b_done;
+    logic        b_req, b_wr, b_done, b_abort;
     logic [15:0] b_data;
     logic  [9:0] b_widx;
 
@@ -288,30 +288,83 @@ module gaia_mem #(
     logic [19:0] spr_addr_l;
     logic [15:0] blk_addr_l;
     logic [15:0] bw [4];
+    // A ROZ tile fetch (64 words, ~140 clocks) yields to the tilemap's and the
+    // sprite renderer's fetches, which have a line to finish while the ROZ
+    // plane runs lines ahead: a pending request of theirs aborts the burst
+    // within a few clocks, and the fetch resumes from the word it reached
+    // once the port has been quiet for QUIET clocks -- so it never thrashes
+    // against the tilemap's back-to-back requests, whose gaps are shorter.
+    // It cannot starve either: after STARVE clocks without progress it takes
+    // a FORCED-word chunk that is not aborted (~45 clocks, once per STARVE at
+    // worst, for the others). A cut fetch is resumed only for a request that
+    // has stood since the cut: a withdrawn one (a renderer abandoning its
+    // line, the CPU's read-back moving on) starts over, so no later requester
+    // of the same tile gets only its tail.
+    localparam int QUIET = 24, STARVE = 192, FORCED = 16;
+    logic  [6:0] blk_n;                 // words of the tile fetch delivered so far (0..64)
+    logic  [5:0] blk_base;              // their index offset for the burst in progress
+    logic        blk_part;              // the fetch was cut short: blk_n words are in
+    logic  [4:0] quiet;
+    logic  [7:0] blk_wait;              // clocks the ROZ request has stood without being served
+    logic        forced;
+    wire         others = (tile_req_i && !tile_ack) || (spr_req_i && !spr_ack);
+    wire         roz_running = (bst == B_RUN) && (bsel == 2'd2);
+    assign b_abort = roz_running && others && !forced;
+    always_ff @(posedge clk) begin
+        quiet    <= others ? 5'd0 : (quiet == 5'd31 ? 5'd31 : quiet + 5'd1);
+        blk_wait <= (!blk_req_i || blk_ack || roz_running) ? 8'd0 : (blk_wait == 8'd255 ? 8'd255 : blk_wait + 8'd1);
+    end
+    wire         starved = blk_wait >= 8'(STARVE);
+    wire   [6:0] blk_n_now = blk_n + 7'((b_wr && bsel == 2'd2) ? 1 : 0);   // with this clock's word
     always_ff @(posedge clk) begin
         blk_wr <= 1'b0;
-        if (init) begin bst <= B_IDLE; b_req <= 1'b0; tile_ack <= 1'b0; spr_ack <= 1'b0; blk_ack <= 1'b0; end
+        if (init) begin bst <= B_IDLE; b_req <= 1'b0; tile_ack <= 1'b0; spr_ack <= 1'b0; blk_ack <= 1'b0; blk_part <= 1'b0; blk_n <= '0; forced <= 1'b0; end
         else begin
             tile_ack <= 1'b0; spr_ack <= 1'b0; blk_ack <= 1'b0;
+            if (!blk_req_i) blk_part <= 1'b0;
             case (bst)
                 B_IDLE: begin                   // not a request being acked right now
-                    if (tile_req_i && !tile_ack) begin
+                    if (blk_req_i && !blk_ack && starved) begin      // its guaranteed turn
+                        bsel <= 2'd2; forced <= 1'b1;
+                        if (blk_part && blk_addr_i == blk_addr_l) begin
+                            blk_base <= blk_n[5:0];
+                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0} + 24'(blk_n);
+                            b_len <= (blk_n < 7'(64 - FORCED)) ? 10'(FORCED) : 10'd64 - 10'(blk_n);
+                        end else begin
+                            blk_addr_l <= blk_addr_i; blk_base <= '0; blk_n <= '0;
+                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'(FORCED);
+                        end
+                        blk_part <= 1'b0; b_req <= 1'b1; bst <= B_RUN;
+                    end else if (tile_req_i && !tile_ack) begin
                         bsel <= 2'd0; tile_addr_l <= tile_addr_i;
                         b_addr <= SD_TILE + {4'd0, tile_addr_i, 1'b0}; b_len <= 10'd2; b_req <= 1'b1; bst <= B_RUN;
                     end else if (spr_req_i && !spr_ack) begin
                         bsel <= 2'd1; spr_addr_l <= spr_addr_i;
                         b_addr <= SD_SPR + {2'd0, spr_addr_i, 2'b00}; b_len <= 10'd4; b_req <= 1'b1; bst <= B_RUN;
-                    end else if (blk_req_i && !blk_ack) begin
-                        bsel <= 2'd2; blk_addr_l <= blk_addr_i;
-                        b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'd64; b_req <= 1'b1; bst <= B_RUN;
+                    end else if (blk_req_i && !blk_ack && quiet >= 5'(QUIET)) begin     // the port is free
+                        bsel <= 2'd2; forced <= 1'b0;
+                        if (blk_part && blk_addr_i == blk_addr_l) begin     // resume the cut fetch
+                            blk_base <= blk_n[5:0];
+                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0} + 24'(blk_n); b_len <= 10'd64 - 10'(blk_n);
+                        end else begin
+                            blk_addr_l <= blk_addr_i; blk_base <= '0; blk_n <= '0;
+                            b_addr <= SD_ROZ + {4'd0, blk_addr_i[13:0], 6'd0}; b_len <= 10'd64;
+                        end
+                        blk_part <= 1'b0; b_req <= 1'b1; bst <= B_RUN;
                     end
                 end
                 B_RUN: begin
                     if (b_wr) begin
                         bw[b_idx[1:0]] <= b_data;
-                        if (bsel == 2'd2) begin blk_wr <= 1'b1; blk_idx <= b_idx[5:0]; blk_data <= b_data; end
+                        if (bsel == 2'd2) begin blk_wr <= 1'b1; blk_idx <= blk_base + b_idx[5:0]; blk_data <= b_data; blk_n <= blk_n + 7'd1; end
                     end
-                    if (b_done) begin b_req <= 1'b0; bst <= B_ACK; end
+                    if (b_done) begin
+                        b_req <= 1'b0;
+                        // a tile fetch cut short (or a forced chunk) is resumed later, without an ack
+                        forced <= 1'b0;
+                        if (bsel == 2'd2 && blk_n_now != 7'd64) begin blk_part <= 1'b1; bst <= B_IDLE; end
+                        else bst <= B_ACK;
+                    end
                 end
                 B_ACK: begin
                     // ack only the request that is still standing
@@ -334,7 +387,7 @@ module gaia_mem #(
         .SDRAM_nCS(dram_cs_n_unused), .SDRAM_nWE(dram_we_n), .SDRAM_nRAS(dram_ras_n), .SDRAM_nCAS(dram_cas_n),
         .SDRAM_CKE(dram_cke), .SDRAM_CLK(dram_clk),
         .c_addr(c_addr), .c_req(c_req), .c_we(c_we), .c_wdata(c_wdata), .c_be(c_be), .c_ack(c_ack), .rdata(sd_rdata),
-        .b_addr(b_addr), .b_len(b_len), .b_req(b_req), .b_wr(b_wr), .b_idx(b_idx), .b_data(b_data), .b_done(b_done),
+        .b_addr(b_addr), .b_len(b_len), .b_req(b_req), .b_abort(b_abort), .b_wr(b_wr), .b_idx(b_idx), .b_data(b_data), .b_done(b_done),
         .b_we(1'b0), .b_wdata(16'd0), .b_be(2'b00), .b_widx(b_widx)
     );
 

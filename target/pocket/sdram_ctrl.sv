@@ -54,6 +54,8 @@ module sdram_ctrl #(
     input  logic [24:1] b_addr,       // first word
     input  logic  [9:0] b_len,        // number of words, 1..512
     input  logic        b_req,        // level; hold until b_done
+    input  logic        b_abort,      // level: end the burst as soon as possible; b_done then
+                                      // follows, the words delivered so far being all there are
     output logic        b_wr,         // one word delivered
     output logic  [9:0] b_idx,        // its index (0..b_len-1)
     output logic [15:0] b_data,
@@ -128,6 +130,7 @@ module sdram_ctrl #(
     logic  [5:0] b_chunk;        // words issued in this chunk
     logic        b_yield;        // after a chunk, let one random client in
     logic        b_accepted;     // b_req latched; cleared when it drops
+    logic        b_aborted;      // this burst was cut short (b_done even if nothing was issued)
     logic        b_is_we;        // this burst is a write
     logic  [2:0] b_gap;
     assign b_widx = b_issued;
@@ -226,6 +229,12 @@ module sdram_ctrl #(
                     wait_n <= 3'd6;              // tRFC 66 ns
                     state  <= S_REF;
                 end
+                else if (b_active && b_abort) begin
+                    // cut short between chunks: nothing is in flight, so this is
+                    // the end of the burst; b_done follows from S_WAIT1
+                    b_active <= 1'b0; b_remain <= '0; b_aborted <= 1'b1;
+                    state <= S_WAIT1;
+                end
                 else if (b_start && b_active) begin
                     // (re)open the row for the next chunk
                     command  <= CMD_ACTIVE;
@@ -296,7 +305,12 @@ module sdram_ctrl #(
             S_BOPEN2: state <= S_BREAD;
             S_BREAD: begin
                 // issue a READ (no auto precharge) every 2 or 5 clocks
-                if (b_gap == 3'd0) begin
+                if (b_gap == 3'd0 && b_abort) begin
+                    // cut short mid-chunk: no more READs; what was issued still lands
+                    b_remain <= '0; b_aborted <= 1'b1;
+                    state  <= S_BEND;
+                    wait_n <= 3'd1;
+                end else if (b_gap == 3'd0) begin
                     SDRAM_A <= {b_is_we ? ~b_be : 2'b00, 2'b00, b_next[9:1]};   // A12:11 = DQM
                     if (b_is_we) begin
                         command <= CMD_WRITE;
@@ -344,14 +358,16 @@ module sdram_ctrl #(
             b_remain <= b_len;
             b_issued <= '0;
             b_yield  <= 1'b0;
+            b_aborted <= 1'b0;
         end
         if (!b_req) b_accepted <= 1'b0;
 
         // burst completion: signalled when the controller returns to idle with
         // nothing left to issue and the pipeline drained
-        if (state == S_WAIT1 && !b_active && b_req && !b_done && b_issued != 10'd0 && b_remain == 10'd0) begin
+        if (state == S_WAIT1 && !b_active && b_req && !b_done && (b_issued != 10'd0 || b_aborted) && b_remain == 10'd0) begin
             b_done   <= 1'b1;
             b_issued <= '0;
+            b_aborted <= 1'b0;
         end
 
         if (init) begin
@@ -359,7 +375,7 @@ module sdram_ctrl #(
             refresh_count <= REFRESH_MAX - STARTUP_CYCLES;
             refresh_due   <= 1'b0;
             ready <= 1'b0;
-            b_active <= 1'b0; b_issued <= '0; b_remain <= '0; b_yield <= 1'b0; b_accepted <= 1'b0; last <= '0;
+            b_active <= 1'b0; b_issued <= '0; b_remain <= '0; b_yield <= 1'b0; b_accepted <= 1'b0; b_aborted <= 1'b0; last <= '0;
             for (int i = 0; i < 6; i++) cap[i] <= '0;
         end
     end

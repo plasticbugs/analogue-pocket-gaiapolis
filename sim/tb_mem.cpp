@@ -141,15 +141,28 @@ int main(int argc, char **argv) {
     // sampled 2 KB at the head of each region is loaded, so addresses come
     // from there.
     {
-        unsigned bad = 0, done_t = 0, done_s = 0, done_p = 0, withdrawn = 0; unsigned seed = 12345;
+        unsigned bad = 0, done_t = 0, done_s = 0, done_p = 0, done_b = 0, withdrawn = 0, cut = 0; unsigned seed = 12345;
         auto rnd = [&]() { seed = seed * 1103515245u + 12345u; return seed >> 8; };
-        long t_w = 0, s_w = 0, p_b = 0; bool t_on = false, s_on = false, p_on = false;
+        long t_w = 0, s_w = 0, p_b = 0, b_t = 0; bool t_on = false, s_on = false, p_on = false, b_on = false;
+        // the ROZ tile fetch: 64 words that arrive across the aborts the tile and
+        // sprite requests cause, each word once, then the ack
+        unsigned short bw[64]; unsigned long long b_got = 0; unsigned b_words = 0; long b_off_until = 0;
+        auto new_b = [&]() { b_t = rnd() % (S / 128); dut->blk_addr = b_t; dut->blk_req = 1; b_on = true; b_got = 0; b_words = 0; };
         auto new_t = [&]() { t_w = rnd() % (S / 4); dut->tile_addr = t_w; dut->tile_req = 1; t_on = true; };
         auto new_s = [&]() { s_w = rnd() % (S / 8); dut->spr_addr = s_w; dut->spr_req = 1; s_on = true; };
         auto new_p = [&]() { p_b = rnd() % S; dut->pcm_addr = p_b; dut->pcm_req = 1; p_on = true; };
-        new_t(); new_s(); new_p();
-        for (long n = 0; n < 400000 && (done_t < 3000 || done_s < 3000 || done_p < 3000); n++) {
+        new_t(); new_s(); new_p(); new_b();
+        for (long n = 0; n < 600000 && (done_t < 3000 || done_s < 3000 || done_p < 3000 || done_b < 200); n++) {
             tick();
+            if (b_on && dut->blk_wr) { bw[dut->blk_idx] = dut->blk_data; b_got |= 1ull << dut->blk_idx; b_words++; }
+            if (b_on && dut->blk_ack) {
+                if (b_got != ~0ull || b_words != 64) { if (bad < 6) printf("  contention chr tile %ld: %u words, mask %016llx\n", b_t, b_words, b_got); bad++; }
+                else for (int wc = 0; wc < 4; wc++) for (int row = 0; row < 16; row++) {
+                    unsigned exp = be16(IMG_CHR + b_t * 128 + row * 8 + wc * 2);
+                    if (bw[wc * 16 + row] != exp) { if (bad < 6) printf("  contention chr tile %ld c%d r%d: got %04x expected %04x\n", b_t, wc, row, bw[wc * 16 + row], exp); bad++; }
+                }
+                dut->blk_req = 0; b_on = false; done_b++;
+            }
             if (t_on && dut->tile_ack) {
                 unsigned long long exp = ((unsigned long long)be16(IMG_TILE + t_w * 4) << 16) | be16(IMG_TILE + t_w * 4 + 2);
                 if (dut->tile_q != exp) { if (bad < 6) printf("  contention tile w%ld: got %08x expected %08llx\n", t_w, dut->tile_q, exp); bad++; }
@@ -167,13 +180,18 @@ int main(int argc, char **argv) {
             // withdraw a standing request now and then, then ask for something else
             if (t_on && (rnd() % 97) == 0) { dut->tile_req = 0; t_on = false; withdrawn++; }
             if (s_on && (rnd() % 89) == 0) { dut->spr_req = 0; s_on = false; withdrawn++; }
+            // (a renderer abandons a line a few times a frame at most: withdraw rarely)
+            // ... and the port then finishes streaming the cut burst, which a
+            // renderer's entry simply absorbs: stay off long enough for that
+            if (b_on && (rnd() % 8000) == 0) { dut->blk_req = 0; b_on = false; withdrawn++; cut += b_words < 64; b_off_until = n + 200; }
+            if (!b_on && n >= b_off_until && (rnd() % 3) == 0) new_b();
             if (!t_on && (rnd() % 3) == 0) new_t();
             if (!s_on && (rnd() % 3) == 0) new_s();
             if (!p_on && (rnd() % 5) == 0) new_p();
         }
-        dut->tile_req = 0; dut->spr_req = 0; dut->pcm_req = 0; tick(50);
-        printf("contention: %u tile, %u sprite, %u pcm reads, %u withdrawn, %u bad\n", done_t, done_s, done_p, withdrawn, bad);
-        errors += bad; if (done_t < 3000 || done_s < 3000 || done_p < 3000) { printf("  contention: a port starved\n"); errors++; }
+        dut->tile_req = 0; dut->spr_req = 0; dut->pcm_req = 0; dut->blk_req = 0; tick(50);
+        printf("contention: %u tile, %u sprite, %u pcm reads, %u chr tiles (%u withdrawn part-way), %u withdrawn, %u bad\n", done_t, done_s, done_p, done_b, cut, withdrawn, bad);
+        errors += bad; if (done_t < 3000 || done_s < 3000 || done_p < 3000 || done_b < 200) { printf("  contention: a port starved\n"); errors++; }
     }
 
     // the built-in memory test (1/64 of each region): reload the heads of

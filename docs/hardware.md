@@ -400,6 +400,19 @@ Why this way round:
   the lead a scene needs; `sim/run_frame.sh` with the Pocket latencies
   measures the lead actually in hand). The CPU's read-back window fetches a
   word's tile and keeps the word.
+* Those tile bursts share the SDRAM's burst port with the tilemap's 2-word
+  and the sprite renderer's 4-word fetches, which have a line to finish
+  while the ROZ plane has lines in hand. So a ROZ burst yields: a pending
+  tilemap or sprite request aborts it within a few clocks (`b_abort` on
+  `sdram_ctrl`), and the fetch resumes from the word it reached once the
+  port has been quiet for 24 clocks -- longer than the gaps between the
+  tilemap's back-to-back requests, so it never thrashes against them. It
+  cannot starve either: after 192 clocks without progress it takes a
+  16-word chunk that is not aborted (about 45 clocks, once per 192 at
+  worst, for the others). Before this, 64 tiles refilled on one line held
+  the port for 9,000 clocks and the tilemap dropped 13 lines a frame on the
+  title screen (`sim/run_system.sh` with `MEM=pocket` counts them per
+  renderer; `sim/run_mem.sh` runs the port under a saturating load).
 * The tile RAM (128 KB) is the one *RAM* too big for the FPGA: as block RAM
   it needed two copies for its two readers, 2 Mbit of the device's 3.15.
   It lives in the 10 ns SRAM instead, behind one request/ack port shared by
