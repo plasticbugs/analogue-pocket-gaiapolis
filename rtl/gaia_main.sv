@@ -126,7 +126,8 @@ module gaia_main #(
     output logic [15:0] dbg_data,       // data_in of the last completed read
     output logic  [1:0] dbg_busstate,
     output logic        dbg_step,
-    output logic        dbg_irq5
+    output logic        dbg_irq5,
+    output logic        dbg_spr_we           // a CPU write into the sprite RAM (benches)
 );
     // ------------------------------------------------------------ TG68K
     logic        clkena;
@@ -332,6 +333,7 @@ module gaia_main #(
     always_ff @(posedge clk) begin
         clkena   <= 1'b0;
         dbg_step <= 1'b0;
+        dbg_spr_we <= 1'b0;
         snd_wr <= 1'b0; snd_rd <= 1'b0; snd_irq <= 1'b0; pal_we <= 1'b0;
         col_wr <= 1'b0; col_rd <= 1'b0;
         step_gap <= {step_gap[1:0], clkena};
@@ -384,6 +386,7 @@ module gaia_main #(
                                 pal_we <= 1'b1; pal_waddr <= A[12:2]; pal_wsel <= {A[1], ~A[1]};
                                 pal_wbe <= {uds, lds}; pal_wdata <= data_write;
                             end else if (sel_sprwin) begin
+                                if (spr_hit) dbg_spr_we <= 1'b1;
                                 if (spr_hit)
                                     sram[spr_word] <= {uds ? data_write[15:8] : sram_cpu_q[15:8],
                                                        lds ? data_write[7:0]  : sram_cpu_q[7:0]};

@@ -104,6 +104,7 @@ module gaia_core #(
     output logic        dbg_overrun,
     output logic  [2:0] dbg_overrun_src,    // {tilemap, ROZ, sprites} still busy at that line start
     output logic [31:0] dbg_draw_objs, dbg_draw_rows, dbg_draw_cols, dbg_draw_pxw,   // the sprite renderer's running work counts
+    output logic        dbg_spr_we,             // a CPU write into the sprite RAM
     output logic        dbg_unsupported,
     output logic        dbg_shadow_overlap,
     output logic  [9:0] dbg_objcount,
@@ -174,7 +175,8 @@ module gaia_core #(
         .vc_req(vc_req), .vc_we(vc_we), .vc_addr(vc_addr), .vc_be(vc_be), .vc_wdata(vc_wdata), .vc_ack(vc_ack), .vc_q(vram_q),
         .sram_raddr(sram_raddr), .sram_q(sram_q),
         .pal_raddr(pal_raddr), .pal_q(pal_q),
-        .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5)
+        .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
+        .dbg_spr_we(dbg_spr_we)
     );
 
     er5911 u_eep (

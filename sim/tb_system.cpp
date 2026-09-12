@@ -128,6 +128,7 @@ int main(int argc, char **argv) {
     unsigned z_steps = 0, z_wait = 0, z_s1 = 0, z_s2 = 0, overruns = 0, overruns_total = 0, ovr_tm = 0, ovr_roz = 0, ovr_dr = 0;
     unsigned vc_last = 0xffff;
     unsigned dr_objs0 = 0, dr_rows0 = 0, dr_cols0 = 0, dr_pxw0 = 0;   // the sprite renderer's counters at the last frame print
+    unsigned sprw_vis = 0, sprw_blank = 0;      // CPU writes into the sprite RAM this frame, by beam position
     int sprdump = -1; { const char *e = getenv("SPRDUMP"); if (e) sprdump = atoi(e); }   // dump sprite RAM after this frame
     // COINAT=<frame> holds player 1's coin (in0_p1 bit 8, active low) for 8 frames from that frame; STARTAT likewise bit 7
     // COINAT=<frame> holds player 1's coin for 8 frames from that frame; PRESSES=<frame>,<frame>,... presses start
@@ -149,6 +150,7 @@ int main(int argc, char **argv) {
         if (want_audio && dut->snd_valid) { audio.push_back((short)dut->snd_l); audio.push_back((short)dut->snd_r); }
         if (dut->dbg_zstep) { z_steps++; z_hist[dut->dbg_zpc]++; }
         if (dut->dbg_zwait) z_wait++;
+        if (dut->dbg_spr_we) { if (dut->dbg_vcount >= 16 && dut->dbg_vcount < 240) sprw_vis++; else sprw_blank++; }
         // the overrun flag holds for the whole line: count lines, on the line counter's change
         if (dut->dbg_vcount != vc_last) {
             vc_last = dut->dbg_vcount;
@@ -199,11 +201,13 @@ int main(int argc, char **argv) {
                     for (auto &kv : fr_hist) if (kv.second > hotn) { hotn = kv.second; hot = kv.first; }
                     unsigned zhot = 0, zhotn = 0;
                     for (auto &kv : z_hist) if (kv.second > zhotn) { zhotn = kv.second; zhot = kv.first; }
-                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u ovr_tm=%u ovr_roz=%u ovr_dr=%u draw_objs=%u draw_rows=%u draw_cols=%u draw_pxw=%u\n",
+                    fprintf(tr, "frame %d: steps=%llu irq5=%d objs=%u overrun=%u unsup=%d de_px=%u pc=%06x hot=%06x(%u) zpc=%04x zsteps=%u zhot=%04x(%u) zwait=%u zs1=%u zs2=%u ovr_tm=%u ovr_roz=%u ovr_dr=%u draw_objs=%u draw_rows=%u draw_cols=%u draw_pxw=%u sprw_vis=%u sprw_blank=%u\n",
                             frame, frame_steps, irq_seen, (unsigned)dut->dbg_objcount,
                             overruns, (int)dut->dbg_unsupported, de_pixels, last_fetch, hot, hotn,
                             (unsigned)dut->dbg_zpc, z_steps, zhot, zhotn, z_wait, z_s1, z_s2, ovr_tm, ovr_roz, ovr_dr,
-                            dut->dbg_draw_objs - dr_objs0, dut->dbg_draw_rows - dr_rows0, dut->dbg_draw_cols - dr_cols0, dut->dbg_draw_pxw - dr_pxw0);
+                            dut->dbg_draw_objs - dr_objs0, dut->dbg_draw_rows - dr_rows0, dut->dbg_draw_cols - dr_cols0, dut->dbg_draw_pxw - dr_pxw0,
+                            sprw_vis, sprw_blank);
+                    sprw_vis = 0; sprw_blank = 0;
                     dr_objs0 = dut->dbg_draw_objs; dr_rows0 = dut->dbg_draw_rows; dr_cols0 = dut->dbg_draw_cols; dr_pxw0 = dut->dbg_draw_pxw;
                     z_hist.clear(); z_steps = 0; z_wait = 0; z_s1 = 0; z_s2 = 0;
                     overruns_total += overruns; overruns = 0; ovr_tm = 0; ovr_roz = 0; ovr_dr = 0;

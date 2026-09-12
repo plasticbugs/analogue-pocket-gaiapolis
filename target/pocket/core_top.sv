@@ -1027,7 +1027,7 @@ module core_top
         .cen_pix(ga_cen_pix), .rgb(ga_rgb), .hsync(ga_hs), .vsync(ga_vs), .de(ga_de), .vblank(ga_vb),
         .snd_l(ga_snd_l), .snd_r(ga_snd_r), .snd_valid(ga_snd_valid),
         .dbg_addr(dbg_addr), .dbg_data(dbg_data), .dbg_busstate(dbg_busstate), .dbg_step(dbg_step), .dbg_irq5(dbg_irq5),
-        .dbg_overrun(dbg_overrun), .dbg_overrun_src(dbg_overrun_src), .dbg_draw_objs(), .dbg_draw_rows(), .dbg_draw_cols(), .dbg_draw_pxw(), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
+        .dbg_overrun(dbg_overrun), .dbg_overrun_src(dbg_overrun_src), .dbg_draw_objs(), .dbg_draw_rows(), .dbg_draw_cols(), .dbg_draw_pxw(), .dbg_spr_we(), .dbg_unsupported(dbg_unsupported), .dbg_shadow_overlap(dbg_shadow_overlap),
         .dbg_objcount(dbg_objcount), .dbg_vcount(dbg_vcount), .dbg_zpc(dbg_zpc), .dbg_zstep(dbg_zstep), .dbg_zwait(dbg_zwait)
     );
 
@@ -1053,7 +1053,7 @@ module core_top
     logic [7:0] ovl_frames, ovl_resets, ovl_overruns, ovl_overruns_l;
     logic [2:0] ovl_ovsrc, ovl_ovsrc_l;
     logic       ovl_ovr_d;
-    logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd, ovl_unsup, ovl_shadow;
+    logic       ovl_vs_d, ovl_rst_d, ovl_seen_step, ovl_seen_zstep, ovl_seen_snd, ovl_unsup, ovl_shadow, ovl_unsup_l, ovl_shadow_l;
     logic       allc_s, nvl_s;
     synch_3 sync_allc(dataslot_allcomplete, allc_s, clk_sys);
     synch_3 sync_nvl(nv_loaded, nvl_s, clk_sys);
@@ -1065,12 +1065,13 @@ module core_top
             ovl_seen_step <= 1'b0; ovl_seen_zstep <= 1'b0; ovl_seen_snd <= 1'b0;
             ovl_overruns_l <= ovl_overruns; ovl_overruns <= 8'd0;     // lines that overran their render budget, per frame
             ovl_ovsrc_l <= ovl_ovsrc; ovl_ovsrc <= 3'd0;               // and which renderers, over the frame
+            ovl_unsup_l <= ovl_unsup; ovl_unsup <= 1'b0; ovl_shadow_l <= ovl_shadow; ovl_shadow <= 1'b0;
         end
         ovl_ovr_d <= dbg_overrun;                                      // the flag holds for the line: count its edges
         if (dbg_overrun && !ovl_ovr_d && ovl_overruns != 8'hff) ovl_overruns <= ovl_overruns + 8'd1;
         if (dbg_overrun && !ovl_ovr_d) ovl_ovsrc <= ovl_ovsrc | dbg_overrun_src;
-        if (dbg_unsupported)   ovl_unsup  <= 1'b1;                     // sticky: a renderer met a mode it does not do
-        if (dbg_shadow_overlap) ovl_shadow <= 1'b1;
+        if (dbg_unsupported)    ovl_unsup  <= 1'b1;                    // per frame (latched below): a renderer met a mode
+        if (dbg_shadow_overlap) ovl_shadow <= 1'b1;                    // it does not do; a second shadow fell on a pixel
         if (dbg_step)  ovl_seen_step  <= 1'b1;
         if (dbg_zstep) ovl_seen_zstep <= 1'b1;
         if (ga_snd_valid && (ga_snd_l != 16'd0)) ovl_seen_snd <= 1'b1;
@@ -1079,14 +1080,14 @@ module core_top
     //        | core resets seen | test done, test running, tile RAM ok, tile RAM bad words (4), Z80 stepped
     // Row 1: 68000 address (24) | region read back ok: prog, snd, tile, chr, map, pcm, spr | sound heard
     // Row 2: region read stable: prog, snd, tile, chr, map, pcm, spr, 0 | overrun lines last frame (8)
-    //        | sprites in the list / 4 (8) | unsupported mode seen, shadow overlap seen, 0, 0, 0,
+    //        | sprites in the list / 4 (8) | unsupported mode met, a second shadow on a pixel (last frame), 0, 0, 0,
     //        overran: tilemap, ROZ, sprites (last frame)
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, nvl_s, ga_reset, dbg_irq5, ovl_seen_step,
         ovl_resets, test_done, test_run, vram_ok, vram_bad, ovl_seen_zstep,
         dbg_addr, test_ok[0], test_ok[1], test_ok[2], test_ok[3], test_ok[4], test_ok[5], test_ok[6], ovl_seen_snd,
         test_stable[0], test_stable[1], test_stable[2], test_stable[3], test_stable[4], test_stable[5], test_stable[6], 1'b0,
-        ovl_overruns_l, dbg_objcount[9:2], ovl_unsup, ovl_shadow, 3'd0, ovl_ovsrc_l
+        ovl_overruns_l, dbg_objcount[9:2], ovl_unsup_l, ovl_shadow_l, 3'd0, ovl_ovsrc_l
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;
     dbg_overlay ovl (
