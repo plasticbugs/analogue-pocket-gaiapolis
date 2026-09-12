@@ -461,6 +461,18 @@ that range with the list and drops an object that misses its line in
 five clocks. `sim/run_objlist.sh`, `sim/run_sprite.sh` and
 `sim/run_frame.sh` hold the result pixel-exact.
 
+**The sprite table is a vblank copy.** The game writes its sprite RAM
+during the visible frame as well as in blanking (350-550 words a frame in
+the intro after a new game, `sprw_vis` in the system trace); a renderer
+reading the live RAM line by line saw entries half updated, and tiles of
+one sprite flickered on the board with no line lost. The core copies the
+2,048 words at the first blanking line (as the K053246's DMA into the
+K053247 does), builds the list from the copy, and the renderer reads the
+copy; the vblank interrupt follows the build. The sprite renderer also
+asks for the next column's row while this column's pixels are written, so
+a column's burst runs under its pixel loop: the busiest frozen state's
+sprite line drops from 5,492 to 4,310 clocks with the Pocket latencies.
+
 **The pixel hand-over.** The core emits one pixel per 8 MHz enable in the
 96 MHz domain; the Pocket takes it on `clk_vid`, the PLL's 8 MHz output
 half a system cycle after a system edge. The enable's phase is pinned to

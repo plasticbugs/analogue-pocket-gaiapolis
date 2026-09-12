@@ -251,22 +251,39 @@ module gaia_core #(
 
     assign renderers_busy  = {tm_busy, roz_busy, dr_busy};
     assign dbg_unsupported = tm_unsup | roz_unsup | ol_overflow;
-    assign sram_raddr = ol_busy ? ol_sram_addr : dr_sram_addr;
 
-    // Build the sprite list at the start of vblank, from the table as the
-    // game left it during the frame, and only then raise the vblank interrupt
-    // (below): MAME takes its list at the same instant, before the handler
-    // runs. Built late in vblank instead, the list caught the handler's
-    // rewrite half done -- 113 entries where MAME's has about twenty, and
-    // the sprite renderer, paying for every one, overran its lines on the
-    // Pocket's memories and dropped the sprites it draws last.
+    // The sprite table the renderers work from is a copy of the sprite RAM
+    // taken at the first blanking line, as the K053246's DMA into the
+    // K053247 does and as MAME's list is taken: the game writes its table
+    // during the visible frame as well (350-550 words a frame in the intro
+    // after a new game), and a renderer reading the live RAM line by line saw
+    // entries half updated -- tiles of one sprite flickering with no line
+    // lost. The copy takes 2,048 clocks; the list is built from it after
+    // that, and the vblank interrupt follows the build (below).
+    logic [15:0] sram_copy [2048];
+    logic [15:0] scopy_q;
+    logic [11:0] copy_i;
+    logic        copying, copy_start;
+    assign sram_raddr = copying ? copy_i[10:0] : 11'd0;      // the live RAM is read only by the copy
+    wire [10:0] scopy_raddr = ol_busy ? ol_sram_addr : dr_sram_addr;
+    always_ff @(posedge clk) begin
+        scopy_q <= sram_copy[scopy_raddr];
+        if (copying && copy_i != 12'd0) sram_copy[copy_i[10:0] - 11'd1] <= sram_q;   // sram_q lags the address a clock
+    end
     logic obj_build, build_armed;
     always_ff @(posedge clk) begin
-        obj_build <= 1'b0;
-        if (reset) build_armed <= 1'b1;
-        else if (cen_pix) begin
+        obj_build <= 1'b0; copy_start <= 1'b0;
+        if (reset) begin build_armed <= 1'b1; copying <= 1'b0; copy_i <= '0; end
+        else begin
+            if (copy_start) begin copying <= 1'b1; copy_i <= '0; end
+            else if (copying) begin
+                if (copy_i == 12'd2048) begin copying <= 1'b0; obj_build <= 1'b1; end
+                else copy_i <= copy_i + 12'd1;
+            end
+        end
+        if (!reset && cen_pix) begin
             if (vcount == 9'(OBJ_BUILD_LINE) && hcount == 9'd0 && build_armed) begin
-                obj_build <= 1'b1; build_armed <= 1'b0;
+                copy_start <= 1'b1; build_armed <= 1'b0;
             end
             if (vcount != 9'(OBJ_BUILD_LINE)) build_armed <= 1'b1;
         end
@@ -349,7 +366,7 @@ module gaia_core #(
         .clk(clk), .reset(reset), .start(obj_build), .done(ol_done), .busy(ol_busy),
         .opset(opset), .objset1(objset1), .shadowon(shadowon), .shdpri(shdpri), .k46_offy(k46offy),
         .zoom_addr(ol_zoom_addr), .zoom_q(zoom_q), .yr_addr(yr_addr), .yr_q(yr_q),
-        .ram_addr(ol_sram_addr), .ram_q(sram_q),
+        .ram_addr(ol_sram_addr), .ram_q(scopy_q),
         .list_idx(list_idx), .list_q(list_q), .count(list_count), .overflow(ol_overflow)
     );
     assign dbg_objcount = list_count;
@@ -360,7 +377,7 @@ module gaia_core #(
         .clk(clk), .reset(reset), .line_start(line_start), .line(render_line), .busy(dr_busy),
         .k46r5(objset1), .k46_offx(k46offx), .k46_offy(k46offy), .opset(opset), .colorbase(spr_colorbase),
         .list_idx(list_idx), .list_q(list_q), .list_count(list_count), .yr_addr(yr_addr), .yr_q(yr_q),
-        .ram_addr(dr_sram_addr), .ram_q(sram_q),
+        .ram_addr(dr_sram_addr), .ram_q(scopy_q),
         .rom_req(rspr_req), .rom_addr(rspr_addr), .rom_ack(rspr_ack), .rom_q(spr_q),
         .zoom_addr(dr_zoom_addr), .zoom_q(zoom_q), .recip_addr(recip_addr), .recip_q(recip_q),
         .px(px), .out_opaque(spr_opq), .out_pen(spr_pen), .out_pri(spr_pri),
