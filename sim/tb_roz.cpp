@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     for (int y = 0; y < VIS_H; y++) {
         long c = render_line(VIS_Y0 + y + 1);
         if (c > worst) worst = c;
-        if (y < VIS_H - 1 && dut->lead < min_lead) min_lead = dut->lead;
+        if (y < VIS_H - 8 && dut->lead < min_lead) min_lead = dut->lead;
         for (int x = 0; x < VIS_W; x++) {
             // a 12-clock pixel as the display paces it (the run-ahead uses this time)
             dut->px = x; for (int k = 0; k < 12; k++) tick();

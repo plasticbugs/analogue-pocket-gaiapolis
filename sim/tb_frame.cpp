@@ -160,7 +160,9 @@ int main(int argc, char **argv) {
     for (int y = 0; y < VIS_H; y++) {
         long n = render_line(VIS_Y0 + y + 1);
         if (n > worst) worst = n;
-        if (y < VIS_H - 1 && dut->roz_lead < min_lead) min_lead = dut->roz_lead;    // after the wait: lines in hand beyond the one due (1 = just in time)
+        // after the wait: lines in hand beyond the one due (1 = just in time); the
+        // frame's last lines are left out, there is nothing left to run ahead into
+        if (y < VIS_H - 8 && dut->roz_lead < min_lead) min_lead = dut->roz_lead;
         for (int x = 0; x < VIS_W; x++) {
             // a 12-clock pixel as gaia_video paces it: px changes on the tick,
             // the encoder and colour stages latch at fixed phases after it
