@@ -431,9 +431,12 @@ the SRAM pins' registers were moved into the IO cells
 **The overlay** (the bottom 12 lines, three rows of 32 squares read left to
 right, green = 1). Its menu entry and the memory-timing switches were
 removed from the release's `interact.json`; to bring them back, add these
-to its `variables` (bit 3 of the 0xF2000000 word is the overlay, 4 the SDRAM
-read capture alternate, 5 slow SDRAM bursts, 6 slow PSRAM reads, 7 slow SRAM
-reads, and bit 7 of 0xF3000000 slow SRAM writes):
+to its `variables` (in the modifiers word at 0xF2000000, which the
+interact block passes through without a reset: bit 3 is the overlay, 4 the
+SDRAM read capture alternate, 5 slow SDRAM bursts, 6 slow PSRAM reads, 7
+slow SRAM reads, 8 the board's test-mode switch, 15 slow SRAM writes; the
+DIP word at 0xF1000000 and the service line at 0xF0000010 reset the core
+on every write, which is why the test switch is not on them):
 
 ```json
 { "name": "Diagnostic overlay", "id": 64, "type": "check", "enabled": true, "persist": true,
@@ -447,7 +450,7 @@ reads, and bit 7 of 0xF3000000 slow SRAM writes):
 { "name": "SRAM slow reads", "id": 68, "type": "check", "enabled": true, "persist": false,
   "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFFFF7F", "value": "0x00000080" },
 { "name": "SRAM slow writes", "id": 69, "type": "check", "enabled": true, "persist": false,
-  "address": "0xF3000000", "defaultval": 0, "mask": "0xFFFFFF7F", "value": "0x00000080" }
+  "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFF7FFF", "value": "0x00008000" }
 ```
 
 The rows:
