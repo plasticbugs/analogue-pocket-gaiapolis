@@ -428,8 +428,29 @@ board run said every ROM region ok and stable but the tile RAM bad, so
 the SRAM pins' registers were moved into the IO cells
 (`projects/gaia_pocket.qsf`) and the read capture given a fourth clock.
 
-**The overlay** (interact menu "Diagnostic overlay", the bottom 12 lines,
-three rows of 32 squares read left to right, green = 1):
+**The overlay** (the bottom 12 lines, three rows of 32 squares read left to
+right, green = 1). Its menu entry and the memory-timing switches were
+removed from the release's `interact.json`; to bring them back, add these
+to its `variables` (bit 3 of the 0xF2000000 word is the overlay, 4 the SDRAM
+read capture alternate, 5 slow SDRAM bursts, 6 slow PSRAM reads, 7 slow SRAM
+reads, and bit 7 of 0xF3000000 slow SRAM writes):
+
+```json
+{ "name": "Diagnostic overlay", "id": 64, "type": "check", "enabled": true, "persist": true,
+  "address": "0xF2000000", "defaultval": 8, "mask": "0xFFFFFFF7", "value": "0x00000008" },
+{ "name": "SDRAM read capture (alt)", "id": 65, "type": "check", "enabled": true, "persist": false,
+  "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFFFFEF", "value": "0x00000010" },
+{ "name": "SDRAM slow bursts", "id": 66, "type": "check", "enabled": true, "persist": false,
+  "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFFFFDF", "value": "0x00000020" },
+{ "name": "PSRAM slow reads", "id": 67, "type": "check", "enabled": true, "persist": false,
+  "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFFFFBF", "value": "0x00000040" },
+{ "name": "SRAM slow reads", "id": 68, "type": "check", "enabled": true, "persist": false,
+  "address": "0xF2000000", "defaultval": 0, "mask": "0xFFFFFF7F", "value": "0x00000080" },
+{ "name": "SRAM slow writes", "id": 69, "type": "check", "enabled": true, "persist": false,
+  "address": "0xF3000000", "defaultval": 0, "mask": "0xFFFFFF7F", "value": "0x00000080" }
+```
+
+The rows:
 
 | Row | Bits | Meaning |
 |---|---|---|
@@ -443,7 +464,7 @@ three rows of 32 squares read left to right, green = 1):
 | 2 | 31-25 | region read stable: prog, snd, tile, chr, map, pcm, spr |
 | 2 | 23-16 | lines that overran their render budget in the last frame |
 | 2 | 15-8 | sprites in the draw list, divided by 4 |
-| 2 | 7-6 | sticky since reset: a renderer met an unsupported mode; a shadow overlapped a solid |
+| 2 | 7-6 | in the last frame: a renderer met an unsupported mode; a second shadow fell on a pixel |
 | 2 | 2-0 | which renderers overran in the last frame: tilemap, ROZ, sprites |
 
 **The sprite list and the line range.** MAME takes its sprite list from

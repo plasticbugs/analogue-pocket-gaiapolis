@@ -3,156 +3,117 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: the game runs on the Analogue Pocket -- release v0.1.0.** The
-whole machine boots through its self-test with every item OK, into the
-attract mode with music, and plays; every memory on the board reads back
-its region of the image (the core checks at each load), and the sprite,
-ROZ and tilemap renderers hold their line budgets with the real memories
-through the scenes exercised so far. The Pocket build uses 58% of the
-logic and 68% of the block RAM with timing closed at 96 MHz, and CI
-publishes the SD-card package.**
+**Status: release v0.1.0 -- the game runs on the Pocket.** The whole machine
+is in gateware: the 68000 and the Z80 sound board with its two K054539s, the
+ER5911 EEPROM, the K054000, and the video chain (K056832 tilemaps, K053936
+rotating plane, K053247 sprites, K055555 mixer). It boots through its
+self-test with every item OK, into the attract mode with music, and plays.
+On the board every memory reads back its region of the image (the core checks
+at each load) and the three renderers hold their line budgets with the real
+memories through the scenes exercised so far; the build uses 58% of the
+logic and 68% of the block RAM with timing closed at 96 MHz.
 
 | RTL, frame 1400 | MAME, frame 1400 | self-test |
 |---|---|---|
 | ![RTL attract](artifacts/system/attract_f1400.png) | ![MAME attract](artifacts/system/attract_mame_f1400.png) | ![self-test, every item OK](artifacts/system/selftest_all_ok.png) |
 
-**The reference renderer is complete and reproduces MAME's output exactly** --
-full frames, not just individual layers. `tools/regress_render.sh`: 28 gates,
-zero differing pixels (24 substantive; the trivial ones are labelled).
+## Trying it on the Pocket
 
-Covered: K056832 tilemaps, K053936 ROZ plane, K055673 sprites with the
-per-pixel Z buffer and shadows, and the K055555 priority mixer.
+Tagged releases publish `gaia-pocket-sdcard.zip`; every push to `main` also
+compiles the core (`.github/workflows/compile.yml`) and uploads the package
+as the `gaia-pocket` workflow artifact. Unzip it onto the SD card root, build
+`gaiapols.rom` as described below (or in the package's `README.txt`), put it
+in `Assets/gaia/common/`, and the core loads it on launch without asking.
+Settings and records go to `gaiapols.sav`. `./build-local.sh` does the same
+compile in Docker and leaves the package in `release/pocket/`.
 
-RTL so far, each gated against the reference renderer with zero differing
-pixels (`sim/run_tilemap.sh`, `sim/run_roz.sh`):
+At each load the core holds the game for about 2.5 s while it reads every
+memory back against the image it just received; the screen is black for
+that time. The core menu offers the screen shape (the arcade 3:4 monitor or
+square pixels), scanlines, a shadow mask, and the board's test-mode switch
+(the game's own service menu).
 
-| block | gate | worst line | budget |
-|---|---|---|---|
-| `rtl/k056832_tilemap.sv` -- four tilemap layers | `sim/run_tilemap.sh` | 2,660 clocks | 6,144 |
-| `rtl/k053936_roz.sv` -- rotate/zoom plane | `sim/run_roz.sh` | 2,777 clocks | 6,144 |
-| `rtl/k053247_objlist.sv` -- sprite draw list | `sim/run_objlist.sh` | 4,175 per frame | ~245,000 vblank |
-| `rtl/k053247_draw.sv` -- sprite rasterizer | `sim/run_sprite.sh` | 4,324 clocks | 6,144 |
-| `rtl/k055555_mixer.sv` -- priority encoder + colour stage | `sim/run_frame.sh` | -- | -- |
+## How it is verified
 
-**The complete video pipeline is done.** `sim/run_frame.sh` runs every block
-together and reproduces the reference renderer's full frame exactly on all six
-states; the RTL output is in `artifacts/rtl_frames/`.
+The reference renderer (`tools/render_model.py`) reproduces MAME's output
+exactly, full frames including shadows, on a corpus of frozen machine
+states (`tools/regress_render.sh`: 28 gates, zero differing pixels). Each
+RTL block is gated against it with zero differing pixels, and the whole
+video pipeline together (`sim/run_frame.sh`), which also measures each
+renderer's worst line with the Pocket memories' latencies:
 
-The mixer is built the way the silicon works -- every input compared per
-pixel -- rather than as MAME's sort-and-paint. `tools/mixer_experiment.py`
-showed the two agree on every captured frame, shadows included, before that
-structure was chosen.
+| block | gate | worst line, Pocket latencies |
+|---|---|---|
+| `rtl/k056832_tilemap.sv` -- four tilemap layers | `sim/run_tilemap.sh` | 3,354 clocks |
+| `rtl/k053936_roz.sv` -- rotate/zoom plane, characters as tile-column bursts | `sim/run_roz.sh` | 3,806 (play), 6,886 (busiest screen) |
+| `rtl/k053247_objlist.sv` -- sprite list and per-object line range | `sim/run_objlist.sh` | ~3,200 per frame, in vblank |
+| `rtl/k053247_draw.sv` -- sprite rasterizer with column prefetch | `sim/run_sprite.sh` | 4,310 (busiest screen) |
+| `rtl/k055555_mixer.sv` -- priority encoder + colour stage | `sim/run_frame.sh` | -- |
 
-**The full machine runs under Verilator** (`sim/run_system.sh`): 68000
-(TG68K), Z80 (tv80) sound board with two K054539s and the K054321 latch,
-ER5911 EEPROM, K054000 collision chip, and the video pipeline above, from
-reset with the real program. The self-test passes every item -- ROMs, RAMs,
-the two K054539s' chip RAM through their streaming ports, EEPROM -- and the
-boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
-`tools/eeprom_replay.py`, `tools/probe_68k.lua`).
+The budget is 6,144 clocks a line. The full machine runs under Verilator
+(`sim/run_system.sh`) from reset with the real program; `MEM=pocket` puts
+the Pocket memory subsystem and behavioural SDRAM, PSRAM and SRAM chips in
+the loop, `MAMESCHED=1` drives the inputs on the schedule the frozen states
+were taken with, and the trace reports each renderer's dropped lines and the
+sprite renderer's work per frame. The memory subsystem has its own gate
+(`sim/run_mem.sh`: the image in through the loader at the APF's maximum
+rate, out through every core port, under contention) and the pixel hand-over
+to the Pocket's video clock another (`sim/run_pixsync.sh`). The boot tracks
+MAME's frame by frame through the MAME Lua oracles in `tools/`.
 
-**Pocket port** (`target/pocket/`): `core_top.sv` is the APF glue, and
-`gaia_mem.sv` puts the 20 MB image across the SDRAM and both PSRAMs
-(`docs/hardware.md` section 11; `sim/run_mem.sh` is its gate). The EEPROM is
-saved to `gaiapols.sav`.
+For developers the core carries a diagnostic overlay (memory verdicts,
+dropped lines per renderer per frame, the CPUs' state) and runtime switches
+for the memories' capture timing; the menu entries that enable them were
+removed for the release and are kept in `docs/hardware.md` section 11.
 
 ## What is here
 
 | Path | What it is |
 |---|---|
-| `docs/hardware.md` | The board: memory map, chip set, ROM layout, measured bandwidth budget |
+| `rtl/` | The core: CPUs' boards, the chips, the video pipeline |
+| `target/pocket/` | The Pocket: `core_top.sv` (APF glue), `gaia_mem.sv` (the memory partition, loader, built-in memory test), the vendored controllers |
+| `pkg/pocket/` | The SD-card package: core, platform, assets note |
+| `docs/hardware.md` | The board: memory map, chip set, ROM layout, the Pocket partition and its measured budgets, the overlay |
+| `docs/rtl-conventions.md` | How the RTL is written and why |
 | `docs/prior-art.md` | What already exists in open RTL, and what does not |
-| `gaiapolis.mra` | ROM description (standard MiSTer MRA) |
-| `tools/mra_build.py` | Dependency-free ROM builder; CRC-checks every part, md5-checks the image |
-| `tools/verify_rom.py` | Verifies a built image against slices of what MAME actually loads |
-| `tools/dump_regions.lua` | MAME Lua: dumps those region slices |
-| `tools/probe_sprites.lua` | MAME Lua: per-scanline sprite load measurement |
-| `tools/dump_state.lua` | MAME Lua: freezes one frame (VRAM, palette, sprite RAM, ROZ, all chip registers) next to MAME's own snapshot; `FORCE_ENABLE` isolates a single layer |
-| `tools/render_model.py` | Reference renderer -- the executable spec the RTL is written against |
-| `tools/pngio.py` | Dependency-free PNG read/write |
-| `tools/regress_render.sh` | Frozen-state gate for the model: renders every state and requires zero differing pixels |
-| `sim/run_*.sh` | Frozen-state gates for each RTL block, and `run_frame.sh` for the whole pipeline, diffed against the model |
-| `sim/run_system.sh` | The whole machine from reset: frames as PNG, the 68000/Z80 trace, audio as WAV; `LAT=pocket` models the Pocket memories' latencies, `MEM=pocket` puts the real Pocket memory subsystem and chip models in the loop |
-| `sim/run_pixsync.sh` | The pixel hand-over to the Pocket's 8 MHz video clock: where the enable and the colour latch fall against its edge |
-| `sim/run_mem.sh` | The Pocket memory subsystem with behavioural SDRAM, PSRAM and SRAM chips: the image in through the loader port at the APF's maximum rate, back out through every core port |
-| `tools/probe_*.lua` | MAME Lua oracles: device reads, the Z80's boot timeline, EEPROM pin traffic, the 68000's pacing |
-| `tools/eeprom_replay.py` | Replays MAME's EEPROM pin traffic through the ER5911 model: a regression gate for the protocol |
-| `tools/compare_audio.py` | Envelope comparison of the bench's WAV with MAME's recording |
-| `target/pocket/` | The Pocket: `core_top.sv` (APF glue), `gaia_mem.sv` (SDRAM + PSRAM partition), the vendored controllers |
-| `tools/mixer_experiment.py` | Shows a per-pixel priority encoder reproduces MAME's ordered composite on this game |
-| `artifacts/rtl_frames/` | Full frames rendered by the RTL |
-| `rtl/` | Core RTL |
+| `METHODOLOGY.md` | The MAME-as-oracle method the work follows |
+| `gaiapolis.mra`, `tools/mra_build.py` | ROM description and the dependency-free builder; CRC-checks every part, md5-checks the image |
+| `tools/render_model.py`, `tools/regress_render.sh` | The reference renderer and its gate |
+| `tools/dump_state.lua`, `tools/probe_*.lua` | MAME Lua: frozen states, and oracles for device reads, the Z80's boot, the EEPROM, the 68000's pacing, the sprite list |
+| `tools/roz_fetches.py` | Sizes the ROZ plane's memory traffic from the model's transform |
+| `sim/run_*.sh` | The gates above and the system bench |
 | `artifacts/states/` | The frozen-state corpus and its matching MAME snapshots |
 | `artifacts/` | Snapshots, measurements, and other generated output |
 
-## Trying it on the Pocket
-
-Every push to `main` compiles the core (`.github/workflows/compile.yml`) and
-uploads `gaia-pocket` -- the SD-card package -- as a workflow artifact;
-tagged releases publish it as `gaia-pocket-sdcard.zip`. Unzip it onto the
-SD card root, build `gaiapols.rom` as described below (or in the package's
-`README.txt`) and put it in `Assets/gaia/common/`. `./build-local.sh` does
-the same compile in Docker and leaves the package in `release/pocket/`.
-
-What the board has confirmed, in the order the bring-up found it: the
-PLLs and the SDRAM's initialisation, the picture path and its rotation,
-the program ROMs out of the PSRAMs, the tile RAM (its pins' registers had
-to move into the IO cells), the sound, the controls, the EEPROM save
-(`gaiapols.sav`), and the game itself. The diagnostic overlay in the
-interact menu (off by default) shows the memory test's verdicts and each
-renderer's dropped lines per frame; `docs/hardware.md` section 11 lists
-its rows.
-
 ## Open items
 
-* The attract intro runs about four times longer in the RTL than in MAME
-  before the music starts (140 frames against 31 from the self-test's end).
-  Every device read the 68000 makes in that phase matches MAME
-  (`tools/diff_reads.py`); the wait is a loop at `200e2a` on a work-RAM flag
-  the vblank handler clears, so the difference is in what the handler
-  computes from RAM, not in a device. Cosmetic, and next after hardware.
-  (The "~90 stale sprite entries" once listed here were real: MAME's list
-  holds the same 113, most parked off-screen -- `tools/probe_objcount.lua`.)
-* The busiest gameplay screen (`s_busy`, the ROZ plane at 2.7x) still
-  costs the ROZ renderer 6,900 clocks a line against 6,144 with the Pocket
-  latencies: 65 tile changes at three map reads each, and five states a
-  pixel. Fewer map reads (two bytes of the three in one word) and fewer
-  states per pixel would bring it under.
+* The busiest gameplay screen (the ROZ plane at 2.7x) costs the ROZ
+  renderer 6,886 clocks a line against 6,144 with the Pocket latencies:
+  65 tile changes at three map reads each, and five states a pixel. Fewer
+  map reads (two bytes of the three in one word) and fewer states per pixel
+  would bring it under.
 * In the first frames of the intro after a new game, while its clouds
   load, the tilemap renderer drops 2-16 lines a frame for a dozen frames
   waiting behind the sprite and ROZ bursts on the SDRAM; clean after.
-* Two shadow objects on one pixel are drawn as one (the chip darkens
-  twice); the board flags it in some scenes.
-* The memory test at each load holds the core in reset for about 2.5 s.
-
-## Running the frozen-state gate
-
-```sh
-tools/regress_render.sh gaiapols.rom
-```
+* Two shadow objects on one pixel are drawn as one where the chip darkens
+  twice; the board flags it in some scenes.
+* The attract intro runs about four times longer than in MAME before the
+  music starts (140 frames against 31 from the self-test's end). Every
+  device read the 68000 makes in that phase matches MAME; the wait is a
+  loop at `200e2a` on a work-RAM flag the vblank handler clears, so the
+  difference is in what the handler computes from RAM.
+* The memory test at each load holds the core for about 2.5 s.
 
 ## Building the ROM
 
 ```sh
-python3 tools/mra_build.py gaiapolis.mra /path/to/gaiapols.zip gaiapols.rom
+python3 tools/mra_build.py gaiapolis.mra /path/to/gaiapols.zip
 python3 tools/verify_rom.py gaiapols.rom     # optional, needs artifacts/mame_regions.txt
 ```
 
-The image is 20,316,288 bytes, md5 `7ed05d08287ecc2be8592b0ef0158aad`.
-**No ROMs are distributed with this repository.**
-
-## The short version of the feasibility question
-
-* 18.9 MB of ROM against 48 MB across the Pocket's four independent memory
-  buses — it fits, with a clean partition (`docs/hardware.md` §11).
-* Worst measured sprite load is 348 16-bit words per 64 us scanline. Bandwidth
-  is not the blocker.
-* Seven of the eight custom chips already have open Verilog, and `jtrungun`
-  (Run and Gun — same Konami generation, K055673 sprites + K053936 ROZ +
-  2 x K054539) is a released Pocket core. The gaps are the **K055555** priority
-  encoder and finishing the **K056832** tilemap generator.
-* MAME itself is `MACHINE_IMPERFECT_GRAPHICS` for this driver, so the usual
-  "make MAME the oracle" method needs adjusting (`docs/hardware.md` §10).
+The builder writes `gaiapols.rom`, 20,316,288 bytes, md5
+`7ed05d08287ecc2be8592b0ef0158aad`. **No ROMs are distributed with this
+repository.**
 
 ## Credits
 
