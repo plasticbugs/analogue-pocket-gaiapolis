@@ -28,6 +28,12 @@ in `Assets/gaia/common/`, and the core loads it on launch without asking.
 Settings and records go to `gaiapols.sav`. `./build-local.sh` does the same
 compile in Docker and leaves the package in `release/pocket/`.
 
+Cutting a release: bump `version` in `pkg/pocket/Cores/plasticbugs.gaia/core.json`
+and the status line above, push, let CI compile that commit, download its
+`gaia-pocket` artifact, zip its contents as `gaia-pocket-sdcard.zip`, and
+`gh release create vX.Y.Z --target <full commit hash> --notes-file notes.md
+gaia-pocket-sdcard.zip`. The tag's own CI run sees the release and leaves it.
+
 At each load the core holds the game for about 2.5 s while it reads every
 memory back against the image it just received; the screen is black for
 that time. The core menu offers the screen shape (the arcade 3:4 monitor or

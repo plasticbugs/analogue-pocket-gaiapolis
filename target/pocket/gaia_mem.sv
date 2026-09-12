@@ -309,8 +309,11 @@ module gaia_mem #(
     logic        forced;
     wire         others = (tile_req_i && !tile_ack) || (spr_req_i && !spr_ack);
     wire         roz_running = (bst == B_RUN) && (bsel == 2'd2);
-    assign b_abort = roz_running && others && !forced;
+    // registered: the renderers' requests would otherwise reach the SDRAM
+    // address and command pins' IO-cell registers through the controller's
+    // burst branch in one cycle (-0.08 ns); a clock later is nothing
     always_ff @(posedge clk) begin
+        b_abort  <= roz_running && others && !forced;
         quiet    <= others ? 5'd0 : (quiet == 5'd31 ? 5'd31 : quiet + 5'd1);
         blk_wait <= (!blk_req_i || blk_ack || roz_running) ? 8'd0 : (blk_wait == 8'd255 ? 8'd255 : blk_wait + 8'd1);
     end
