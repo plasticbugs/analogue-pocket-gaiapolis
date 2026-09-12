@@ -602,6 +602,10 @@ The first fit closed at -7.6 ns. What it took, in order of appearance in
   Runner core;
 * the SDRAM clock phase 6.77 ns instead of 5.86: this design's address
   registers sat a few hundred ps further from the pins.
+* every input to `sdram_ctrl`'s burst branch registered at the `gaia_mem`
+  boundary: the branch drives the SDRAM address and command pins' IO-cell
+  registers, so a combinational `b_abort` put the sprite renderer's ROM
+  request on a one-cycle path to `SDRAM_A` (-0.08 ns).
 
 Worst corner after all that: +0.34 ns on the machine clock, +0.30 on the
 SDRAM clock, at 52% of the logic.
