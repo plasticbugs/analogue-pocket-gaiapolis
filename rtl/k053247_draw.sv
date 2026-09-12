@@ -204,6 +204,17 @@ module k053247_draw #(
     wire [2:0] yrev = height[2:0] - 3'd1 - ty + ya;
     wire [2:0] yfwd = ty + ya;
     wire [2:0] xsel = mirrorx ? (xmir_alt ? xrev : xfwd) : (flipx ? xrev : xfwd);
+    // the same for the column after this one: its row is asked for as soon as
+    // this column's arrives, so the burst runs under this column's pixel loop
+    wire [2:0] tx_n = tx + 3'd1;
+    wire [3:0] tx2_n = {1'b0, tx_n} << 1;
+    wire xmir_alt_n = (~flipx) ^ (tx2_n < width);
+    wire [2:0] xrev_n = width[2:0] - 3'd1 - tx_n + xa;
+    wire [2:0] xfwd_n = tx_n + xa;
+    wire [2:0] xsel_n = mirrorx ? (xmir_alt_n ? xrev_n : xfwd_n) : (flipx ? xrev_n : xfwd_n);
+    wire has_next = ({1'b0, tx} + 4'd1) < width;
+    logic        pf_valid, pf_have;     // a prefetch is out for the next column; its row has arrived
+    logic [63:0] rowdata_pf;
     wire [2:0] ysel = mirrory ? (ymir_alt ? yrev : yfwd) : (flipy ? yrev : yfwd);
     wire fx_c = mirrorx ? xmir_alt : flipx;
     wire fy_c = mirrory ? ymir_alt : flipy;
@@ -278,14 +289,18 @@ module k053247_draw #(
         px_valid_a <= 1'b0;
         if (reset) begin
             st <= D_IDLE; busy <= 1'b0; bank <= 1'b0;
-            rom_req <= 1'b0; shadow_overlap <= 1'b0;
+            rom_req <= 1'b0; shadow_overlap <= 1'b0; pf_valid <= 1'b0; pf_have <= 1'b0;
             dbg_objs <= '0; dbg_rows <= '0; dbg_cols <= '0; dbg_pxw <= '0;
         end else if (line_start && st != D_IDLE) begin
             // the previous line overran its budget: abandon it and start this
             // one, as the hardware would -- whatever was drawn is what shows
             bank <= ~bank; busy <= 1'b1;
-            rom_req <= 1'b0; clr_i <= '0; st <= D_CLR;
+            rom_req <= 1'b0; pf_valid <= 1'b0; pf_have <= 1'b0; clr_i <= '0; st <= D_CLR;
         end else begin
+            // a prefetched row arriving while the pixel loop runs
+            if (pf_valid && !pf_have && rom_ack && st != D_ROWW) begin
+                rowdata_pf <= rom_q; rom_req <= 1'b0; pf_have <= 1'b1;
+            end
             case (st)
                 D_IDLE: begin
                     busy <= 1'b0;
@@ -407,7 +422,10 @@ module k053247_draw #(
                         fx         <= fx_c;
                         tempcode   <= tempcode_y + {10'd0, xoffset(xsel)};
                         st <= D_SX1;
-                    end else st <= D_NEXTTX;
+                    end else begin
+                        if (pf_valid) begin rom_req <= 1'b0; pf_valid <= 1'b0; pf_have <= 1'b0; end   // not wanted after all
+                        st <= D_NEXTTX;
+                    end
                 end
                 D_SX1: st <= D_SX2;
                 D_SX2: begin
@@ -422,12 +440,28 @@ module k053247_draw #(
                 D_SX3: begin
                     ddax     <= xmul[31:0];
                     cur_px   <= pxl;
-                    rom_addr <= {tempcode, src_row};
-                    rom_req  <= 1'b1;
-                    st <= D_ROWW;
+                    if (pf_valid && pf_have) begin              // this column's row came early
+                        rowdata <= rowdata_pf; pf_have <= 1'b0;
+                        if (has_next) begin rom_addr <= {tempcode_y + {10'd0, xoffset(xsel_n)}, src_row}; rom_req <= 1'b1; end
+                        else pf_valid <= 1'b0;
+                        st <= D_PIX;
+                    end else if (pf_valid) begin                // still on its way
+                        st <= D_ROWW;
+                    end else begin
+                        rom_addr <= {tempcode, src_row};
+                        rom_req  <= 1'b1;
+                        st <= D_ROWW;
+                    end
                 end
-                D_ROWW: if (rom_ack) begin
-                    rowdata <= rom_q; rom_req <= 1'b0; st <= D_PIX;
+                // (a prefetched row can land on the clock the wait begins: then it
+                // is already in rowdata_pf)
+                D_ROWW: if (rom_ack || (pf_valid && pf_have)) begin
+                    rowdata <= (pf_valid && pf_have) ? rowdata_pf : rom_q;
+                    if (has_next) begin                         // ask for the next column's row now
+                        rom_addr <= {tempcode_y + {10'd0, xoffset(xsel_n)}, src_row}; rom_req <= 1'b1;
+                        pf_valid <= 1'b1; pf_have <= 1'b0;
+                    end else begin rom_req <= 1'b0; pf_valid <= 1'b0; end
+                    st <= D_PIX;
                 end
 
                 // The pixel loop is two stages: this state decides pixel n

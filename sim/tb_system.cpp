@@ -130,7 +130,12 @@ int main(int argc, char **argv) {
     unsigned dr_objs0 = 0, dr_rows0 = 0, dr_cols0 = 0, dr_pxw0 = 0;   // the sprite renderer's counters at the last frame print
     int sprdump = -1; { const char *e = getenv("SPRDUMP"); if (e) sprdump = atoi(e); }   // dump sprite RAM after this frame
     // COINAT=<frame> holds player 1's coin (in0_p1 bit 8, active low) for 8 frames from that frame; STARTAT likewise bit 7
-    int coinat = -1, startat = -1; { const char *e = getenv("COINAT"); if (e) coinat = atoi(e); e = getenv("STARTAT"); if (e) startat = atoi(e); }
+    // COINAT=<frame> holds player 1's coin for 8 frames from that frame; PRESSES=<frame>,<frame>,... presses start
+    // for 8 frames from each (the title, the NEW GAME menu, the character select); STARTAT/STARTAT2 are older spellings
+    int coinat = -1; std::vector<int> presses; bool mamesched = getenv("MAMESCHED") && atoi(getenv("MAMESCHED"));
+    { const char *e = getenv("COINAT"); if (e) coinat = atoi(e);
+      e = getenv("STARTAT"); if (e) presses.push_back(atoi(e)); e = getenv("STARTAT2"); if (e) presses.push_back(atoi(e));
+      e = getenv("PRESSES"); if (e) { char *w = strdup(e); for (char *t = strtok(w, ","); t; t = strtok(nullptr, ",")) presses.push_back(atoi(t)); } }
     bool ovr_d = false;
     // ZLOG=path: the Z80's writes to the K054539 control registers, the latch
     // and sound_ctrl as "frame W addr data" (tools/probe_z80.lua's format), and
@@ -214,7 +219,13 @@ int main(int argc, char **argv) {
                 {   // scripted inputs for the next frame
                     unsigned in0 = 0xffff;
                     if (coinat  >= 0 && frame + 1 >= coinat  && frame + 1 < coinat  + 8) in0 &= ~0x0100u;
-                    if (startat >= 0 && frame + 1 >= startat && frame + 1 < startat + 8) in0 &= ~0x0080u;
+                    for (int pf : presses) if (frame + 1 >= pf && frame + 1 < pf + 8) in0 &= ~0x0080u;
+                    if (mamesched) {            // tools/dump_state.lua's schedule, so frames line up with the frozen states
+                        int n = frame + 1;
+                        if (n > 200 && (n % 120) < 8) in0 &= ~0x0100u;                                   // coin
+                        if (n > 240 && (n % 60) < 8 && (n % 120) >= 8) in0 &= ~0x0080u;                  // start
+                        if (n > 400) { if (n % 11 < 4) in0 &= ~0x0010u; if (n % 97 < 40) in0 &= ~0x0002u; if (n % 53 < 20) in0 &= ~0x0004u; }   // button 1, right, up
+                    }
                     dut->in0_p1 = in0;
                 }
                 irq_seen = false; frame_steps = 0; de_pixels = 0;
