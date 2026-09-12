@@ -63,7 +63,7 @@ vertical on the cabinet. Sprite/tilemap X is the 376 axis; Y is the 224 axis.
 | `440000–441FFF` | R | K056832 tile-ROM readback |
 | `450000–45000F` | R | K055673 sprite-ROM readback |
 | `450010–45001F` | W | K055673 registers |
-| `460000–46001F` | W | ROZ control registers (`k053936_0_ct16`) |
+| `460000–46001F` | W | ROZ control registers (`k053936_0_ct16`): 16 words, 0-7 the zoom coefficients, 8-15 the chip's clip window (stored, not used by the renderer) |
 | `470000–470FFF` | RW | ROZ line RAM (`k053936_0_li16`), 4 KB |
 | `480000–48003F` | W | K056832 VACSET |
 | `482000–482007` | W | K056832 VSCCS |

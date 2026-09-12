@@ -2,7 +2,7 @@
 # Full-system simulation: the whole machine from reset with the real program.
 #   sim/run_system.sh <gaiapolis.rom> [frames] [out-name]
 # Writes artifacts/system/<name>.rgb, .png and .trace.
-# Environment: SNAPEVERY=n (a PNG every n frames), AUDIO=1 (write <name>.wav),
+# Environment: JOBS=n (parallel C++ compile jobs, default 8), SNAPEVERY=n (a PNG every n frames), AUDIO=1 (write <name>.wav),
 # LAT=pocket (the Pocket memories' latencies) or LAT="+LAT_PROG=12 ..." verbatim,
 # OBJ=dir (build directory, for parallel builds), PACE="-GSTEP_COST_BUS=n -GSTEP_COST_INT=m"
 # (68000 pacing overrides for calibration against MAME), MEM=pocket (the Pocket
@@ -20,7 +20,7 @@ case "${MEM:-}" in
             EXTRA="waivers_platform.vlt waivers_models.vlt -CFLAGS -DPOCKET_TOP" ;;
     *)      TOP="--top-module tb_system_top"; SRC="tb_system_top.sv"; EXTRA="" ;;
 esac
-verilator --cc --exe --build -j 8 -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY \
+verilator --cc --exe --build -j ${JOBS:-8} -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY \
     +1364-2005ext+v waivers.vlt $EXTRA $TOP -Mdir ${OBJ:-obj_system} ${PACE:-} \
     ../rtl/*.sv ../modules/cpu-tg68k/gen/tg68k.v ../modules/cpu-tv80/*.v $SRC tb_system.cpp \
     > ${OBJ:-obj_system}.log 2>&1 || { tail -30 ${OBJ:-obj_system}.log; exit 1; }

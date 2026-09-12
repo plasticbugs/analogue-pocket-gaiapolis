@@ -9,7 +9,7 @@ ROM="$1"; shift
 [ -f "$ROM" ] || { echo "usage: $0 <gaiapolis.rom> [state ...]" >&2; exit 2; }
 case "$ROM" in /*) ;; *) ROM="$PWD/$ROM" ;; esac
 
-verilator --cc --exe --build -j 8 -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL \
+verilator --cc --exe --build -j ${JOBS:-8} -O2 -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL \
     --top-module tb_roz_top -Mdir obj_roz \
     ../rtl/k053936_roz.sv tb_roz_top.sv tb_roz.cpp \
     > obj_roz.log 2>&1 || { tail -30 obj_roz.log; exit 1; }
