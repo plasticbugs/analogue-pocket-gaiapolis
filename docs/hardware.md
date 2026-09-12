@@ -556,14 +556,18 @@ then asked for 4.0 Mbit of the device's 3.15.
 
 | | used | of |
 |---|---|---|
-| Logic (ALMs) | 9,527 | 18,480 (52%) |
-| Registers | ~12,100 | 73,920 |
-| Block memory | 2.09 Mbit | 3.15 Mbit (66%) |
-| DSP blocks | 33 | 66 |
+| Logic (ALMs) | 11,771 | 18,480 (64%) |
+| Registers | 16,628 | 73,920 |
+| Block memory | 2.28 Mbit | 3.15 Mbit (72%) |
+| DSP blocks | 31 | 66 |
+
+(The ROZ tile cache's 128 tag comparators and its 8 line buffers took the
+logic from 52% to 64% and the registers from ~12,100; worst setup slack
++0.45 ns at the slowest corner.)
 
 The first fit asked for 174% of the logic: the sprite rasterizer's Z buffers
 and the K054539 register files as registers with per-entry muxes. The rules
-that brought it to 52% are in `docs/rtl-conventions.md` ("What Quartus will
+that brought it down are in `docs/rtl-conventions.md` ("What Quartus will
 and will not make a block RAM of"). `projects/output_files/
 gaia_pocket.fit.summary` and `.sta.summary` are the numbers to watch; the CI
 compile fails the build if a corner's slack goes negative.

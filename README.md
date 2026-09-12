@@ -3,7 +3,8 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: release v0.1.0 -- the game runs on the Pocket.** The whole machine
+**Status: release v0.2.0 -- the game runs on the Pocket, rotating and zooming
+backgrounds included.** The whole machine
 is in gateware: the 68000 and the Z80 sound board with its two K054539s, the
 ER5911 EEPROM, the K054000, and the video chain (K056832 tilemaps, K053936
 rotating plane, K053247 sprites, K055555 mixer). It boots through its
