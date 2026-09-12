@@ -22,7 +22,7 @@ Controls
   (a second pad plays player 2)
 
 Settings and records are kept in the
-EEPROM and saved to gaiapolis.sav.
+EEPROM and saved to gaiapols.sav.
 
 ROMs are not included. Build the
 image from your own MAME gaiapols
@@ -31,5 +31,5 @@ romset:
   python3 mra_build.py gaiapolis.mra
       gaiapols.zip
 
-and copy gaiapolis.rom into
+and copy gaiapols.rom into
 Assets/gaia/common/.

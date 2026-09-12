@@ -564,7 +564,7 @@ module core_top
     // the last write -- or at once when the Pocket menu opens -- the core
     // commands the APF to write slot 1 from bridge address 0x20000000; the APF
     // reads that range through the unloader above and creates or updates
-    // gaiapolis.sav. One save also goes out five seconds after loading.
+    // gaiapols.sav. One save also goes out five seconds after loading.
     wire        po_nv_dirty;                // toggles on every EEPROM write
     wire        nv_dirty_s;
     synch_3 sync_nvd(po_nv_dirty, nv_dirty_s, clk_74a);

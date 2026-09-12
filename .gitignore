@@ -3,6 +3,9 @@ gaiapols/
 *.zip
 *.rom
 *.bin
+# the Pocket package's own binaries are not ROMs
+!pkg/pocket/Platforms/_images/*.bin
+!pkg/pocket/Cores/*/icon.bin
 
 # scratch
 tmp/

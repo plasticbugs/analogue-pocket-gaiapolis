@@ -486,7 +486,7 @@ never checked the crossing at its 5.2 ns edge relationship.
 `MEM=pocket sim/run_system.sh` runs the whole machine with this module and
 behavioural chips in place of the ideal ROM ports, for the interplay the
 unit gate cannot see (withdrawn requests, the two CPUs contending).
-`sim/run_mem.sh <gaiapolis.rom> [gap]` is the gate for this module: the
+`sim/run_mem.sh <gaiapols.rom> [gap]` is the gate for this module: the
 memory subsystem with behavioural SDRAM, PSRAM and SRAM chips behind it,
 2 KB from each end of every region loaded through the download port at
 `gap` clocks a byte (default 8, the loader's maximum) and read back through

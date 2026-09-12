@@ -104,7 +104,7 @@
         "enabled": true,
         "persist": true,
         "address": "0xF2000000",
-        "defaultval": 8,
+        "defaultval": 0,
         "mask": "0xFFFFFFF7",
         "value": "0x00000008"
       },

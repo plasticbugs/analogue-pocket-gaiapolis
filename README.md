@@ -3,11 +3,14 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: the whole machine boots through its self-test with every item OK
-and into the attract mode with music in simulation -- 40 seconds in, the
-music's level is within 1 dB of MAME's recording; the Pocket build fits
-the FPGA (52% logic, 66% block RAM) with timing closed at 96 MHz, CI
-publishes the SD-card package, and the first run on hardware is next.**
+**Status: the game runs on the Analogue Pocket -- release v0.1.0.** The
+whole machine boots through its self-test with every item OK, into the
+attract mode with music, and plays; every memory on the board reads back
+its region of the image (the core checks at each load), and the sprite,
+ROZ and tilemap renderers hold their line budgets with the real memories
+through the scenes exercised so far. The Pocket build uses 58% of the
+logic and 68% of the block RAM with timing closed at 96 MHz, and CI
+publishes the SD-card package.**
 
 | RTL, frame 1400 | MAME, frame 1400 | self-test |
 |---|---|---|
@@ -51,7 +54,7 @@ boot tracks MAME's frame by frame (`tools/probe_z80.lua`,
 **Pocket port** (`target/pocket/`): `core_top.sv` is the APF glue, and
 `gaia_mem.sv` puts the 20 MB image across the SDRAM and both PSRAMs
 (`docs/hardware.md` section 11; `sim/run_mem.sh` is its gate). The EEPROM is
-saved to `gaiapolis.sav`.
+saved to `gaiapols.sav`.
 
 ## What is here
 
@@ -87,20 +90,18 @@ saved to `gaiapolis.sav`.
 Every push to `main` compiles the core (`.github/workflows/compile.yml`) and
 uploads `gaia-pocket` -- the SD-card package -- as a workflow artifact;
 tagged releases publish it as `gaia-pocket-sdcard.zip`. Unzip it onto the
-SD card root, build `gaiapolis.rom` as described below (or in the package's
+SD card root, build `gaiapols.rom` as described below (or in the package's
 `README.txt`) and put it in `Assets/gaia/common/`. `./build-local.sh` does
 the same compile in Docker and leaves the package in `release/pocket/`.
 
-Seen on hardware so far: the PLLs, the SDRAM's initialisation, the picture
-path and its rotation, and the program ROMs out of the PSRAMs (the reset
-vector and the Z80's first byte read correctly once the loader stopped
-writing every PSRAM word twice). The self-test's ROM check draws with wrong,
-flickering characters and does not pass, so some memory path is still
-marginal on the board: the core now has a built-in memory test at the end
-of the load whose verdict per memory shows on the diagnostic overlay
-(`docs/hardware.md` section 11 has the rows). Not yet: the game itself, the
-audio hand-off, the controls' mapping, and the EEPROM save (`gaiapolis.sav`
-should appear after five seconds, and the settings survive a power cycle).
+What the board has confirmed, in the order the bring-up found it: the
+PLLs and the SDRAM's initialisation, the picture path and its rotation,
+the program ROMs out of the PSRAMs, the tile RAM (its pins' registers had
+to move into the IO cells), the sound, the controls, the EEPROM save
+(`gaiapols.sav`), and the game itself. The diagnostic overlay in the
+interact menu (off by default) shows the memory test's verdicts and each
+renderer's dropped lines per frame; `docs/hardware.md` section 11 lists
+its rows.
 
 ## Open items
 
@@ -117,18 +118,24 @@ should appear after five seconds, and the settings survive a power cycle).
   latencies: 65 tile changes at three map reads each, and five states a
   pixel. Fewer map reads (two bytes of the three in one word) and fewer
   states per pixel would bring it under.
+* In the first frames of the intro after a new game, while its clouds
+  load, the tilemap renderer drops 2-16 lines a frame for a dozen frames
+  waiting behind the sprite and ROZ bursts on the SDRAM; clean after.
+* Two shadow objects on one pixel are drawn as one (the chip darkens
+  twice); the board flags it in some scenes.
+* The memory test at each load holds the core in reset for about 2.5 s.
 
 ## Running the frozen-state gate
 
 ```sh
-tools/regress_render.sh gaiapolis.rom
+tools/regress_render.sh gaiapols.rom
 ```
 
 ## Building the ROM
 
 ```sh
-python3 tools/mra_build.py gaiapolis.mra /path/to/gaiapols.zip gaiapolis.rom
-python3 tools/verify_rom.py gaiapolis.rom     # optional, needs artifacts/mame_regions.txt
+python3 tools/mra_build.py gaiapolis.mra /path/to/gaiapols.zip gaiapols.rom
+python3 tools/verify_rom.py gaiapols.rom     # optional, needs artifacts/mame_regions.txt
 ```
 
 The image is 20,316,288 bytes, md5 `7ed05d08287ecc2be8592b0ef0158aad`.

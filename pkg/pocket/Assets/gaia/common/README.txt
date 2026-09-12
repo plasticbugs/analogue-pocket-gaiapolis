@@ -3,10 +3,10 @@ Gaiapolis for Analogue Pocket - the ROM image
 
 This folder must hold ONE file:
 
-    Assets/gaia/common/gaiapolis.rom
+    Assets/gaia/common/gaiapols.rom
     (20,316,288 bytes, md5 7ed05d08287ecc2be8592b0ef0158aad)
 
-The core does not include any game data. You build gaiapolis.rom yourself
+The core does not include any game data. You build gaiapols.rom yourself
 from your own copy of the MAME romset "gaiapols" (Gaiapolis, Konami 1993,
 ver EAF; the MAME parent set, gaiapols.zip).
 
@@ -19,15 +19,15 @@ How to build it
 
        python3 mra_build.py gaiapolis.mra gaiapols.zip
 
-   It checks every ROM's CRC32 against the .mra, writes gaiapolis.rom, and
+   It checks every ROM's CRC32 against the .mra, writes gaiapols.rom, and
    verifies the finished image against the md5 above. A wrong or incomplete
    romset stops with an error naming the file it did not like.
 
-3. Copy gaiapolis.rom into this folder on the SD card.
+3. Copy gaiapols.rom into this folder on the SD card.
 
 The .mra is a standard MiSTer-style ROM description, so any MRA tool (for
 example the MiSTer project's "mra") builds the same image; rename its output
-to gaiapolis.rom.
+to gaiapols.rom.
 
 What the image contains (docs/hardware.md, section 9, in the repository)
 ------------------------------------------------------------------------
