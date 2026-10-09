@@ -53,6 +53,7 @@ module gaia_video #(
     output logic        hsync,
     output logic        vsync,
     output logic        de,
+    output logic        hblank,         // the Analogizer's scandoubler times lines from it
     output logic        vblank,
     output logic        vblank_rise     // one clk pulse at the start of vblank
 );
@@ -60,7 +61,7 @@ module gaia_video #(
     assign in_active_x = (hcount >= 9'(VIS_X0)) && (hcount < 9'(VIS_X0 + VIS_W));
     assign in_active_y = (vcount >= 9'(VIS_Y0)) && (vcount < 9'(VIS_Y0 + VIS_H));
 
-    logic hs_r, vs_r, de_r, vb_r;
+    logic hs_r, vs_r, de_r, hb_r, vb_r;
     logic vb_prev;
 
     always_ff @(posedge clk) begin
@@ -69,7 +70,7 @@ module gaia_video #(
         vblank_rise <= 1'b0;
         if (reset) begin
             hcount <= '0; vcount <= '0; overrun <= 1'b0; overrun_src <= '0;
-            hsync <= 1'b0; vsync <= 1'b0; de <= 1'b0; vblank <= 1'b1; vb_prev <= 1'b1;
+            hsync <= 1'b0; vsync <= 1'b0; de <= 1'b0; hblank <= 1'b1; vblank <= 1'b1; vb_prev <= 1'b1;
             px <= '0; px_valid <= 1'b0; render_line <= '0;
         end else if (cen_pix) begin
             // raster counters
@@ -101,8 +102,9 @@ module gaia_video #(
             de_r <= in_active_x && in_active_y;
             hs_r <= (hcount >= 9'(HS_START)) && (hcount < 9'(HS_START + HS_LEN));
             vs_r <= (vcount >= 9'(VS_START)) && (vcount < 9'(VS_START + VS_LEN));
+            hb_r <= !in_active_x;
             vb_r <= !in_active_y;
-            de <= de_r; hsync <= hs_r; vsync <= vs_r; vblank <= vb_r;
+            de <= de_r; hsync <= hs_r; vsync <= vs_r; hblank <= hb_r; vblank <= vb_r;
 
             vb_prev <= vb_r;
             if (vb_r && !vb_prev) vblank_rise <= 1'b1;

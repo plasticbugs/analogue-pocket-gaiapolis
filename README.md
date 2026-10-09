@@ -40,6 +40,23 @@ that time. The core menu offers the screen shape (the arcade 3:4 monitor or
 square pixels), scanlines, a shadow mask, and the board's test-mode switch
 (the game's own service menu).
 
+## Analogizer
+
+The core supports RndMnkIII's [Analogizer](https://github.com/RndMnkIII/Analogizer)
+adapter: the board's native 15 kHz picture out of the VGA port (RGBS, RGsB,
+YPbPr or Y/C; there is no scandoubled VGA mode, for want of block RAM), and
+SNAC controllers. It is
+set up in the core's own menu (Analogizer, Analogizer Video, SNAC Adapter,
+SNAC Assignment, H and V Position to centre the picture on the CRT, and H
+Size for its width -- with the set on its side, the game's height); with
+"Analogizer" off, the default, the core is unchanged, and no
+`analogizer.bin` is needed. The cabinet's monitor stood on its side and the
+CRT gets that raster unrotated: stand the set on its side, turned clockwise
+as you face it (as MAME's ROT90). The Pocket powers the cartridge slot for
+this core: take any game cartridge out first. `docs/analogizer.md` has the
+modes, the controller assignments and what the bench proves; nothing has
+been tried on hardware with this core yet.
+
 ## How it is verified
 
 The reference renderer (`tools/render_model.py`) reproduces MAME's output
@@ -148,6 +165,16 @@ other people's work.
 * **Verilator** -- every simulation bench in `sim/`
 
 **Vendored cores** (`modules/`, see `modules/VENDOR.md`)
+
+* **RndMnkIII** -- the [Analogizer](https://github.com/RndMnkIII/Analogizer)
+  adapter and its `openFPGA_Pocket_Analogizer` module
+  (`target/pocket/analogizer/`, taken verbatim from his MiraxPocket core),
+  with the parts it gathers from others: the Y/C encoder by **Mike Simone**
+  (MiSTerFPGA_YC_Encoder), the scandoubler and HQ2x by **Sorgelig** and
+  **Ludvig Strigeus** (MiSTer), the PlayStation controller interface after
+  **pgate1**'s psPAD, and the SNAC game-controller readers he credits to
+  **@MikeSimonson**, the **MiST** project, **@RandyS**, **jotego**,
+  **Scott Larson** (the PS/2 receiver) and **@tomasz**. GPL-3.0-or-later.
 
 * **TG68K.C**, the switchable 68000/68010/68020 kernel, by Tobias Gubener
   -- `modules/cpu-tg68k`, LGPL-3.0

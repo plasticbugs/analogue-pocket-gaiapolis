@@ -51,7 +51,6 @@ set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 # AUTO FIT stops as soon as it believes constraints are met and leaves margin
 # on the table; at 99% utilisation, with setup and hold trading against each
 # other, we need every picosecond the placer can find.
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 set_global_assignment -name PERIPHERY_TO_CORE_PLACEMENT_AND_ROUTING_OPTIMIZATION ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
@@ -889,3 +888,21 @@ set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to dram_we_n
 # is a real silicon failure, not lost margin, so let the fitter pad every
 # path, not just the pins.
 set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS"
+
+# The Analogizer (docs/analogizer.md) needs block RAM this design did not have
+# free (the release used 307 of 308).  It is built without its scandoubler
+# (core_top: USE_SD 0), and the short shift registers Quartus had put in block
+# RAM, one block each however few bits, go back to flops: the synchronisers
+# (core_top's 3 x 136 sync_allc alone took 4 blocks, pocket_i2s's 1, the
+# Analogizer's own 1), the Pocket video mixer's scanline generator (2) and the
+# Y/C encoder's delay line (1).
+set_instance_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF -to "*|synch_3:*"
+set_instance_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF -to "core_top:ic|video_mixer:pocket_video_mixer"
+set_instance_assignment -name AUTO_SHIFT_REGISTER_RECOGNITION OFF -to "*|yc_out_legacy:*"
+
+# Fitter effort.  With the Analogizer the device is 99% full of block RAM and
+# "STANDARD FIT" left paths a tenth of a nanosecond short that move with the
+# seed (the memory test into gaia_mem's burst address at the default seed; the
+# K054539's channel decode at seed 2).  AUTO FIT works harder only where
+# timing is not met.
+set_global_assignment -name FITTER_EFFORT "AUTO FIT"

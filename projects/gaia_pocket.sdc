@@ -2,7 +2,10 @@
 # Gaiapolis on the Pocket: timing constraints beyond the BSP's sys_constr.sdc.
 # The 96 MHz system clock, its 8 MHz video pair and the shifted SDRAM clock
 # all come from core_pll and are timed as one related group; the two 74.25 MHz
-# inputs and the audio PLL are asynchronous to it.
+# inputs and the audio PLL are asynchronous to it.  The PLL's fifth output
+# (general[4]) is the Analogizer's 48 MHz (clk_sys / 2, in phase), in the same
+# group: the pixel hand-over into it (pocket_analogizer.sv) is a held register
+# under a toggle, timed as the related-clock path it is.
 # ==============================================================================
 set_clock_groups -asynchronous \
  -group { bridge_spiclk } \
@@ -17,7 +20,10 @@ set_clock_groups -asynchronous \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
 # SDRAM: the chip is clocked by the phase-shifted PLL output (the S.T.U.N.
-# Runner core's proven arrangement, same controller). The shift is 6.51 ns
+# Runner core's proven arrangement, same controller). With the Analogizer
+# (2026-10) the fit moved and the data inputs missed setup by 0.254 ns at
+# slow 0C, with 0.98 ns of capture hold and 3 ns of output margin spare, so
+# the shift is three steps earlier: 6.12 ns. Before that it was 6.51 ns
 # (50 eighths of the 960 MHz VCO period; legal values are multiples of
 # 130.2 ps), 0.26 ns later than there: it was 6.90 while the address
 # registers sat in core logic, and with them in the IO cells (3 ns of slack)
@@ -42,6 +48,16 @@ set_multicycle_path -hold  2 -from [get_registers {*|sdram_ctrl:*|last[*]}] -to 
 set VID_OUT [get_registers {ic|vr_q[*] ic|vg_q[*] ic|vb_q[*] ic|vhs_q ic|vvs_q ic|vde_q}]
 set_multicycle_path -setup 3 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
 set_multicycle_path -hold  2 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
+
+# The Analogizer's sample of the same picture (pocket_analogizer.sv): h_pix
+# loads only when its enable, src_pix_ce delayed PIX_LAG (2) clocks, fires.
+# The syncs, DE and blanks change on cen_8m and the colour a clock before it
+# (clk_enables.sv), so every bit has at least two clocks to arrive -- the
+# bring-up panel's, combinational from the CPU's state, being the long one,
+# as it is into VID_OUT above.
+set ANA_PIX [get_registers {*|pocket_analogizer:*|h_pix[*]}]
+set_multicycle_path -setup 2 -to $ANA_PIX
+set_multicycle_path -hold  1 -to $ANA_PIX
 
 # PSRAM: an asynchronous interface driven by a state machine that holds every
 # pin for whole system cycles with tens of nanoseconds of margin
