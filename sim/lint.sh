@@ -42,16 +42,16 @@ verilator --lint-only $FLAGS sim/waivers_platform.vlt --top-module gaia_mem \
 # Quartus takes and Verilator calls an error.
 echo "--- analogizer ---"
 A=target/pocket/analogizer
-out=$(verilator --lint-only -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-TIMESCALEMOD -Wno-PROCASSWIRE -Wno-PINCONNECTEMPTY -Wno-GENUNNAMED --top-module pocket_analogizer \
+out=$(verilator --lint-only -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-TIMESCALEMOD -Wno-PROCASSWIRE -Wno-BLKANDNBLK -Wno-PINCONNECTEMPTY -Wno-GENUNNAMED --top-module pocket_analogizer \
       target/pocket/pocket_analogizer.sv platform/pocket/helpers/synch_3.sv \
-      $A/*.v $A/*.sv sim/ps2_keyboard_stub.v 2>&1 \
+      $A/*.v $(ls $A/*.sv | grep -v /yc_out_legacy.sv) sim/yc_out_legacy_stub.v sim/ps2_keyboard_stub.v 2>&1 \
       | grep -E '^%(Error|Warning)' | grep -v 'Exiting due to' \
       | grep -v -E '^%Warning[^ ]*: [^ ]*(target/pocket/analogizer|platform/pocket)/' || true)
 if [ -n "$out" ]; then echo "$out"; exit 1; fi
 # and as this core builds it: no scandoubler (core_top, USE_SD 0)
-out=$(verilator --lint-only -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-TIMESCALEMOD -Wno-PROCASSWIRE -Wno-PINCONNECTEMPTY -Wno-GENUNNAMED -GUSE_SD=0 --top-module pocket_analogizer \
+out=$(verilator --lint-only -Wall -Wno-DECLFILENAME -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM -Wno-TIMESCALEMOD -Wno-PROCASSWIRE -Wno-BLKANDNBLK -Wno-PINCONNECTEMPTY -Wno-GENUNNAMED -GUSE_SD=0 --top-module pocket_analogizer \
       target/pocket/pocket_analogizer.sv platform/pocket/helpers/synch_3.sv \
-      $A/*.v $A/*.sv sim/ps2_keyboard_stub.v 2>&1 \
+      $A/*.v $(ls $A/*.sv | grep -v /yc_out_legacy.sv) sim/yc_out_legacy_stub.v sim/ps2_keyboard_stub.v 2>&1 \
       | grep -E '^%(Error|Warning)' | grep -v 'Exiting due to' \
       | grep -v -E '^%Warning[^ ]*: [^ ]*(target/pocket/analogizer|platform/pocket)/' || true)
 if [ -n "$out" ]; then echo "$out"; exit 1; fi

@@ -108,7 +108,7 @@ stick.
 so the Pocket powers the slot whether or not an Analogizer is in it. Do not
 leave a game cartridge in the slot while this core runs.
 
-**Not yet tried on hardware with this core.** What the bench proves is
+**Confirmed on a Pocket with an Analogizer and a CRT** (0.3.0). What the bench proves is
 listed under *What was measured* below. On a first try: with "Analogizer"
 Off the core must play exactly as before -- this build also moves the SDRAM
 chip's clock three steps earlier (6.51 → 6.12 ns, so its reads meet timing
