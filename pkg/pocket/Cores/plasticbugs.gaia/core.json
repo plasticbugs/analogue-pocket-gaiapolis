@@ -9,8 +9,8 @@
       "description": "Gaiapolis (Konami, 1993) arcade core",
       "author": "plasticbugs",
       "url": "https://github.com/plasticbugs/analogue-pocket-gaiapolis",
-      "version": "0.3.0",
-      "date_release": "2026-09-12"
+      "version": "0.3.1",
+      "date_release": "2026-10-13"
     },
     "framework": {
       "target_product": "Analogue Pocket",
