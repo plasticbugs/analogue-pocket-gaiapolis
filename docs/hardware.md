@@ -126,7 +126,14 @@ Z-code order (ascending or descending per OPSET bit 4 of register 0x0c).
 * Tile map comes from ROM region `gfx4` (512 KB), not RAM:
   * `dat1 = gfx4 + 0`, `dat2 = gfx4 + 0x20000`, `dat3 = gfx4 + 0x60000`
   * `tile = dat3[i] | ((dat2[i] & 0x3f) << 8)`
-  * `colour = (i & 1) ? (dat1[i>>1] & 0xf) : (dat1[i>>1] >> 4) & 0xf`, `|= 0x10 if dat2[i] & 0x80`
+  * `colour = (i & 1) ? (dat1[i>>1] >> 4) & 0xf : dat1[i>>1] & 0xf`, `|= 0x10 if dat2[i] & 0x80`.
+    The even tile is the **low** nibble of its byte, the odd tile the high one.
+    MAME's `get_gai_936_tile_info` has them swapped (MAME Testers 00231, the
+    dark squares beside the world map's place names and routes, and off-colour
+    edge tiles in the intro's flight); a PCB recording shows neither, and read
+    this way every label and route of the map is one clean run of its colour.
+    `tools/render_model.py --roz-nibbles=mame` renders MAME's order, which
+    `tools/regress_render.sh` uses to stay pixel-exact against MAME's snapshots.
 * Tile chars come from `gfx3` (1.5 MB), **4bpp 16×16, packed MSB**.
 * Per-line transform from the 4 KB line RAM at `470000`; global control at `460000`.
 * Clip window from `484000`: `minx = clip_x << 7`, size 1/2/4 × 128 px.
@@ -182,6 +189,17 @@ Z80 @ 8 MHz, banked:
 * PCM sample ROM: 4 MB (`k054539` region), shared by both chips.
 * MAME applies per-channel gain fix-ups at reset for this driver (chip 1 ch 0–3
   ×0.8, ch 4–7 ×2.0 for mystwarr; gaiapolis uses the `gaiapols` reset override).
+* Stereo: MAME routes each chip's output 0 to the **right** speaker and output 1
+  to the left ("stereo channels are inverted", `mystwarr.cpp`); the MiSTer port's
+  comparison with MAME's own audio confirms it (0.97 correlation with the swap,
+  0.4–0.66 without). The two chips' sum saturates as MAME's stream clips.
+* K054539 details that matter for this game's music (from the MiSTer port, which
+  measured them against MAME's audio): 16-bit PCM steps two bytes a sample from
+  whatever address the channel has, odd or not; with `0x22f` bit 0 set (MAME's
+  `UPDATE_AT_KEYON`) a write to a channel's position registers is latched and
+  only copied in by that channel's key-on, so programming the next note while
+  the last still sounds does not restart it; the reverb ring index adds the
+  position twice (`rbase[(rdelta + pos) & 0x1fff]` with `rdelta = delay + pos`).
 
 ## 8. Inputs
 

@@ -3,8 +3,10 @@
 Gaiapolis (Konami, 1993) on Konami "pre-GX" GX123 hardware, for the Analogue
 Pocket via openFPGA/opengateware.
 
-**Status: release v0.2.1 -- the game runs on the Pocket, rotating and zooming
-backgrounds included, the three renderers sharing the memory cleanly.** The whole machine
+**Status: release v0.3.2 -- the game runs on the Pocket, rotating and zooming
+backgrounds included, the three renderers sharing the memory cleanly; the
+Analogizer gives it a CRT; the world map's colours and the K054539's music
+follow the board (fixes from the MiSTer port).** The whole machine
 is in gateware: the 68000 and the Z80 sound board with its two K054539s, the
 ER5911 EEPROM, the K054000, and the video chain (K056832 tilemaps, K053936
 rotating plane, K053247 sprites, K055555 mixer). It boots through its
@@ -163,6 +165,17 @@ other people's work.
 * **GHDL** -- converts the vendored TG68K.C VHDL kernel to Verilog
   (`modules/cpu-tg68k/gen/`) so one source feeds both Quartus and Verilator
 * **Verilator** -- every simulation bench in `sim/`
+
+**Fixes taken from the MiSTer port.** decoryah's
+[Arcade-Gaiapolis_MiSTer](https://github.com/decoryah/Arcade-Gaiapolis_MiSTer)
+carries this core's RTL to the MiSTer and measured it against a real board
+and MAME's audio. Two of its findings are back here: the ROZ plane's colour
+nibbles are the other way round from MAME's reading (the world map's dark
+squares, `rtl/k053936_roz.sv`), and the K054539 follows MAME's chip more
+closely (`rtl/k054539.sv`, `rtl/gaia_sound.sv`: 16-bit PCM stepping, the
+key-on position latch, the reverb index, a saturating sum, MAME's stereo
+routing). Its other additions (board 59.88 Hz timing, the 054573 DAC colour
+curve, CRT Adjust, Flip Screen, Scale) are MiSTer options not ported yet.
 
 **Vendored cores** (`modules/`, see `modules/VENDOR.md`)
 
