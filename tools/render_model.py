@@ -12,7 +12,8 @@ ROT90 so MAME's snapshot is 224 wide by 376 tall.
 
 Usage:
     render_model.py <state.txt> <rom> [--layers=A,B,C,D,OBJ,SUB1] [--out out.png]
-                    [--ref mame.png] [--diff diff.png]
+                    [--ref mame.png] [--diff diff.png] [--roz-nibbles=mame]
+    --roz-nibbles=mame reads the ROZ colour nibbles MAME's (swapped) way, to match its snapshots.
 """
 import sys, os
 
@@ -262,11 +263,22 @@ def render_tilemap(st, roms, layer, pix, fb, pri, layer_pri):
 # ------------------------------------------------------------------ ROZ
 # K053936-class PSAC2 plane, driven through the K053936GP_* helpers in
 # MAME's k053936.cpp. Virtual plane is 512x512 tiles of 16x16 = 8192x8192.
+# --roz-nibbles=mame reads the ROZ colour nibbles MAME's way (the odd tile low, the
+# even tile high), for comparing against MAME snapshots; the default is the PCB's.
+ROZ_NIBBLES_MAME = False
+
+
 def roz_tile(st, roms, ti):
-    """-> (tile number, colour) for tilemap index ti, per get_gai_936_tile_info"""
+    """-> (tile number, colour) for tilemap index ti, per get_gai_936_tile_info,
+    except that the colour nibbles are read the PCB's way: the even tile is the
+    low nibble of its byte, the odd tile the high one (MAME has them swapped;
+    that is MAME Testers 00231, the dark squares on the world map)."""
     d1, d2, d3 = roms.roz_map(ti)
     tileno = d3 | ((d2 & 0x3f) << 8)
-    colour = (d1 & 0x0f) if (ti & 1) else ((d1 >> 4) & 0x0f)
+    if ROZ_NIBBLES_MAME:                 # --roz-nibbles=mame: MAME's swapped order
+        colour = (d1 & 0x0f) if (ti & 1) else ((d1 >> 4) & 0x0f)
+    else:
+        colour = ((d1 >> 4) & 0x0f) if (ti & 1) else (d1 & 0x0f)
     if d2 & 0x80:
         colour |= 0x10
     colour |= st.k55regs[K55_PALBASE_SUB1] << 4
@@ -801,6 +813,9 @@ def main():
     if 'roz-exact' in [a[2:] for a in sys.argv[1:] if a.startswith('--')]:
         global ROZ_MAME_SHIFT
         ROZ_MAME_SHIFT = False
+    if opts.get('roz-nibbles') == 'mame':
+        global ROZ_NIBBLES_MAME
+        ROZ_NIBBLES_MAME = True
     layers = set((opts.get('layers') or 'A,B,C,D,OBJ,SUB1').split(','))
 
     dumprgb = opts.get('dump-rgb')

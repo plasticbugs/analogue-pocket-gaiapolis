@@ -24,7 +24,11 @@ for st in artifacts/states/*.txt; do
         *_obj) layers=OBJ ;;
         *) layers=A,B,C,D,OBJ,SUB1 ;;   # full frame through the mixer
     esac
-    out=$(python3 tools/render_model.py "$st" "$ROM" --layers="$layers" \
+    # --roz-nibbles=mame: the snapshots are MAME's, and MAME reads the ROZ colour
+    # nibbles the wrong way round (MAME Testers 00231, the dark squares on the
+    # world map); the renderer's default is the PCB's order, which sim/run_roz.sh
+    # holds the RTL to. Here it renders MAME's way so the gate stays pixel-exact.
+    out=$(python3 tools/render_model.py "$st" "$ROM" --layers="$layers" --roz-nibbles=mame \
             --out="artifacts/render/$name.png" --ref="$ref" \
             --diff="artifacts/render/${name}_diff.png" | grep differing)
     n=$(echo "$out" | sed 's/.*differing pixels: \([0-9]*\) .*/\1/')

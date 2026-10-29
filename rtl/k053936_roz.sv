@@ -163,7 +163,14 @@ module k053936_roz #(
         return r;
     endfunction
     wire [6:0] ent_now = enc(match);
-    wire [3:0] nib_now = ti[0] ? d1[3:0] : d1[7:4];
+    // The colour nibbles are packed two tiles per byte: the even tile is the
+    // LOW nibble, the odd tile the high one. MAME's get_gai_936_tile_info,
+    // and this core after it, had them the other way round, which only shows
+    // where the colour changes between the two tiles of a byte: on the world
+    // map every place name and route line had a tile of the neighbour's
+    // palette on its edges (dark squares while a route is unlit), and the
+    // intro's flight had off-colour edge tiles. A PCB recording has neither.
+    wire [3:0] nib_now = ti[0] ? d1[7:4] : d1[3:0];
 
     always_ff @(posedge clk)
         for (int i = 0; i < NENT; i++) match[i] <= valid[i] && (tag[i] == ti_now);
